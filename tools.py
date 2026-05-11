@@ -1,0 +1,59 @@
+from ursina import Entity, color, invoke, curve
+
+arm = None
+axe = None
+pickaxe = None
+hoe = None
+hammer = None
+
+
+def setup_tools():
+    global arm, axe, pickaxe, hoe, hammer
+    arm = Entity(model='cube', color=color.brown, scale=(0.3, 1, 0.3),
+                 position=(0.7, -0.6, 1.5), rotation=(20, -30, 0), parent=None, enabled=True)
+    axe = Entity(position=(0.7, -0.6, 1.5), rotation=(0, 0, 0), parent=None, enabled=False)
+    _make_axe_on_parent(axe)
+    pickaxe = Entity(position=(0.7, -0.6, 1.5), rotation=(0, 0, 0), parent=None, enabled=False)
+    _make_pick_on_parent(pickaxe)
+    hoe = Entity(position=(0.7, -0.6, 1.5), rotation=(0, 0, 0), parent=None, enabled=False)
+    _make_hoe_on_parent(hoe)
+    hammer = Entity(position=(0.7, -0.6, 1.5), rotation=(0, 0, 0), parent=None, enabled=False)
+    _make_hammer_on_parent(hammer)
+
+
+def _make_axe_on_parent(parent_entity):
+    Entity(model='cube', color=color.brown, scale=(0.2, 0.8, 0.2), parent=parent_entity, position=(0, 0, 0))
+    Entity(model='cube', color=color.gray, scale=(0.2, 0.3, 0.75), parent=parent_entity, position=(0, 0.5, 0.25))
+
+
+def _make_pick_on_parent(parent_entity):
+    Entity(model='cube', color=color.brown, scale=(0.2, 0.8, 0.2), parent=parent_entity, position=(0, 0, 0))
+    Entity(model='cube', color=color.gray, scale=(0.2, 0.2, 0.8), parent=parent_entity, position=(0, 0.5, 0))
+    Entity(model='cube', color=color.gray, scale=(0.25, 0.125, 0.25), parent=parent_entity, position=(0, 0.4, 0.35))
+    Entity(model='cube', color=color.gray, scale=(0.25, 0.125, 0.25), parent=parent_entity, position=(0, 0.4, -0.35))
+
+
+def _make_hoe_on_parent(parent_entity):
+    Entity(model='cube', color=color.brown, scale=(0.18, 0.8, 0.18), parent=parent_entity, position=(0, 0, 0))
+    Entity(model='cube', color=color.gray, scale=(0.5, 0.15, 0.3), parent=parent_entity, position=(0, 0.45, 0))
+
+
+def _make_hammer_on_parent(parent_entity):
+    Entity(model='cube', color=color.gray, scale=(0.2, 0.8, 0.2), parent=parent_entity, position=(0, 0, 0))
+    Entity(model='cube', color=color.black, scale=(0.3, 0.1, 0.4), parent=parent_entity, position=(0, 0.5, 0))
+
+
+def set_active_item(item_type):
+    arm.enabled = (item_type is None)
+    axe.enabled = (item_type == "axe")
+    pickaxe.enabled = (item_type == "pickaxe")
+    hoe.enabled = (item_type == "hoe")
+    hammer.enabled = (item_type == "hammer")
+
+
+def swing_item(item_entity):
+    if item_entity is None:
+        return
+    item_entity.animate_rotation((120, 0, 0), duration=0.15, curve=curve.linear)
+    from ursina import invoke
+    invoke(lambda: item_entity.animate_rotation((0, 0, 0), duration=0.15), delay=0.15)
