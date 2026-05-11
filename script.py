@@ -56,6 +56,10 @@ def select_slot(index):
     inventory.update_inventory_ui()
 
 
+def snap_to_grid(position):
+    return Vec3(round(position.x), position.y, round(position.z))
+
+
 select_slot(0)
 
 MAX_PLACE_DISTANCE = 20
@@ -106,17 +110,39 @@ def update():
     elif tools.hammer.enabled:
         fields.field_preview.enabled = False
         # Building preview logic
-        hit = raycast(camera.world_position, camera.forward, distance=MAX_PLACE_DISTANCE, ignore=(world.player, buildings.building_preview))
-        if hit.hit and hit.entity == world.ground:
-            pos = Vec3(hit.point.x, hit.point.y + 0.5, hit.point.z)
-            # Check for overlaps with existing buildings
-            overlap = False
-            for b in buildings.buildings:
-                if abs(b["position"].x - pos.x) < 2 and abs(b["position"].z - pos.z) < 2:
-                    overlap = True
-                    break
-            buildings.update_building_preview(pos, not overlap)
+        origin = camera.world_position
+        direction = camera.forward
+        hit = raycast(origin=origin, direction=direction, distance=MAX_PLACE_DISTANCE, ignore=(world.player, buildings.building_preview, world.player_model, tools.hammer))
+        entity_name = getattr(hit.entity, 'name', None) if hit.entity else None
+        preview = buildings.building_preview
+        preview_parent = getattr(preview, 'parent', None)
+        print(
+            f"DEBUG: camera.world_position={origin}, camera.forward={direction}, "
+            f"preview.exists={preview is not None}, preview.enabled={preview.enabled}, "
+            f"preview.position={preview.position}, preview.world_position={preview.world_position}, "
+            f"preview.parent={preview_parent}, preview.local_position={preview.position}"
+        )
+        print(
+            f"DEBUG: raycast hit={hit.hit}, entity={hit.entity}, type={type(hit.entity)}, repr={repr(hit.entity)}, "
+            f"entity_name={entity_name}, distance={getattr(hit, 'distance', None)}, point={hit.point}"
+        )
+        hit_ground = False
+        if hit.hit:
+            if hit.entity == world.ground or entity_name == 'ground':
+                hit_ground = True
+            elif hit.point is not None and abs(hit.point.y) < 0.8:
+                hit_ground = True
+        if hit_ground:
+            target_point = snap_to_grid(hit.point)
+            preview_pos = Vec3(target_point.x, buildings.get_current_building()["size"][1] / 2, target_point.z)
+            valid = buildings.can_place_building(preview_pos)
+            buildings.update_building_preview(preview_pos, valid)
+            print(
+                f"DEBUG SET: preview_pos={preview_pos}, snapped={target_point}, "
+                f"preview.position after update={preview.position}, preview.world_position after update={preview.world_position}, enabled={preview.enabled}"
+            )
         else:
+            print("DEBUG: Hammer preview hidden: no ground hit or wrong entity")
             buildings.hide_building_preview()
     else:
         fields.field_preview.enabled = False
@@ -220,6 +246,41 @@ def input(key):
                     inventory.show_message("Field created", 1.2)
                 else:
                     inventory.show_message("Field already exists here", 1.2)
+        elif tools.hammer.enabled:
+            print("Input detected: LEFT CLICK with hammer")
+            tools.swing_item(tools.hammer)
+            if buildings.building_preview.enabled:
+                preview_pos = buildings.building_preview.position
+                if buildings.can_place_building(preview_pos):
+                    buildings.place_building(preview_pos)
+                    buildings.hide_building_preview()
+                    inventory.show_message("Building placed", 1.5)
+                else:
+                    inventory.show_message("Cannot place building here", 1.5)
+        return
+
+    if key == 'r' and tools.hammer.enabled:
+        print("Input detected: R - rotate building")
+        buildings.rotate_building()
+        if buildings.building_preview.enabled:
+            valid = buildings.can_place_building(buildings.building_preview.position)
+            buildings.update_building_preview(buildings.building_preview.position, valid)
+        return
+
+    if key == 'z' and tools.hammer.enabled:
+        print("Input detected: Z - previous building")
+        buildings.prev_building()
+        if buildings.building_preview.enabled:
+            valid = buildings.can_place_building(buildings.building_preview.position)
+            buildings.update_building_preview(buildings.building_preview.position, valid)
+        return
+
+    if key == 'x' and tools.hammer.enabled:
+        print("Input detected: X - next building")
+        buildings.next_building()
+        if buildings.building_preview.enabled:
+            valid = buildings.can_place_building(buildings.building_preview.position)
+            buildings.update_building_preview(buildings.building_preview.position, valid)
         return
 
 

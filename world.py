@@ -21,7 +21,8 @@ def create_world():
         model='plane',
         scale=(GROUND_SIZE, 1, GROUND_SIZE),
         color=color.rgb(0, 80, 0),
-        collider='mesh'
+        collider='box',
+        name='ground'
     )
 
     player = FirstPersonController()
