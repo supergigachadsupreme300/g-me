@@ -5,10 +5,11 @@ axe = None
 pickaxe = None
 hoe = None
 hammer = None
+sword = None
 
 
 def setup_tools():
-    global arm, axe, pickaxe, hoe, hammer
+    global arm, axe, pickaxe, hoe, hammer, sword
     arm = Entity(model='cube', color=color.brown, scale=(0.3, 1, 0.3),
                  position=(0.7, -0.6, 1.5), rotation=(20, -30, 0), parent=None, enabled=True)
     axe = Entity(position=(0.7, -0.6, 1.5), rotation=(0, 0, 0), parent=None, enabled=False)
@@ -19,6 +20,8 @@ def setup_tools():
     _make_hoe_on_parent(hoe)
     hammer = Entity(position=(0.7, -0.6, 1.5), rotation=(0, 0, 0), parent=None, enabled=False)
     _make_hammer_on_parent(hammer)
+    sword = Entity(position=(0.7, -0.6, 1.5), rotation=(0, 0, 0), parent=None, enabled=False)
+    _make_sword_on_parent(sword)
 
 
 def _make_axe_on_parent(parent_entity):
@@ -43,12 +46,19 @@ def _make_hammer_on_parent(parent_entity):
     Entity(model='cube', color=color.black, scale=(0.3, 0.1, 0.4), parent=parent_entity, position=(0, 0.5, 0))
 
 
+def _make_sword_on_parent(parent_entity):
+    Entity(model='cube', color=color.gray, scale=(0.1, 0.4, 0.1), parent=parent_entity, position=(0, 0, 0))
+    Entity(model='cube', color=color.white, scale=(0.05, 1, 0.3), parent=parent_entity, position=(0, 0.7, 0))
+    Entity(model='cube', color=color.gold, scale=(0.2, 0.05, 0.2), parent=parent_entity, position=(0, 0.25, 0))
+
+
 def set_active_item(item_type):
     arm.enabled = (item_type is None)
     axe.enabled = (item_type == "axe")
     pickaxe.enabled = (item_type == "pickaxe")
     hoe.enabled = (item_type == "hoe")
     hammer.enabled = (item_type == "hammer")
+    sword.enabled = (item_type == "sword")
 
 
 def swing_item(item_entity):
