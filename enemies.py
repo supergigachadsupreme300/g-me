@@ -1,4 +1,5 @@
 from ursina import Entity, color, Vec3, raycast, destroy, load_model, load_texture, time
+from math import atan2, degrees
 import time as pytime
 import random
 import world
@@ -7,18 +8,19 @@ import buildings
 import items
 
 # load rat texture from available assets
-rat_texture = None
-for path in ['texture/rat_texture.png', 'texture/rat_grey.tga', 'texture/rat_khaki.tga', 'texture/rat_bege_psd.psd']:
+rat_texture = []
+for path in ['texture/rat_grey.png', 'texture/rat_khaki.png', 'texture/rat_bege_psd.png']:
     try:
-        rat_texture = load_texture(path)
-        if rat_texture:
-            print(f"Loaded rat texture from: {path}")
-            break
-    except Exception:
-        rat_texture = None
+        tex = load_texture(path)
+        if tex:
+            rat_texture.append(tex)
+            print(f"Loaded texture: {path}")
+    except Exception as e:
+        print(f"Failed loading rat texture {path}: {e}")
 
-if rat_texture is None:
-    rat_texture = color.rgb(120, 80, 40)
+if not rat_texture:
+    rat_texture = [color.rgb(120, 80, 40)]  # fallback màu nâu
+
 
 enemies = []
 
@@ -26,6 +28,7 @@ SEARCH_WHEAT = 'SEARCH_WHEAT'
 MOVE_TO_TARGET = 'MOVE_TO_TARGET'
 ATTACK_OBSTACLE = 'ATTACK_OBSTACLE'
 ATTACK_WHEAT = 'ATTACK_WHEAT'
+FLEE_PLAYER = 'FLEE_PLAYER'
 DEAD = 'DEAD'
 
 
@@ -58,23 +61,38 @@ def find_enemy_by_entity(entity):
 
 class Rat:
     def __init__(self, position):
+        position = Vec3(position.x, 0.0, position.z)
         try:
             rat_model = load_model('model/rat.fbx')
         except Exception as e:
             print(f"Failed to load rat model: {e}. Using fallback cube.")
             rat_model = 'cube'
-        self.entity = Entity(model=rat_model, color=color.rgb(120, 80, 40), scale=(0.8, 0.8, 0.8), position=position, collider='box')
-        if hasattr(rat_texture, 'width'):
-            self.entity.texture = rat_texture
+        texture_choice = random.choice(rat_texture)
+        entity_kwargs = {
+            'model': rat_model,
+            'scale': (0.8, 0.8, 0.8),
+            'position': position,
+            'collider': 'box'
+        }
+        if hasattr(texture_choice, 'width'):
+            entity_kwargs['texture'] = texture_choice
+            entity_kwargs['color'] = color.white
+        else:
+            entity_kwargs['color'] = texture_choice
+        self.entity = Entity(**entity_kwargs)
+        self.entity.y = self.entity.scale_y / 2
+        self.velocity_y = 0
         self.health_bar = Entity(model='cube', color=color.red, scale=(0.5, 0.05, 0.05), parent=self.entity, position=(0, 0.8, 0), origin=(0, 0))
         self.state = SEARCH_WHEAT
         self.target_field = None
         self.target_building = None
         self.wander_target = None
         self.wander_timer = pytime.time()
+        self.flee_target = None
+        self.flee_timer = 0
         self.hp = 15
         self.max_hp = 15
-        self.speed = 2.0
+        self.speed = 2.2
         self.attack_damage = 4
         self.attack_cooldown = 1.0
         self.last_attack_time = 0
@@ -91,11 +109,18 @@ class Rat:
         self.wander_target = Vec3(x, self.entity.y, z)
         self.wander_timer = pytime.time()
 
+    def face_direction(self, direction):
+        if direction.length() == 0:
+            return
+        angle = degrees(atan2(direction.x, direction.z))
+        self.entity.rotation_y = angle
+
     def wander(self):
         if self.wander_target is None or (self.wander_target - self.entity.position).length() < 0.5 or pytime.time() - self.wander_timer > 8:
             self.pick_wander_target()
         direction = (self.wander_target - self.entity.position)
         if direction.length() > 0:
+            self.face_direction(direction)
             self.entity.position += direction.normalized() * self.speed * time.dt
 
     def update(self):
@@ -110,6 +135,18 @@ class Rat:
                 self.state = MOVE_TO_TARGET
             else:
                 self.wander()
+            return
+
+        if self.state == FLEE_PLAYER:
+            if self.flee_target is None or pytime.time() - self.flee_timer > 3:
+                self.state = SEARCH_WHEAT
+                return
+            direction = (self.flee_target - self.entity.position)
+            if direction.length() > 0.5:
+                self.face_direction(direction)
+                self.entity.position += direction.normalized() * self.speed * time.dt * 1.2
+            else:
+                self.state = SEARCH_WHEAT
             return
 
         if self.state == MOVE_TO_TARGET:
@@ -129,6 +166,7 @@ class Rat:
                 if self.target_building:
                     self.state = ATTACK_OBSTACLE
                     return
+            self.face_direction(direction)
             self.entity.position += direction * self.speed * time.dt
             return
 
@@ -147,10 +185,14 @@ class Rat:
             if not self.target_field or not self.target_field["rice_planted"] or self.target_field["rice_hp"] <= 0:
                 self.state = SEARCH_WHEAT
                 return
-            distance = (Vec3(self.target_field["pos"].x, self.entity.y, self.target_field["pos"].z) - self.entity.position).length()
+            target_position = Vec3(self.target_field["pos"].x, self.entity.y, self.target_field["pos"].z)
+            distance = (target_position - self.entity.position).length()
             if distance > 1.2:
                 self.state = MOVE_TO_TARGET
                 return
+            direction = (target_position - self.entity.position)
+            if direction.length() > 0:
+                self.face_direction(direction)
             if pytime.time() - self.last_attack_time >= self.attack_cooldown:
                 self.target_field["rice_hp"] -= self.attack_damage
                 self.last_attack_time = pytime.time()
@@ -164,6 +206,14 @@ class Rat:
         self.health_bar.scale_x = max(0, self.hp / self.max_hp) * 0.5
         if self.hp <= 0:
             self.die()
+            return
+        self.state = FLEE_PLAYER
+        player_pos = world.player.position
+        away = (self.entity.position - player_pos)
+        if away.length() == 0:
+            away = Vec3(random.uniform(-1, 1), 0, random.uniform(-1, 1))
+        self.flee_target = self.entity.position + away.normalized() * 6
+        self.flee_timer = pytime.time()
 
     def die(self):
         self.state = DEAD
@@ -177,6 +227,7 @@ class Rat:
 
 def spawn_rat(position):
     rat = Rat(position)
+    rat.entity.texture = random.choice(rat_texture)
     enemies.append(rat)
     return rat
 
