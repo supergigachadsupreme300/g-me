@@ -108,42 +108,47 @@ def update():
         fields.field_preview.enabled = True
 
     elif tools.hammer.enabled:
+
         fields.field_preview.enabled = False
-        # Building preview logic
+
+        point = None
+
         origin = camera.world_position
         direction = camera.forward
-        hit = raycast(origin=origin, direction=direction, distance=MAX_PLACE_DISTANCE, ignore=(world.player, buildings.building_preview, world.player_model, tools.hammer))
-        entity_name = getattr(hit.entity, 'name', None) if hit.entity else None
-        preview = buildings.building_preview
-        preview_parent = getattr(preview, 'parent', None)
-        print(
-            f"DEBUG: camera.world_position={origin}, camera.forward={direction}, "
-            f"preview.exists={preview is not None}, preview.enabled={preview.enabled}, "
-            f"preview.position={preview.position}, preview.world_position={preview.world_position}, "
-            f"preview.parent={preview_parent}, preview.local_position={preview.position}"
-        )
-        print(
-            f"DEBUG: raycast hit={hit.hit}, entity={hit.entity}, type={type(hit.entity)}, repr={repr(hit.entity)}, "
-            f"entity_name={entity_name}, distance={getattr(hit, 'distance', None)}, point={hit.point}"
-        )
-        hit_ground = False
-        if hit.hit:
-            if hit.entity == world.ground or entity_name == 'ground':
-                hit_ground = True
-            elif hit.point is not None and abs(hit.point.y) < 0.8:
-                hit_ground = True
-        if hit_ground:
-            target_point = snap_to_grid(hit.point)
-            preview_pos = Vec3(target_point.x, buildings.get_current_building()["size"][1] / 2, target_point.z)
-            valid = buildings.can_place_building(preview_pos)
-            buildings.update_building_preview(preview_pos, valid)
-            print(
-                f"DEBUG SET: preview_pos={preview_pos}, snapped={target_point}, "
-                f"preview.position after update={preview.position}, preview.world_position after update={preview.world_position}, enabled={preview.enabled}"
-            )
-        else:
-            print("DEBUG: Hammer preview hidden: no ground hit or wrong entity")
+
+        # Find where camera ray hits ground plane (y = 0)
+        if abs(direction.y) > 0.0001:
+
+            t = -origin.y / direction.y
+
+            if 0 < t <= MAX_PLACE_DISTANCE:
+                point = origin + direction * t
+
+        # No valid ground intersection
+        if point is None:
             buildings.hide_building_preview()
+            return
+
+        # Keep inside world bounds
+        if abs(point.x) > world.GROUND_HALF or abs(point.z) > world.GROUND_HALF:
+            buildings.hide_building_preview()
+            return
+
+        snapped = snap_to_grid(point)
+
+        rotated_size = buildings.get_rotated_size(
+            buildings.get_current_building()
+        )
+
+        preview_pos = Vec3(
+            snapped.x,
+            rotated_size[1] / 2,
+            snapped.z
+        )
+
+        valid = buildings.can_place_building(preview_pos)
+
+        buildings.update_building_preview(preview_pos, valid)    
     else:
         fields.field_preview.enabled = False
         buildings.hide_building_preview()
