@@ -15,7 +15,7 @@ current_rotation = 0
 
 def setup_building_system():
     global building_preview
-    building_preview = Entity(model='cube', color=color.green, scale=(1, 1, 1), parent=None, enabled=False)
+    building_preview = Entity(model='cube', color=color.green, scale=(1, 1, 1), enabled=False)
 
 
 def get_current_building():
