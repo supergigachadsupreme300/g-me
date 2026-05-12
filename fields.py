@@ -1,4 +1,4 @@
-from ursina import Entity, Vec3, color, invoke, curve
+from ursina import Entity, Vec3, color, invoke, curve, destroy
 import random
 from items import spawn_ground_item
 from config import DIRT_TEXTURE
@@ -14,7 +14,8 @@ def create_field(pos):
         "pos": Vec3(pos.x, 0.1, pos.z),
         "rice_planted": False,
         "rice_stage": 0,
-        "rice_nodes": []
+        "rice_nodes": [],
+        "rice_hp": 0
     })
     return root
 
@@ -56,6 +57,7 @@ def plant_rice_on_field(field_data):
 
     field_data["rice_planted"] = True
     field_data["rice_stage"] = 1
+    field_data["rice_hp"] = 20
     field_data["rice_nodes"] = []
 
     num_patches = random.randint(4, 5)
@@ -78,3 +80,12 @@ def plant_rice_on_field(field_data):
     _update_rice_patch(field_data, 1)
     invoke(lambda: advance_rice_growth(field_data), delay=4)
     return True
+
+
+def destroy_rice(field_data):
+    for patch in field_data["rice_nodes"]:
+        destroy(patch)
+    field_data["rice_nodes"] = []
+    field_data["rice_planted"] = False
+    field_data["rice_stage"] = 0
+    field_data["rice_hp"] = 0

@@ -18,9 +18,13 @@ import items
 import fields
 import tools
 import buildings
+import enemies
 
 app = Ursina()
 application.development_mode = False
+mouse.locked = True
+mouse.visible = False
+window.exit_button.visible = False
 
 world.create_world()
 tools.setup_tools()
@@ -31,20 +35,36 @@ tools.axe.parent = camera
 tools.pickaxe.parent = camera
 tools.hoe.parent = camera
 tools.hammer.parent = camera
+tools.sword.parent = camera
 
 tools.arm.position = (0.7, -0.6, 1.5)
 tools.axe.position = (0.7, -0.6, 1.5)
 tools.pickaxe.position = (0.7, -0.6, 1.5)
 tools.hoe.position = (0.7, -0.6, 1.5)
 tools.hammer.position = (0.7, -0.6, 1.5)
+tools.sword.position = (0.7, -0.6, 1.5)
 
 items.spawn_ground_item("axe", Vec3(0, 1, 0))
 items.spawn_ground_item("pickaxe", Vec3(2, 1, 0))
 items.spawn_ground_item("hoe", Vec3(-2, 1, 0))
 items.spawn_ground_item("hammer", Vec3(6, 1, 0))
 items.spawn_ground_item("seed", Vec3(4, 1, 0))
+items.spawn_ground_item("sword", Vec3(8, 1, 0))
 
 inventory.update_inventory_ui()
+
+def spawn_rats_on_edge(count=4):
+    for i in range(count):
+        edge = world.GROUND_HALF - 2
+        if random.random() < 0.5:
+            x = random.choice([-edge, edge])
+            z = random.uniform(-edge, edge)
+        else:
+            x = random.uniform(-edge, edge)
+            z = random.choice([-edge, edge])
+        enemies.spawn_rat(Vec3(x, 1, z))
+
+spawn_rats_on_edge(4)
 
 crosshair = Entity(parent=camera, model='quad', color=color.white, scale=0.01, position=(0, 0, 1.2))
 
@@ -153,6 +173,7 @@ def update():
         fields.field_preview.enabled = False
         buildings.hide_building_preview()
 
+    enemies.update_enemies()
 
 
 def input(key):
@@ -251,6 +272,16 @@ def input(key):
                     inventory.show_message("Field created", 1.2)
                 else:
                     inventory.show_message("Field already exists here", 1.2)
+        elif tools.sword.enabled:
+            tools.swing_item(tools.sword)
+            hit_info = raycast(camera.world_position, camera.forward, distance=3)
+            if hit_info.hit:
+                enemy = enemies.find_enemy_by_entity(hit_info.entity)
+                if enemy:
+                    enemy.take_damage(6)
+                    inventory.show_message(f"Hit {enemy.__class__.__name__}", 1.5)
+                    return
+            inventory.show_message("Missed the attack", 1.0)
         elif tools.hammer.enabled:
             print("Input detected: LEFT CLICK with hammer")
             tools.swing_item(tools.hammer)

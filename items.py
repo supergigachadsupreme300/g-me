@@ -20,6 +20,10 @@ def spawn_ground_item(item_type, position):
     elif item_type == "hammer":
         Entity(model='cube', color=color.gray, scale=(0.2, 0.8, 0.2), parent=root, position=(0, 0, 0))
         Entity(model='cube', color=color.black, scale=(0.3, 0.1, 0.4), parent=root, position=(0, 0.5, 0))
+    elif item_type == "sword":
+        Entity(model='cube', color=color.gray, scale=(0.1, 0.4, 0.1), parent=root, position=(0, 0, 0))
+        Entity(model='cube', color=color.white, scale=(0.05, 1, 0.3), parent=root, position=(0, 0.7, 0))
+        Entity(model='cube', color=color.gold, scale=(0.2, 0.05, 0.2), parent=root, position=(0, 0.25, 0))
     elif item_type == "wood":
         Entity(model='cube', color=WOOD_TEXTURE, scale=(0.6, 0.2, 0.2), parent=root, position=(0, 0.3, 0))
     elif item_type == "stone":
