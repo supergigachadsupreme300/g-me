@@ -231,6 +231,21 @@ def input(key):
                         inventory.show_message("Rice is already growing here", 1.5)
             return
 
+        if inventory.inventory[inventory.selected_slot] == "fertilizer":
+            hit_info = raycast(camera.world_position, camera.forward, distance=MAX_PLACE_DISTANCE)
+            if hit_info.hit:
+                field_data = fields.find_field_by_entity(hit_info.entity)
+                if field_data and field_data["rice_planted"] and field_data["rice_hp"] > 0:
+                    field_data["rice_hp"] = min(20, field_data["rice_hp"] + 5)
+                    fields.update_rice_health_bar(field_data)
+                    inventory.inventory[inventory.selected_slot] = None
+                    select_slot(inventory.selected_slot)
+                    inventory.update_inventory_ui()
+                    inventory.show_message("Rice healed with fertilizer", 1.5)
+                else:
+                    inventory.show_message("No rice to fertilize here", 1.5)
+            return
+
         if tools.axe.enabled:
             tools.swing_item(tools.axe)
             hit_info = raycast(camera.world_position, camera.forward, distance=3)
