@@ -1,4 +1,4 @@
-from ursina import Entity, color, invoke, curve
+from ursina import Entity, color, invoke, curve, load_texture
 
 arm = None
 axe = None
@@ -6,10 +6,12 @@ pickaxe = None
 hoe = None
 hammer = None
 sword = None
+gun = None
+fertilizer = None
 
 
 def setup_tools():
-    global arm, axe, pickaxe, hoe, hammer, sword
+    global arm, axe, pickaxe, hoe, hammer, sword, gun, fertilizer
     arm = Entity(model='cube', color=color.brown, scale=(0.3, 1, 0.3),
                  position=(0.7, -0.6, 1.5), rotation=(20, -30, 0), parent=None, enabled=True)
     axe = Entity(position=(0.7, -0.6, 1.5), rotation=(0, 0, 0), parent=None, enabled=False)
@@ -22,6 +24,10 @@ def setup_tools():
     _make_hammer_on_parent(hammer)
     sword = Entity(position=(0.7, -0.6, 1.5), rotation=(0, 0, 0), parent=None, enabled=False)
     _make_sword_on_parent(sword)
+    gun = Entity(position=(0.7, -0.6, 1.5), rotation=(0, 0, 0), parent=None, enabled=False)
+    _make_gun_on_parent(gun)
+    fertilizer = Entity(position=(0.7, -0.6, 1.5), rotation=(0, 0, 0), parent=None, enabled=False)
+    _make_fertilizer_on_parent(fertilizer)
 
 
 def _make_axe_on_parent(parent_entity):
@@ -52,6 +58,24 @@ def _make_sword_on_parent(parent_entity):
     Entity(model='cube', color=color.gold, scale=(0.2, 0.05, 0.2), parent=parent_entity, position=(0, 0.25, 0))
 
 
+def _make_gun_on_parent(parent_entity):
+    Entity(model='cube', color=color.black, scale=(0.15, 0.5, 0.15), parent=parent_entity, position=(0, 0, 0))
+    Entity(model='cube', color=color.gray, scale=(0.4, 0.15, 0.15), parent=parent_entity, position=(0, 0.2, 0.4))
+    Entity(model='cube', color=color.gray, scale=(0.2, 0.15, 0.15), parent=parent_entity, position=(0, 0.15, 0.65))
+
+
+def _make_fertilizer_on_parent(parent_entity):
+    try:
+        tex = load_texture('texture/fertilize')
+        if hasattr(tex, 'width'):
+            Entity(model='cube', texture=tex, scale=(0.3, 0.3, 0.3), parent=parent_entity, position=(0, 0, 0))
+        else:
+            Entity(model='cube', color=color.green, scale=(0.3, 0.3, 0.3), parent=parent_entity, position=(0, 0, 0))
+    except Exception as e:
+        print(f"Failed to load fertilizer texture: {e}")
+        Entity(model='cube', color=color.green, scale=(0.3, 0.3, 0.3), parent=parent_entity, position=(0, 0, 0))
+
+
 def set_active_item(item_type):
     arm.enabled = (item_type is None)
     axe.enabled = (item_type == "axe")
@@ -59,6 +83,8 @@ def set_active_item(item_type):
     hoe.enabled = (item_type == "hoe")
     hammer.enabled = (item_type == "hammer")
     sword.enabled = (item_type == "sword")
+    gun.enabled = (item_type == "gun")
+    fertilizer.enabled = (item_type == "fertilizer")
 
 
 def swing_item(item_entity):

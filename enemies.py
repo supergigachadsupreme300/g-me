@@ -81,6 +81,7 @@ class Rat:
             entity_kwargs['color'] = texture_choice
         self.entity = Entity(**entity_kwargs)
         self.entity.y = self.entity.scale_y / 2
+        self.entity.double_sided = True  # Fix texture appearing inside
         self.velocity_y = 0
         self.health_bar = Entity(model='cube', color=color.red, scale=(0.5, 0.05, 0.05), parent=self.entity, position=(0, 0.8, 0), origin=(0, 0))
         self.state = SEARCH_WHEAT
@@ -124,6 +125,13 @@ class Rat:
             self.entity.position += direction.normalized() * self.speed * time.dt
 
     def update(self):
+        # Apply gravity
+        self.velocity_y -= 9.81 * time.dt
+        self.entity.y += self.velocity_y * time.dt
+        if self.entity.y < self.entity.scale_y / 2:
+            self.entity.y = self.entity.scale_y / 2
+            self.velocity_y = 0
+        
         if self.state == DEAD:
             return
         if self.hp <= 0:
@@ -195,6 +203,7 @@ class Rat:
                 self.face_direction(direction)
             if pytime.time() - self.last_attack_time >= self.attack_cooldown:
                 self.target_field["rice_hp"] -= self.attack_damage
+                fields.update_rice_health_bar(self.target_field)
                 self.last_attack_time = pytime.time()
                 if self.target_field["rice_hp"] <= 0:
                     fields.destroy_rice(self.target_field)
@@ -217,12 +226,12 @@ class Rat:
 
     def die(self):
         self.state = DEAD
-        items.spawn_ground_item("seed", self.entity.position + Vec3(0, 0.2, 0))
+        items.spawn_ground_item("fertilizer", self.entity.position + Vec3(0, 0.2, 0))
         destroy(self.entity)
         destroy(self.health_bar)
         if self in enemies:
             enemies.remove(self)
-        print(f"Rat died and dropped a seed")
+        print(f"Rat died and dropped fertilizer")
 
 
 def spawn_rat(position):

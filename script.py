@@ -36,6 +36,8 @@ tools.pickaxe.parent = camera
 tools.hoe.parent = camera
 tools.hammer.parent = camera
 tools.sword.parent = camera
+tools.gun.parent = camera
+tools.fertilizer.parent = camera
 
 tools.arm.position = (0.7, -0.6, 1.5)
 tools.axe.position = (0.7, -0.6, 1.5)
@@ -43,6 +45,8 @@ tools.pickaxe.position = (0.7, -0.6, 1.5)
 tools.hoe.position = (0.7, -0.6, 1.5)
 tools.hammer.position = (0.7, -0.6, 1.5)
 tools.sword.position = (0.7, -0.6, 1.5)
+tools.gun.position = (0.7, -0.6, 1.5)
+tools.fertilizer.position = (0.7, -0.6, 1.5)
 
 items.spawn_ground_item("axe", Vec3(0, 1, 0))
 items.spawn_ground_item("pickaxe", Vec3(2, 1, 0))
@@ -50,6 +54,8 @@ items.spawn_ground_item("hoe", Vec3(-2, 1, 0))
 items.spawn_ground_item("hammer", Vec3(6, 1, 0))
 items.spawn_ground_item("seed", Vec3(4, 1, 0))
 items.spawn_ground_item("sword", Vec3(8, 1, 0))
+items.spawn_ground_item("gun", Vec3(10, 1, 0))
+items.spawn_ground_item("ammo", Vec3(12, 1, 0))
 
 inventory.update_inventory_ui()
 
@@ -83,9 +89,75 @@ def snap_to_grid(position):
 select_slot(0)
 
 MAX_PLACE_DISTANCE = 20
+GUN_MAX_AMMO = 6
+gun_ammo = 0
+gun_projectiles = []
+game_paused = False
+
+ammo_text = Text(text=f"Ammo: {gun_ammo}/{GUN_MAX_AMMO}", position=(0.8, 0.44), origin=(0, 0), scale=1.2, color=color.white, background=True)
+
+pause_menu = Entity(parent=camera.ui, enabled=False)
+pause_overlay = Entity(parent=pause_menu, model='quad', color=color.rgba(0, 0, 0, 180), scale=(1.6, 1.2), position=(0, 0, 0))
+pause_title = Text(text='Settings', parent=pause_menu, y=0.35, scale=2, color=color.white)
+continue_button = Button(parent=pause_menu, text='Continue', scale=(0.5, 0.13), y=0.08, on_click=lambda: toggle_pause(False))
+exit_button = Button(parent=pause_menu, text='Exit', scale=(0.5, 0.13), y=-0.15, on_click=application.quit)
+
+
+def update_ammo_text():
+    ammo_text.text = f"Ammo: {gun_ammo}/{GUN_MAX_AMMO}"
+
+
+def toggle_pause(paused: bool):
+    global game_paused
+    game_paused = paused
+    pause_menu.enabled = paused
+    mouse.locked = not paused
+    mouse.visible = paused
+    if paused:
+        inventory.show_message('Game paused', 1.5)
+    else:
+        inventory.show_message('Resumed', 1.0)
+
+
+def spawn_projectile(position, direction):
+    projectile = Entity(model='sphere', color=color.yellow, scale=0.15, position=position, collider='box')
+    projectile.velocity = direction.normalized() * 30
+    projectile.damage = 12
+    projectile.lifetime = 2.0
+    projectile.age = 0.0
+    gun_projectiles.append(projectile)
+    return projectile
+
+
+def update_projectiles():
+    for projectile in list(gun_projectiles):
+        projectile.position += projectile.velocity * time.dt
+        projectile.age += time.dt
+        hit_info = projectile.intersects(ignore=(world.player,))
+        if hit_info.hit:
+            enemy = enemies.find_enemy_by_entity(hit_info.entity)
+            if enemy:
+                enemy.take_damage(projectile.damage)
+            destroy(projectile)
+            gun_projectiles.remove(projectile)
+            continue
+        if projectile.age >= projectile.lifetime:
+            destroy(projectile)
+            gun_projectiles.remove(projectile)
+
+
+def consume_ammo_item():
+    for i, it in enumerate(inventory.inventory):
+        if it == 'ammo':
+            inventory.inventory[i] = None
+            inventory.update_inventory_ui()
+            return True
+    return False
 
 
 def update():
+    if game_paused:
+        return
     if tools.hoe.enabled:
         fields.field_preview.enabled = False
         # Field preview logic
@@ -173,6 +245,7 @@ def update():
         fields.field_preview.enabled = False
         buildings.hide_building_preview()
 
+    update_projectiles()
     enemies.update_enemies()
 
 
@@ -215,6 +288,10 @@ def input(key):
             inventory.show_message(f"Dropped {it}", 1.2)
         return
 
+    if key == 'escape':
+        toggle_pause(not game_paused)
+        return
+
     if key == 'left mouse down':
         if inventory.inventory[inventory.selected_slot] == "seed":
             hit_info = raycast(camera.world_position, camera.forward, distance=MAX_PLACE_DISTANCE)
@@ -229,6 +306,32 @@ def input(key):
                         inventory.show_message("Rice planted on field", 1.5)
                     else:
                         inventory.show_message("Rice is already growing here", 1.5)
+            return
+
+        if inventory.inventory[inventory.selected_slot] == "fertilizer":
+            hit_info = raycast(camera.world_position, camera.forward, distance=MAX_PLACE_DISTANCE)
+            if hit_info.hit:
+                field_data = fields.find_field_by_entity(hit_info.entity)
+                if field_data and field_data["rice_planted"] and field_data["rice_hp"] > 0:
+                    field_data["rice_hp"] = min(20, field_data["rice_hp"] + 5)
+                    fields.update_rice_health_bar(field_data)
+                    inventory.inventory[inventory.selected_slot] = None
+                    select_slot(inventory.selected_slot)
+                    inventory.update_inventory_ui()
+                    inventory.show_message("Rice healed with fertilizer", 1.5)
+                else:
+                    inventory.show_message("No rice to fertilize here", 1.5)
+            return
+
+        if tools.gun.enabled:
+            global gun_ammo
+            if gun_ammo > 0:
+                gun_ammo -= 1
+                update_ammo_text()
+                spawn_projectile(camera.world_position + camera.forward * 1.5, camera.forward)
+                inventory.show_message("Shot fired", 1.0)
+            else:
+                inventory.show_message("No ammo. Press R to reload with ammo item", 1.5)
             return
 
         if tools.axe.enabled:
@@ -282,6 +385,9 @@ def input(key):
                     inventory.show_message(f"Hit {enemy.__class__.__name__}", 1.5)
                     return
             inventory.show_message("Missed the attack", 1.0)
+        elif tools.gun.enabled:
+            # Gun firing handled in left mouse down block.
+            pass
         elif tools.hammer.enabled:
             print("Input detected: LEFT CLICK with hammer")
             tools.swing_item(tools.hammer)
@@ -293,6 +399,15 @@ def input(key):
                     inventory.show_message("Building placed", 1.5)
                 else:
                     inventory.show_message("Cannot place building here", 1.5)
+        return
+
+    if key == 'r' and tools.gun.enabled:
+        if consume_ammo_item():
+            gun_ammo = GUN_MAX_AMMO
+            update_ammo_text()
+            inventory.show_message("Reloaded gun", 1.5)
+        else:
+            inventory.show_message("No ammo item to reload", 1.5)
         return
 
     if key == 'r' and tools.hammer.enabled:

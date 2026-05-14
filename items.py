@@ -1,4 +1,4 @@
-from ursina import Entity, color, Vec3
+from ursina import Entity, color, Vec3, load_texture
 from config import DIRT_TEXTURE, WOOD_TEXTURE
 
 
@@ -24,12 +24,29 @@ def spawn_ground_item(item_type, position):
         Entity(model='cube', color=color.gray, scale=(0.1, 0.4, 0.1), parent=root, position=(0, 0, 0))
         Entity(model='cube', color=color.white, scale=(0.05, 1, 0.3), parent=root, position=(0, 0.7, 0))
         Entity(model='cube', color=color.gold, scale=(0.2, 0.05, 0.2), parent=root, position=(0, 0.25, 0))
+    elif item_type == "gun":
+        Entity(model='cube', color=color.black, scale=(0.2, 0.5, 0.2), parent=root, position=(0, 0, 0))
+        Entity(model='cube', color=color.gray, scale=(0.5, 0.15, 0.15), parent=root, position=(0, 0.15, 0.3))
+        Entity(model='cube', color=color.gray, scale=(0.25, 0.15, 0.15), parent=root, position=(0, 0.1, 0.55))
+    elif item_type == "ammo":
+        Entity(model='cube', color=color.light_gray, scale=(0.4, 0.2, 0.15), parent=root, position=(0, 0.2, 0))
+        Entity(model='cube', color=color.dark_gray, scale=(0.35, 0.1, 0.1), parent=root, position=(0, 0.3, 0))
     elif item_type == "wood":
         Entity(model='cube', color=WOOD_TEXTURE, scale=(0.6, 0.2, 0.2), parent=root, position=(0, 0.3, 0))
     elif item_type == "stone":
         Entity(model='cube', color=color.gray, scale=(0.6, 0.6, 0.6), parent=root, position=(0, 0.5, 0))
     elif item_type == "seed":
         Entity(model='cube', color=color.green, scale=(0.3, 0.3, 0.1), parent=root, position=(0, 0.2, 0))
+    elif item_type == "fertilizer":
+        try:
+            tex = load_texture('texture/fertilize')
+            if hasattr(tex, 'width'):
+                Entity(model='cube', texture=tex, scale=(0.3, 0.3, 0.3), parent=root, position=(0, 0.2, 0))
+            else:
+                Entity(model='cube', color=color.green, scale=(0.3, 0.3, 0.3), parent=root, position=(0, 0.2, 0))
+        except Exception as e:
+            print(f"Failed to load fertilizer texture: {e}")
+            Entity(model='cube', color=color.green, scale=(0.3, 0.3, 0.3), parent=root, position=(0, 0.2, 0))
     elif item_type == "field":
         # Use texture if loaded, else color
         if hasattr(DIRT_TEXTURE, 'width'):  # It's a texture
