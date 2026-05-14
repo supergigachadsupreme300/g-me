@@ -26,8 +26,19 @@ except Exception as e:
     DIRT_TEXTURE = color.rgb(70, 35, 0)
     print(f"Exception loading DIRT_TEXTURE: {e}")
 
+grass_path = 'texture/grass.png'
+print(f"Loading GRASS_TEXTURE from: {grass_path}")
+try:
+    GRASS_TEXTURE = load_texture(grass_path)
+    print(f"GRASS_TEXTURE loaded: {GRASS_TEXTURE}, type: {type(GRASS_TEXTURE)}, hasattr width: {hasattr(GRASS_TEXTURE, 'width') if GRASS_TEXTURE else 'N/A'}")
+    if GRASS_TEXTURE is None or not hasattr(GRASS_TEXTURE, 'width'):
+        GRASS_TEXTURE = color.rgb(20, 120, 20)  # fallback green grass
+        print("Using GRASS fallback color")
+except Exception as e:
+    GRASS_TEXTURE = color.rgb(20, 120, 20)
+    print(f"Exception loading GRASS_TEXTURE: {e}")
+
 print(f"Final WOOD_TEXTURE: {WOOD_TEXTURE}")
 print(f"Final DIRT_TEXTURE: {DIRT_TEXTURE}")
-print(f"Final DIRT_TEXTURE: {DIRT_TEXTURE}")
-print(f"DIRT_TEXTURE: {DIRT_TEXTURE}")
+print(f"Final GRASS_TEXTURE: {GRASS_TEXTURE}")
 

@@ -1,6 +1,6 @@
 from ursina import Entity, Sky, DirectionalLight, color, Vec3
 from ursina.prefabs.first_person_controller import FirstPersonController
-from config import WOOD_TEXTURE
+from config import WOOD_TEXTURE, GRASS_TEXTURE
 import random
 
 GROUND_SIZE = 150
@@ -20,10 +20,15 @@ def create_world():
     ground = Entity(
         model='plane',
         scale=(GROUND_SIZE, 1, GROUND_SIZE),
-        color=color.rgb(0, 80, 0),
         collider='box',
         name='ground'
     )
+    if hasattr(GRASS_TEXTURE, 'width'):
+        ground.texture = GRASS_TEXTURE
+        ground.color = color.white
+        ground.texture_scale = (GROUND_SIZE / 2, GROUND_SIZE / 2)
+    else:
+        ground.color = GRASS_TEXTURE
 
     player = FirstPersonController()
     player.cursor.visible = False
