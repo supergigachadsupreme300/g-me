@@ -71,6 +71,9 @@ def spawn_rats_on_edge(count=4):
         enemies.spawn_rat(Vec3(x, 1, z))
 
 spawn_rats_on_edge(4)
+#Chihai
+enemies.spawn_grasshopper(Vec3(2, 1, 3))
+enemies.spawn_sahur(Vec3(-3, 1, -4))
 
 crosshair = Entity(parent=camera, model='quad', color=color.white, scale=0.01, position=(0, 0, 1.2))
 
