@@ -1,10 +1,9 @@
 from ursina import Entity, Vec3, color, invoke, curve, destroy
 import random
 from items import spawn_ground_item
-from config import DIRT_TEXTURE
 
 fields = []
-field_preview = Entity(model='cube', color=color.rgb(150, 100, 50, 140), scale=(1, 0.2, 1), enabled=False)
+field_preview = Entity(model='cube', color=color.rgba(150/255, 100/255, 50/255, 140/255), scale=(1, 0.2, 1), enabled=False)
 
 
 def create_field(pos):
