@@ -4,22 +4,35 @@ import time as pytime
 import random
 import world
 import fields
-import buildings
+import building_system
 import items
 
-# load rat texture from available assets
 rat_texture = []
-for path in ['texture/rat_grey.png', 'texture/rat_khaki.png', 'texture/rat_bege_psd.png']:
-    try:
-        tex = load_texture(path)
-        if tex:
-            rat_texture.append(tex)
-            print(f"Loaded texture: {path}")
-    except Exception as e:
-        print(f"Failed loading rat texture {path}: {e}")
+rat_model = None
 
-if not rat_texture:
-    rat_texture = [color.rgb(120, 80, 40)]  # fallback màu nâu
+
+def load_rat_assets():
+    global rat_texture, rat_model
+    if rat_model is not None and rat_texture:
+        return
+
+    for path in ['texture/rat_grey.png', 'texture/rat_khaki.png', 'texture/rat_bege_psd.png']:
+        try:
+            tex = load_texture(path)
+            if tex:
+                rat_texture.append(tex)
+                print(f"Loaded texture: {path}")
+        except Exception as e:
+            print(f"Failed loading rat texture {path}: {e}")
+
+    if not rat_texture:
+        rat_texture = [color.rgb(120/255, 80/255, 40/255)]  # fallback màu nâu
+
+    try:
+        rat_model = load_model('model/rat.fbx')
+    except Exception as e:
+        print(f"Failed to load rat model: {e}. Using fallback cube.")
+        rat_model = 'cube'
 
 
 enemies = []
@@ -61,15 +74,11 @@ def find_enemy_by_entity(entity):
 
 class Rat:
     def __init__(self, position):
+        load_rat_assets()
         position = Vec3(position.x, 0.0, position.z)
-        try:
-            rat_model = load_model('model/rat.fbx')
-        except Exception as e:
-            print(f"Failed to load rat model: {e}. Using fallback cube.")
-            rat_model = 'cube'
         texture_choice = random.choice(rat_texture)
         entity_kwargs = {
-            'model': rat_model,
+            'model': rat_model if rat_model is not None else 'cube',
             'scale': (0.8, 0.8, 0.8),
             'position': position,
             'collider': 'box'
@@ -169,8 +178,8 @@ class Rat:
                 return
             direction = direction.normalized()
             ray = raycast(self.entity.world_position + Vec3(0, 0.2, 0), direction, distance=distance, ignore=(self.entity,))
-            if ray.hit and ray.entity in [b["entity"] for b in buildings.buildings]:
-                self.target_building = next((b for b in buildings.buildings if b["entity"] == ray.entity), None)
+            if ray.hit and ray.entity in [b["entity"] for b in building_system.buildings]:
+                self.target_building = next((b for b in building_system.buildings if b["entity"] == ray.entity), None)
                 if self.target_building:
                     self.state = ATTACK_OBSTACLE
                     return
@@ -179,13 +188,13 @@ class Rat:
             return
 
         if self.state == ATTACK_OBSTACLE:
-            if not self.target_building or self.target_building not in buildings.buildings:
+            if not self.target_building or self.target_building not in building_system.buildings:
                 self.state = MOVE_TO_TARGET
                 return
             if pytime.time() - self.last_attack_time >= self.attack_cooldown:
-                buildings.damage_building(self.target_building, self.attack_damage)
+                building_system.damage_building(self.target_building, self.attack_damage)
                 self.last_attack_time = pytime.time()
-            if self.target_building not in buildings.buildings:
+            if self.target_building not in building_system.buildings:
                 self.state = MOVE_TO_TARGET
             return
 
@@ -235,8 +244,14 @@ class Rat:
 
 
 def spawn_rat(position):
+    load_rat_assets()
     rat = Rat(position)
-    rat.entity.texture = random.choice(rat_texture)
+    texture_choice = random.choice(rat_texture)
+    if hasattr(texture_choice, 'width'):
+        rat.entity.texture = texture_choice
+        rat.entity.color = color.white
+    else:
+        rat.entity.color = texture_choice
     enemies.append(rat)
     return rat
 

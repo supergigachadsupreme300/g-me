@@ -1,5 +1,5 @@
 from ursina import Entity, color, Vec3, load_texture
-from config import DIRT_TEXTURE, WOOD_TEXTURE
+import config
 
 
 def spawn_ground_item(item_type, position):
@@ -32,7 +32,10 @@ def spawn_ground_item(item_type, position):
         Entity(model='cube', color=color.light_gray, scale=(0.4, 0.2, 0.15), parent=root, position=(0, 0.2, 0))
         Entity(model='cube', color=color.dark_gray, scale=(0.35, 0.1, 0.1), parent=root, position=(0, 0.3, 0))
     elif item_type == "wood":
-        Entity(model='cube', color=WOOD_TEXTURE, scale=(0.6, 0.2, 0.2), parent=root, position=(0, 0.3, 0))
+        if config.is_texture(config.WOOD_TEXTURE):
+            Entity(model='cube', texture=config.WOOD_TEXTURE, scale=(0.6, 0.2, 0.2), parent=root, position=(0, 0.3, 0), texture_scale=(1, 1))
+        else:
+            Entity(model='cube', color=config.WOOD_TEXTURE, scale=(0.6, 0.2, 0.2), parent=root, position=(0, 0.3, 0))
     elif item_type == "stone":
         Entity(model='cube', color=color.gray, scale=(0.6, 0.6, 0.6), parent=root, position=(0, 0.5, 0))
     elif item_type == "seed":
@@ -49,10 +52,10 @@ def spawn_ground_item(item_type, position):
             Entity(model='cube', color=color.green, scale=(0.3, 0.3, 0.3), parent=root, position=(0, 0.2, 0))
     elif item_type == "field":
         # Use texture if loaded, else color
-        if hasattr(DIRT_TEXTURE, 'width'):  # It's a texture
-            Entity(model='cube', texture=DIRT_TEXTURE, scale=(1, 0.2, 1), parent=root, position=(0, 0.1, 0), texture_scale=(1, 1))
+        if config.is_texture(config.DIRT_TEXTURE):  # It's a texture
+            Entity(model='cube', texture=config.DIRT_TEXTURE, scale=(1, 0.2, 1), parent=root, position=(0, 0.1, 0), texture_scale=(1, 1))
         else:  # It's a color
-            Entity(model='cube', color=DIRT_TEXTURE, scale=(1, 0.2, 1), parent=root, position=(0, 0.1, 0))
+            Entity(model='cube', color=config.DIRT_TEXTURE, scale=(1, 0.2, 1), parent=root, position=(0, 0.1, 0))
     else:
         Entity(model='cube', color=color.white, scale=(0.3, 0.3, 0.3), parent=root, position=(0, 0.3, 0))
 
