@@ -17,6 +17,14 @@ import rendering
 import game
 
 
+def input(key):
+    game.handle_input(key)
+
+
+def update():
+    game.update()
+
+
 def setup_tools_for_camera():
     tools.arm.parent = camera
     tools.axe.parent = camera
@@ -45,9 +53,6 @@ def run_game():
     mouse.locked = True
     mouse.visible = False
     window.exit_button.visible = False
-
-    app.input = game.input
-    app.update = game.update
 
     config.load_textures()
     world.create_world()
