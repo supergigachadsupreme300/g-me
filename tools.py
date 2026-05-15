@@ -31,12 +31,13 @@ def setup_tools():
 
 
 def _make_axe_on_parent(parent_entity):
-    Entity(model='cube', color=color.brown, scale=(0.2, 0.8, 0.2), parent=parent_entity, position=(0, 0, 0))
-    Entity(model='cube', color=color.gray, scale=(0.2, 0.3, 0.75), parent=parent_entity, position=(0, 0.5, 0.25))
+    Entity(model='cube', color=color.brown, scale=(0.15, 0.8, 0.15), parent=parent_entity, position=(0, 0, 0))
+    Entity(model='cube', color=color.gray, scale=(0.2, 0.3, 0.7), parent=parent_entity, position=(0, 0.5, 0.25))
+    Entity(model='cube', color=color.gray, scale=(0.2, 0.5, 0.2), parent=parent_entity, position=(0, 0.5, 0.5))
 
 
 def _make_pick_on_parent(parent_entity):
-    Entity(model='cube', color=color.brown, scale=(0.2, 0.8, 0.2), parent=parent_entity, position=(0, 0, 0))
+    Entity(model='cube', color=color.brown, scale=(0.15, 0.8, 0.15), parent=parent_entity, position=(0, 0, 0))
     Entity(model='cube', color=color.gray, scale=(0.2, 0.2, 0.8), parent=parent_entity, position=(0, 0.5, 0))
     Entity(model='cube', color=color.gray, scale=(0.25, 0.125, 0.25), parent=parent_entity, position=(0, 0.4, 0.35))
     Entity(model='cube', color=color.gray, scale=(0.25, 0.125, 0.25), parent=parent_entity, position=(0, 0.4, -0.35))
@@ -44,24 +45,24 @@ def _make_pick_on_parent(parent_entity):
 
 def _make_hoe_on_parent(parent_entity):
     Entity(model='cube', color=color.brown, scale=(0.18, 0.8, 0.18), parent=parent_entity, position=(0, 0, 0))
-    Entity(model='cube', color=color.gray, scale=(0.5, 0.15, 0.3), parent=parent_entity, position=(0, 0.45, 0))
+    Entity(model='cube', color=color.gray, scale=(0.3, 0.15, 0.7), parent=parent_entity, position=(0, 0.4, 0.3))
 
 
 def _make_hammer_on_parent(parent_entity):
-    Entity(model='cube', color=color.gray, scale=(0.2, 0.8, 0.2), parent=parent_entity, position=(0, 0, 0))
-    Entity(model='cube', color=color.black, scale=(0.3, 0.1, 0.4), parent=parent_entity, position=(0, 0.5, 0))
+    Entity(model='cube', color=color.gray, scale=(0.15, 0.8, 0.15), parent=parent_entity, position=(0, 0, 0))
+    Entity(model='cube', color=color.black, scale=(0.3, 0.2, 0.4), parent=parent_entity, position=(0, 0.5, 0))
 
 
 def _make_sword_on_parent(parent_entity):
     Entity(model='cube', color=color.gray, scale=(0.1, 0.4, 0.1), parent=parent_entity, position=(0, 0, 0))
-    Entity(model='cube', color=color.white, scale=(0.05, 1, 0.3), parent=parent_entity, position=(0, 0.7, 0))
     Entity(model='cube', color=color.gold, scale=(0.2, 0.05, 0.2), parent=parent_entity, position=(0, 0.25, 0))
+    Entity(model='cube', color=color.white, scale=(0.05, 1, 0.3), parent=parent_entity, position=(0, 0.7, 0))
+    Entity(model='cube', color=color.white, scale=(0.05, 0.3, 0.3), parent=parent_entity, position=(0, 1.15, 0), rotation=(45,0,0))
 
 
 def _make_gun_on_parent(parent_entity):
-    Entity(model='cube', color=color.black, scale=(0.15, 0.5, 0.15), parent=parent_entity, position=(0, 0, 0))
-    Entity(model='cube', color=color.gray, scale=(0.4, 0.15, 0.15), parent=parent_entity, position=(0, 0.2, 0.4))
-    Entity(model='cube', color=color.gray, scale=(0.2, 0.15, 0.15), parent=parent_entity, position=(0, 0.15, 0.65))
+    Entity(model='cube', color=color.black, scale=(0.15, 0.5, 0.15), parent=parent_entity, position=(0, 0, 0), rotation=(45,0,0))
+    Entity(model='cube', color=color.gray, scale=(0.2, 0.2, 1), parent=parent_entity, position=(0, 0.2, 0.4))
 
 
 def _make_fertilizer_on_parent(parent_entity):

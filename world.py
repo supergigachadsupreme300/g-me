@@ -85,6 +85,6 @@ def build_house():
 
     # Add a simple bed inside the house
     global bed
-    bed = Entity(model='cube', color=color.azure, scale=(2.8, 0.25, 1.8), position=(1.2, 0.4, -1.8), collider='box')
+    bed = Entity(model='cube', color=color.red, scale=(2.8, 0.4, 1.8), position=(1.2, 0.7, -1.8), collider='box')
     bed.is_bed = True
-    Entity(model='cube', color=color.white, scale=(0.8, 0.15, 1.0), position=(1.8, 0.225, -1.8), parent=bed)
+    Entity(model='cube', color=color.white, scale=(0.2, 0.5, 0.4), position=(-0.4, 0.7, 0), parent=bed)
