@@ -7,11 +7,12 @@ hoe = None
 hammer = None
 sword = None
 gun = None
+scythe = None
 fertilizer = None
 
 
 def setup_tools():
-    global arm, axe, pickaxe, hoe, hammer, sword, gun, fertilizer
+    global arm, axe, pickaxe, hoe, hammer, sword, gun, scythe, fertilizer
     arm = Entity(model='cube', color=color.brown, scale=(0.3, 1, 0.3),
                  position=(0.7, -0.6, 1.5), rotation=(20, -30, 0), parent=None, enabled=True)
     axe = Entity(position=(0.7, -0.6, 1.5), rotation=(0, 0, 0), parent=None, enabled=False)
@@ -26,6 +27,8 @@ def setup_tools():
     _make_sword_on_parent(sword)
     gun = Entity(position=(0.7, -0.6, 1.5), rotation=(0, 0, 0), parent=None, enabled=False)
     _make_gun_on_parent(gun)
+    scythe = Entity(position=(0.7, -0.6, 1.5), rotation=(0, 0, 0), parent=None, enabled=False)
+    _make_scythe_on_parent(scythe)
     fertilizer = Entity(position=(0.7, -0.6, 1.5), rotation=(0, 0, 0), parent=None, enabled=False)
     _make_fertilizer_on_parent(fertilizer)
 
@@ -77,6 +80,12 @@ def _make_fertilizer_on_parent(parent_entity):
         Entity(model='cube', color=color.green, scale=(0.3, 0.3, 0.3), parent=parent_entity, position=(0, 0, 0))
 
 
+def _make_scythe_on_parent(parent_entity):
+    Entity(model='cube', color=color.brown, scale=(0.12, 0.8, 0.12), parent=parent_entity, position=(0, 0, 0))
+    Entity(model='cube', color=color.gray, scale=(0.05, 0.35, 0.05), parent=parent_entity, position=(0, 0.4, 0), rotation=(0, 0, 45))
+    Entity(model='cube', color=color.gray, scale=(0.05, 0.35, 0.05), parent=parent_entity, position=(0, 0.6, 0), rotation=(0, 0, 25))
+
+
 def set_active_item(item_type):
     arm.enabled = (item_type is None)
     axe.enabled = (item_type == "axe")
@@ -85,6 +94,7 @@ def set_active_item(item_type):
     hammer.enabled = (item_type == "hammer")
     sword.enabled = (item_type == "sword")
     gun.enabled = (item_type == "gun")
+    scythe.enabled = (item_type == "scythe")
     fertilizer.enabled = (item_type == "fertilizer")
 
 
