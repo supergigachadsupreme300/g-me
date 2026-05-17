@@ -1,4 +1,5 @@
 from ursina import Entity, color, Vec3, raycast, destroy, time, mouse, camera, application
+from math import atan2, degrees
 import random
 
 import world
@@ -14,8 +15,11 @@ MAX_PLACE_DISTANCE = 20
 GUN_MAX_AMMO = 6
 gun_ammo = 0
 gun_projectiles = []
+player_money = 0
 game_paused = False
 
+WHEAT_PRICE = 10
+DAMAGED_WHEAT_PRICE = 3
 TIME_SPEED = 1.0  # in-game minutes per real second
 current_day = 1
 time_of_day = 8.0
@@ -92,9 +96,9 @@ def update_projectiles():
 
 
 def consume_ammo_item():
-    for i, it in enumerate(inventory.inventory):
-        if it == 'ammo':
-            inventory.inventory[i] = None
+    for i, slot in enumerate(inventory.inventory):
+        if inventory.get_item(slot) == 'ammo':
+            inventory.remove_item(i)
             inventory.update_inventory_ui()
             return True
     return False
@@ -141,7 +145,7 @@ def confirm_sleep(should_sleep: bool):
 
 def select_slot(index):
     inventory.selected_slot = index
-    current_item = inventory.inventory[index]
+    current_item = inventory.get_item(inventory.inventory[index])
     tools.set_active_item(current_item)
     inventory.update_inventory_ui()
 
@@ -252,8 +256,60 @@ def is_bed_entity(entity):
     return False
 
 
+def is_buffalo_entity(entity):
+    current = entity
+    while current is not None:
+        if getattr(current, 'is_buffalo', False):
+            return current
+        current = getattr(current, 'parent', None)
+    return None
+
+
+def show_buffalo_dialog():
+    global game_paused
+    game_paused = True
+    rendering.show_buffalo_dialog(True)
+
+
+def close_buffalo_dialog():
+    global game_paused
+    game_paused = False
+    rendering.show_buffalo_dialog(False)
+
+
+def sell_wheat_to_buffalo():
+    global player_money
+    wheat_amount = inventory.count_item('wheat')
+    damaged_amount = inventory.count_item('damaged wheat')
+    if wheat_amount == 0 and damaged_amount == 0:
+        inventory.show_message('No wheat to sell', 2)
+        close_buffalo_dialog()
+        return
+    inventory.remove_all('wheat')
+    inventory.remove_all('damaged wheat')
+    total_money = wheat_amount * WHEAT_PRICE + damaged_amount * DAMAGED_WHEAT_PRICE
+    player_money += total_money
+    inventory.show_message(f'Sold {wheat_amount} wheat + {damaged_amount} damaged wheat for {total_money} coins', 3)
+    inventory.update_inventory_ui()
+    close_buffalo_dialog()
+
+
 def input(key):
     handle_input(key)
+
+
+def face_buffalo_towards_player(buffalo_entity):
+    if buffalo_entity is None:
+        return
+    dx = world.player.x - buffalo_entity.x
+    dz = world.player.z - buffalo_entity.z
+    if dx == 0 and dz == 0:
+        return
+    # Adjust yaw so the model faces the player on the horizontal plane.
+    angle = degrees(atan2(dx, dz)) + 180
+    buffalo_entity.rotation_x = 0
+    buffalo_entity.rotation_z = 0
+    buffalo_entity.rotation_y = angle % 360
 
 
 def handle_input(key):
@@ -278,29 +334,34 @@ def handle_input(key):
         if hit_info.hit:
             root = items.find_ground_item_root(hit_info.entity)
             if root is not None:
-                slot = inventory.first_empty_slot()
-                if slot is None:
+                added = inventory.add_item(root.item_type)
+                if not added:
                     inventory.show_message("Inventory full!", 2)
                 else:
-                    inventory.inventory[slot] = root.item_type
                     inventory.update_inventory_ui()
                     inventory.show_message(f"Picked up {root.item_type}", 1.5)
                     destroy(root)
-                    if inventory.inventory[inventory.selected_slot] is None:
-                        select_slot(slot)
+                    if inventory.get_item(inventory.inventory[inventory.selected_slot]) is None:
+                        non_empty_slot = next((i for i, slot in enumerate(inventory.inventory) if inventory.get_item(slot) is not None), None)
+                        if non_empty_slot is not None:
+                            select_slot(non_empty_slot)
                 return
 
     if key == 'q':
-        it = inventory.inventory[inventory.selected_slot]
-        if it is None:
+        slot = inventory.inventory[inventory.selected_slot]
+        item_type = inventory.get_item(slot)
+        if item_type is None:
             inventory.show_message("No item in selected slot", 1.5)
         else:
             pos = world.player.position + world.player.forward * 2
-            items.spawn_ground_item(it, pos)
-            inventory.inventory[inventory.selected_slot] = None
-            select_slot(inventory.selected_slot)
+            items.spawn_ground_item(item_type, pos)
+            if inventory.is_stackable(item_type) and inventory.get_count(slot) > 1:
+                inventory.remove_item(inventory.selected_slot)
+            else:
+                inventory.inventory[inventory.selected_slot] = None
+                select_slot(inventory.selected_slot)
             inventory.update_inventory_ui()
-            inventory.show_message(f"Dropped {it}", 1.2)
+            inventory.show_message(f"Dropped {item_type}", 1.2)
         return
 
     if key == 'escape':
@@ -311,34 +372,68 @@ def handle_input(key):
         return
 
     if key == 'left mouse down':
-        if inventory.inventory[inventory.selected_slot] == "seed":
+        if rendering.buffalo_dialog is not None and rendering.buffalo_dialog.enabled:
+            return
+        hit_info = raycast(camera.world_position, camera.forward, distance=MAX_PLACE_DISTANCE)
+        if hit_info.hit:
+            buffalo_entity = is_buffalo_entity(hit_info.entity)
+            if buffalo_entity is not None:
+                face_buffalo_towards_player(buffalo_entity)
+                rendering.show_buffalo_dialog(True)
+                game_paused = True
+                return
+        if inventory.get_item(inventory.inventory[inventory.selected_slot]) == "seed":
             hit_info = raycast(camera.world_position, camera.forward, distance=MAX_PLACE_DISTANCE)
             if hit_info.hit:
                 field_data = fields.find_field_by_entity(hit_info.entity)
                 if field_data:
-                    success = fields.plant_rice_on_field(field_data)
+                    success = fields.plant_wheat_on_field(field_data)
                     if success:
-                        inventory.inventory[inventory.selected_slot] = None
-                        select_slot(inventory.selected_slot)
+                        inventory.remove_item(inventory.selected_slot)
+                        if inventory.get_item(inventory.inventory[inventory.selected_slot]) is None:
+                            select_slot(inventory.selected_slot)
                         inventory.update_inventory_ui()
-                        inventory.show_message("Rice planted on field", 1.5)
+                        inventory.show_message("Wheat planted on field", 1.5)
                     else:
-                        inventory.show_message("Rice is already growing here", 1.5)
+                        inventory.show_message("Wheat is already growing here", 1.5)
             return
 
-        if inventory.inventory[inventory.selected_slot] == "fertilizer":
+        if inventory.get_item(inventory.inventory[inventory.selected_slot]) == "fertilizer":
             hit_info = raycast(camera.world_position, camera.forward, distance=MAX_PLACE_DISTANCE)
             if hit_info.hit:
                 field_data = fields.find_field_by_entity(hit_info.entity)
-                if field_data and field_data["rice_planted"] and field_data["rice_hp"] > 0:
-                    field_data["rice_hp"] = min(20, field_data["rice_hp"] + 5)
-                    fields.update_rice_health_bar(field_data)
-                    inventory.inventory[inventory.selected_slot] = None
-                    select_slot(inventory.selected_slot)
+                if field_data and field_data["wheat_planted"] and field_data["wheat_hp"] > 0:
+                    field_data["wheat_hp"] = min(20, field_data["wheat_hp"] + 5)
+                    fields.update_wheat_health_bar(field_data)
+                    inventory.remove_item(inventory.selected_slot)
+                    if inventory.get_item(inventory.inventory[inventory.selected_slot]) is None:
+                        select_slot(inventory.selected_slot)
                     inventory.update_inventory_ui()
-                    inventory.show_message("Rice healed with fertilizer", 1.5)
+                    inventory.show_message("Wheat healed with fertilizer", 1.5)
                 else:
-                    inventory.show_message("No rice to fertilize here", 1.5)
+                    inventory.show_message("No wheat to fertilize here", 1.5)
+            return
+
+        if tools.scythe.enabled:
+            tools.swing_item(tools.scythe)
+            hit_info = raycast(camera.world_position, camera.forward, distance=MAX_PLACE_DISTANCE)
+            if hit_info.hit:
+                field_data = fields.find_field_by_entity(hit_info.entity)
+                if field_data and field_data["wheat_planted"] and field_data["wheat_stage"] >= 4 and field_data["wheat_hp"] > 0:
+                    if field_data["wheat_hp"] == 20:
+                        harvested = "wheat"
+                        inventory.show_message("Harvested ripe wheat", 1.5)
+                    else:
+                        harvested = "damaged wheat"
+                        inventory.show_message("Harvested damaged wheat", 1.5)
+                    fields.destroy_wheat(field_data)
+                    if not inventory.add_item(harvested):
+                        items.spawn_ground_item(harvested, world.player.position + world.player.forward * 2)
+                        inventory.show_message("Inventory full, dropped harvested wheat", 2)
+                    else:
+                        inventory.update_inventory_ui()
+                else:
+                    inventory.show_message("No ripe wheat to harvest here", 1.5)
             return
 
         if tools.gun.enabled:
@@ -457,6 +552,7 @@ def setup_game():
     items.spawn_ground_item("sword", Vec3(8, 1, 0))
     items.spawn_ground_item("gun", Vec3(10, 1, 0))
     items.spawn_ground_item("ammo", Vec3(12, 1, 0))
+    items.spawn_ground_item("scythe", Vec3(14, 1, 0))
 
     inventory.update_inventory_ui()
     update_time_ui()
@@ -467,5 +563,6 @@ def setup_game():
 
     rendering.set_pause_button_callbacks(lambda: toggle_pause(False), application.quit)
     rendering.set_bed_confirm_callbacks(lambda: confirm_sleep(True), lambda: confirm_sleep(False))
+    rendering.set_buffalo_dialog_callbacks(lambda: sell_wheat_to_buffalo(), lambda: close_buffalo_dialog())
 
     select_slot(0)

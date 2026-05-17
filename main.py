@@ -33,6 +33,7 @@ def setup_tools_for_camera():
     tools.hammer.parent = camera
     tools.sword.parent = camera
     tools.gun.parent = camera
+    tools.scythe.parent = camera
     tools.fertilizer.parent = camera
 
     positions = (0.7, -0.6, 1.5)

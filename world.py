@@ -1,4 +1,4 @@
-from ursina import Entity, Sky, DirectionalLight, color, Vec3
+from ursina import Entity, Sky, DirectionalLight, color, Vec3, load_model, load_texture
 import config
 from player import create_player
 import random
@@ -11,6 +11,7 @@ player = None
 player_model = None
 sun = None
 bed = None
+buffalo = None
 
 trees = []
 rocks = []
@@ -41,6 +42,7 @@ def create_world():
     spawn_trees()
     spawn_rocks()
     build_house()
+    spawn_buffalo()
 
 
 def spawn_trees(num_trees=10):
@@ -85,6 +87,33 @@ def build_house():
 
     # Add a simple bed inside the house
     global bed
-    bed = Entity(model='cube', color=color.azure, scale=(2.8, 0.25, 1.8), position=(1.2, 0.4, -1.8), collider='box')
+    bed = Entity(model='cube', color=color.red, scale=(2.8, 0.4, 1.8), position=(1.2, 0.7, -1.8), collider='box')
     bed.is_bed = True
-    Entity(model='cube', color=color.white, scale=(0.8, 0.15, 1.0), position=(1.8, 0.225, -1.8), parent=bed)
+    Entity(model='cube', color=color.white, scale=(0.2, 0.5, 0.4), position=(-0.4, 0.7, 0), parent=bed)
+
+
+def spawn_buffalo():
+    global buffalo
+    try:
+        model = load_model('model/buffalo/source/buffalo 2024final.glb')
+    except Exception as e:
+        print(f"Failed to load buffalo model: {e}")
+        model = 'cube'
+    try:
+        texture = load_texture('model/buffalo/textures/diffuse6_4.jpg')
+    except Exception as e:
+        print(f"Failed to load buffalo texture: {e}")
+        texture = None
+
+    buffalo_kwargs = {
+        'model': model,
+        'position': (5, 0, 5),
+        'scale': 1.5,
+        'collider': 'box',
+        'double_sided': True,
+    }
+    if texture is not None:
+        buffalo_kwargs['texture'] = texture
+
+    buffalo = Entity(**buffalo_kwargs)
+    buffalo.is_buffalo = True
