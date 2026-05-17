@@ -321,6 +321,12 @@ class Sahur(Rat):
     def __init__(self, position):
         super().__init__(position)
         
+        self.entity.model = 'cube'
+        self.entity.color = color.clear
+        self.entity.texture = None
+        self.entity.scale = (1.2, 1.2, 1.2)
+        self.mesh = Entity(parent=self.entity)
+        
         try:
             self.entity.model = load_model('model/tungtungsahur.fbx') 
         except Exception as e:
@@ -341,6 +347,7 @@ class Sahur(Rat):
         self.max_hp = 35
         self.speed = 1.5
         self.attack_damage = 8
+        self.health_bar.y = 1.2
 
 def spawn_sahur(position):
     s = Sahur(position)
