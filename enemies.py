@@ -48,11 +48,11 @@ DEAD = 'DEAD'
 DETECTION_RADIUS = 12
 
 
-def find_nearest_rice_field(position, max_dist=None):
+def find_nearest_wheat_field(position, max_dist=None):
     best = None
     best_dist = None
     for field_data in fields.fields:
-        if field_data["rice_planted"] and field_data["rice_hp"] > 0:
+        if field_data["wheat_planted"] and field_data["wheat_hp"] > 0:
             dist = abs(field_data["pos"].x - position.x) + abs(field_data["pos"].z - position.z)
             if max_dist is not None and dist > max_dist:
                 continue
@@ -147,7 +147,7 @@ class Rat:
             self.die()
             return
         if self.state == SEARCH_WHEAT:
-            self.target_field = find_nearest_rice_field(self.entity.position, DETECTION_RADIUS)
+            self.target_field = find_nearest_wheat_field(self.entity.position, DETECTION_RADIUS)
             if self.target_field:
                 self.state = MOVE_TO_TARGET
             else:
@@ -167,7 +167,7 @@ class Rat:
             return
 
         if self.state == MOVE_TO_TARGET:
-            if not self.target_field or not self.target_field["rice_planted"] or self.target_field["rice_hp"] <= 0:
+            if not self.target_field or not self.target_field["wheat_planted"] or self.target_field["wheat_hp"] <= 0:
                 self.state = SEARCH_WHEAT
                 return
             target_position = Vec3(self.target_field["pos"].x, self.entity.y, self.target_field["pos"].z)
@@ -199,7 +199,7 @@ class Rat:
             return
 
         if self.state == ATTACK_WHEAT:
-            if not self.target_field or not self.target_field["rice_planted"] or self.target_field["rice_hp"] <= 0:
+            if not self.target_field or not self.target_field["wheat_planted"] or self.target_field["wheat_hp"] <= 0:
                 self.state = SEARCH_WHEAT
                 return
             target_position = Vec3(self.target_field["pos"].x, self.entity.y, self.target_field["pos"].z)
@@ -211,11 +211,11 @@ class Rat:
             if direction.length() > 0:
                 self.face_direction(direction)
             if pytime.time() - self.last_attack_time >= self.attack_cooldown:
-                self.target_field["rice_hp"] -= self.attack_damage
-                fields.update_rice_health_bar(self.target_field)
+                self.target_field["wheat_hp"] -= self.attack_damage
+                fields.update_wheat_health_bar(self.target_field)
                 self.last_attack_time = pytime.time()
-                if self.target_field["rice_hp"] <= 0:
-                    fields.destroy_rice(self.target_field)
+                if self.target_field["wheat_hp"] <= 0:
+                    fields.destroy_wheat(self.target_field)
                     self.state = SEARCH_WHEAT
             return
 

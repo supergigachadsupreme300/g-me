@@ -45,9 +45,9 @@ def spawn_ground_item(item_type, position):
         Entity(model='cube', color=color.gray, scale=(0.6, 0.6, 0.6), parent=root, position=(0, 0.5, 0))
     elif item_type == "seed":
         Entity(model='cube', color=color.green, scale=(0.3, 0.3, 0.1), parent=root, position=(0, 0.2, 0))
-    elif item_type == "rice":
+    elif item_type == "wheat":
         Entity(model='cube', color=color.yellow, scale=(0.3, 0.3, 0.3), parent=root, position=(0, 0.2, 0))
-    elif item_type == "damaged rice":
+    elif item_type == "damaged wheat":
         Entity(model='cube', color=color.brown, scale=(0.3, 0.3, 0.3), parent=root, position=(0, 0.2, 0))
     elif item_type == "fertilizer":
         try:

@@ -11,10 +11,10 @@ def create_field(pos):
     fields.append({
         "entity": root,
         "pos": Vec3(pos.x, 0.1, pos.z),
-        "rice_planted": False,
-        "rice_stage": 0,
-        "rice_nodes": [],
-        "rice_hp": 0
+        "wheat_planted": False,
+        "wheat_stage": 0,
+        "wheat_nodes": [],
+        "wheat_hp": 0
     })
     return root
 
@@ -29,35 +29,35 @@ def find_field_by_entity(entity):
     return None
 
 
-def _update_rice_patch(field_data, stage):
+def _update_wheat_patch(field_data, stage):
     target_ratio = stage / 4.0
     patch_color = color.lime if stage < 4 else color.yellow
-    for patch in field_data["rice_nodes"]:
+    for patch in field_data["wheat_nodes"]:
         target_height = patch.initial_height * target_ratio
         patch.scale_y = target_height
         patch.y = 0.1 + target_height / 2
         patch.color = patch_color
 
 
-def advance_rice_growth(field_data):
-    if not field_data["rice_planted"]:
+def advance_wheat_growth(field_data):
+    if not field_data["wheat_planted"]:
         return
-    if field_data["rice_stage"] >= 4:
+    if field_data["wheat_stage"] >= 4:
         return
-    field_data["rice_stage"] += 1
-    _update_rice_patch(field_data, field_data["rice_stage"])
-    if field_data["rice_stage"] < 4:
-        invoke(lambda: advance_rice_growth(field_data), delay=4)
+    field_data["wheat_stage"] += 1
+    _update_wheat_patch(field_data, field_data["wheat_stage"])
+    if field_data["wheat_stage"] < 4:
+        invoke(lambda: advance_wheat_growth(field_data), delay=4)
 
 
-def plant_rice_on_field(field_data):
-    if field_data["rice_planted"]:
+def plant_wheat_on_field(field_data):
+    if field_data["wheat_planted"]:
         return False
 
-    field_data["rice_planted"] = True
-    field_data["rice_stage"] = 1
-    field_data["rice_hp"] = 20
-    field_data["rice_nodes"] = []
+    field_data["wheat_planted"] = True
+    field_data["wheat_stage"] = 1
+    field_data["wheat_hp"] = 20
+    field_data["wheat_nodes"] = []
 
     num_patches = random.randint(4, 5)
     for i in range(num_patches):
@@ -74,31 +74,31 @@ def plant_rice_on_field(field_data):
             parent=field_data["entity"]
         )
         patch.initial_height = initial_height
-        field_data["rice_nodes"].append(patch)
+        field_data["wheat_nodes"].append(patch)
 
     # Add health bar
     field_data["health_bar"] = Entity(model='cube', color=color.red, scale=(1, 0.1, 0.1), position=(0, 1.5, 0), parent=field_data["entity"])
-    update_rice_health_bar(field_data)
+    update_wheat_health_bar(field_data)
 
-    _update_rice_patch(field_data, 1)
-    invoke(lambda: advance_rice_growth(field_data), delay=4)
+    _update_wheat_patch(field_data, 1)
+    invoke(lambda: advance_wheat_growth(field_data), delay=4)
     return True
 
 
-def update_rice_health_bar(field_data):
+def update_wheat_health_bar(field_data):
     if "health_bar" in field_data and field_data["health_bar"]:
-        hp_ratio = field_data["rice_hp"] / 20.0
+        hp_ratio = field_data["wheat_hp"] / 20.0
         field_data["health_bar"].scale_x = hp_ratio
         field_data["health_bar"].x = -0.5 + hp_ratio / 2  # Center it
 
 
-def destroy_rice(field_data):
-    for patch in field_data["rice_nodes"]:
+def destroy_wheat(field_data):
+    for patch in field_data["wheat_nodes"]:
         destroy(patch)
-    field_data["rice_nodes"] = []
-    field_data["rice_planted"] = False
-    field_data["rice_stage"] = 0
-    field_data["rice_hp"] = 0
+    field_data["wheat_nodes"] = []
+    field_data["wheat_planted"] = False
+    field_data["wheat_stage"] = 0
+    field_data["wheat_hp"] = 0
     if "health_bar" in field_data and field_data["health_bar"]:
         destroy(field_data["health_bar"])
         field_data["health_bar"] = None

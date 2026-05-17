@@ -91,3 +91,20 @@ def remove_item(slot_index, amount=1):
         return True
     inventory[slot_index] = None
     return True
+
+
+def count_item(item_type):
+    total = 0
+    for slot in inventory:
+        if get_item(slot) == item_type:
+            total += get_count(slot)
+    return total
+
+
+def remove_all(item_type):
+    removed = False
+    for i, slot in enumerate(inventory):
+        if get_item(slot) == item_type:
+            inventory[i] = None
+            removed = True
+    return removed
