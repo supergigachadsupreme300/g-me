@@ -66,7 +66,13 @@ def spawn_rats_on_edge(count=4):
             x = random.uniform(-edge, edge)
             z = random.choice([-edge, edge])
         enemies.spawn_rat(Vec3(x, 1, z))
-
+        rand = random.random()
+        if rand < 0.6:       
+            enemies.spawn_rat(Vec3(x, 1, z))
+        elif rand < 0.85:    
+            enemies.spawn_grasshopper(Vec3(x, 1, z))
+        else:                 
+            enemies.spawn_sahur(Vec3(x, 1, z))
 
 def spawn_projectile(position, direction):
     projectile = Entity(model='sphere', color=color.yellow, scale=0.15, position=position, collider='box')

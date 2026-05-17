@@ -259,3 +259,97 @@ def spawn_rat(position):
 def update_enemies():
     for enemy in list(enemies):
         enemy.update()
+
+#Chihai
+try:
+    grasshopper_texture = load_texture('texture/grasshopper_tex.jpg')
+    print("Loaded grasshopper texture")
+except Exception as e:
+    print(f"Failed loading grasshopper texture: {e}")
+    grasshopper_texture = color.green 
+
+#chihai quai vat chau chau
+class Grasshopper(Rat):
+    def __init__(self, position):
+        super().__init__(position)
+
+        self.entity.model = 'cube'
+        self.entity.color = color.clear 
+        self.entity.scale = (0.5, 0.5, 0.5) 
+        
+        self.mesh = Entity(parent=self.entity)
+        
+        try:
+            self.mesh.model = load_model('model/grasshopper.obj')
+        except Exception as e:
+            print(f"Không tìm thấy model châu chấu: {e}. Dùng khối vuông thay thế.")
+            self.mesh.model = 'cube'
+            
+        if hasattr(grasshopper_texture, 'width'):
+            self.mesh.texture = grasshopper_texture
+            self.mesh.color = color.white 
+        else:
+            self.mesh.texture = None 
+            self.mesh.color = grasshopper_texture 
+            
+        self.mesh.scale = (0.1, 0.1, 0.1) 
+     
+        self.mesh.y = 3.5
+        
+        self.hp = 8
+        self.max_hp = 8
+        self.speed = 4.0 
+        self.attack_damage = 2
+        
+        self.health_bar.color = color.lime
+
+def spawn_grasshopper(position):
+    g = Grasshopper(position)
+    enemies.append(g)
+    return g
+
+#Chihai quai vat tung tung sahur
+tex_sahur_path = 'texture/tungtungsahur_tex.png'
+sahur_texture = load_texture(tex_sahur_path)
+
+if sahur_texture is None:
+    print(f"Không tìm thấy ảnh Sahur tại '{tex_sahur_path}'")
+    sahur_texture = color.orange 
+
+
+class Sahur(Rat):
+    def __init__(self, position):
+        super().__init__(position)
+        
+        self.entity.model = 'cube'
+        self.entity.color = color.clear
+        self.entity.texture = None
+        self.entity.scale = (1.2, 1.2, 1.2)
+        self.mesh = Entity(parent=self.entity)
+        
+        try:
+            self.entity.model = load_model('model/tungtungsahur.fbx') 
+        except Exception as e:
+            print(f"Không tìm thấy model Sahur: {e}")
+            self.entity.model = 'cube'
+            
+        if hasattr(sahur_texture, 'width'):
+            self.entity.texture = sahur_texture
+            self.entity.color = color.white 
+        else:
+            self.entity.texture = None 
+            self.entity.color = sahur_texture 
+            
+        self.entity.scale = (0.003, 0.003, 0.003) 
+        self.entity.y = self.entity.scale_y / 2 
+        
+        self.hp = 35
+        self.max_hp = 35
+        self.speed = 1.5
+        self.attack_damage = 8
+        self.health_bar.y = 1.2
+
+def spawn_sahur(position):
+    s = Sahur(position)
+    enemies.append(s)
+    return s
