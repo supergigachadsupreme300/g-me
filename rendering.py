@@ -1,0 +1,97 @@
+from ursina import Entity, Text, Button, color, scene, camera, mouse, window
+import world
+
+
+time_text = None
+ammo_text = None
+pause_menu = None
+bed_confirm_menu = None
+bed_confirm_yes = None
+bed_confirm_no = None
+
+
+def setup_ui():
+    global time_text, ammo_text, pause_menu, bed_confirm_menu, bed_confirm_yes, bed_confirm_no
+
+    time_text = Text(parent=camera.ui, text='', position=(-0.88, 0.45), origin=(0, 0), scale=1.4, color=color.white, background=True)
+    ammo_text = Text(text='Ammo: 0/0', position=(0.8, 0.44), origin=(0, 0), scale=1.2, color=color.white, background=True)
+
+    pause_menu = Entity(parent=camera.ui, enabled=False)
+    Entity(parent=pause_menu, model='quad', color=color.rgba(0, 0, 0, 180/255), scale=(1.6, 1.2), position=(0, 0, 0))
+    Text(text='Settings', parent=pause_menu, y=0.35, scale=2, color=color.white)
+    Button(parent=pause_menu, text='Continue', scale=(0.5, 0.13), y=0.08)
+    Button(parent=pause_menu, text='Exit', scale=(0.5, 0.13), y=-0.15)
+
+    bed_confirm_menu = Entity(parent=camera.ui, enabled=False)
+    Entity(parent=bed_confirm_menu, model='quad', color=color.rgba(0, 0, 0, 180/255), scale=(1.4, 0.6), position=(0, 0, 0))
+    Text(parent=bed_confirm_menu, text='Use the bed?\nSkip to next day/night cycle.', y=0.12, scale=1.2, color=color.white)
+    bed_confirm_yes = Button(parent=bed_confirm_menu, text='Yes', scale=(0.3, 0.13), x=-0.18, y=-0.12)
+    bed_confirm_no = Button(parent=bed_confirm_menu, text='No', scale=(0.3, 0.13), x=0.18, y=-0.12)
+
+
+def update_ammo_text(gun_ammo, gun_max_ammo):
+    if ammo_text is not None:
+        ammo_text.text = f"Ammo: {gun_ammo}/{gun_max_ammo}"
+
+
+def update_time_ui(current_day, time_of_day):
+    if time_text is None:
+        return
+    hours = int(time_of_day)
+    minutes = int((time_of_day - hours) * 60)
+    time_text.text = f"Day {current_day} - {hours:02d}:{minutes:02d}"
+
+
+def set_day_night(time_of_day):
+    if world.sun is None:
+        return
+    if 6 <= time_of_day < 18:
+        world.sun.color = color.rgb(255/255, 255/255, 235/255)
+        window.color = color.rgb(135/255, 206/255, 235/255)
+        scene.fog_color = color.rgb(135/255, 206/255, 235/255)
+    else:
+        world.sun.color = color.rgb(120/255, 140/255, 255/255)
+        window.color = color.rgb(15/255, 20/255, 55/255)
+        scene.fog_color = color.rgb(15/255, 20/255, 55/255)
+
+
+def set_pause_button_callbacks(continue_callback, exit_callback):
+    if pause_menu is None:
+        return
+    buttons = [child for child in pause_menu.children if getattr(child, 'text', None) in ('Continue', 'Exit')]
+    if len(buttons) >= 2:
+        buttons[0].on_click = continue_callback
+        buttons[1].on_click = exit_callback
+
+
+def set_bed_confirm_callbacks(yes_callback, no_callback):
+    if bed_confirm_yes is not None:
+        bed_confirm_yes.on_click = yes_callback
+    if bed_confirm_no is not None:
+        bed_confirm_no.on_click = no_callback
+
+
+def toggle_pause(paused: bool):
+    global pause_menu
+    if pause_menu is None:
+        return
+    pause_menu.enabled = paused
+    if paused:
+        mouse.locked = False
+        mouse.visible = True
+    else:
+        mouse.locked = True
+        mouse.visible = False
+
+
+def toggle_bed_menu(enabled: bool):
+    global bed_confirm_menu
+    if bed_confirm_menu is None:
+        return
+    bed_confirm_menu.enabled = enabled
+    if enabled:
+        mouse.locked = False
+        mouse.visible = True
+    else:
+        mouse.locked = True
+        mouse.visible = False

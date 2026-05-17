@@ -1,5 +1,4 @@
 from ursina import Entity, color, Vec3, destroy
-import random
 
 buildings = []
 available_buildings = [
@@ -52,9 +51,7 @@ def can_place_building(position, building=None):
         existing_size = get_rotated_size({"size": tuple(b["entity"].scale)})
         existing_bounds = get_building_bounds(b["position"], existing_size, b["rotation"])
         if check_bounds_overlap(target_bounds, existing_bounds):
-            print(f"Placement overlap detected with {b['type']} at {b['position']}")
             return False
-    print(f"Can place building at {position} with rotation={current_rotation}° and size={size}")
     return True
 
 
@@ -69,13 +66,11 @@ def update_building_preview(position, valid=True):
     building_preview.rotation_y = current_rotation
     building_preview.color = color.green if valid else color.red
     building_preview.enabled = True
-    print(f"Preview updated: building={building['name']}, pos={position}, world_position={building_preview.world_position}, scale={rotated_size}, rotation={current_rotation}, valid={valid}")
 
 
 def hide_building_preview():
     if building_preview:
         building_preview.enabled = False
-        print("Preview hidden")
 
 
 def place_building(position):
@@ -95,44 +90,36 @@ def place_building(position):
         "rotation": current_rotation,
         "max_health": 100,
         "current_health": 100,
-        "health_bar": None
+        "health_bar": None,
     }
     buildings.append(building_data)
-    print(f"Building placed: {building['name']} at {position}")
     return building_data
 
 
 def rotate_building():
     global current_rotation
     current_rotation = (current_rotation + 90) % 360
-    print(f"Rotation set to {current_rotation}°")
 
 
 def next_building():
     global current_building_index
     current_building_index = (current_building_index + 1) % len(available_buildings)
-    building = get_current_building()
-    print(f"Selected building: {building['name']}")
 
 
 def prev_building():
     global current_building_index
     current_building_index = (current_building_index - 1) % len(available_buildings)
-    building = get_current_building()
-    print(f"Selected building: {building['name']}")
 
 
 def damage_building(building_data, damage):
     building_data["current_health"] -= damage
     if building_data["health_bar"]:
         building_data["health_bar"].scale_x = max(0, building_data["current_health"] / building_data["max_health"])
-    print(f"Building damaged: {building_data['current_health']}/{building_data['max_health']}")
     if building_data["current_health"] <= 0:
         destroy(building_data["entity"])
         if building_data["health_bar"]:
             destroy(building_data["health_bar"])
         buildings.remove(building_data)
-        print("Building destroyed")
 
 
 def find_building_by_entity(entity):

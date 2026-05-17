@@ -1,6 +1,6 @@
 from ursina import Entity, Sky, DirectionalLight, color, Vec3
-from ursina.prefabs.first_person_controller import FirstPersonController
-from config import WOOD_TEXTURE, GRASS_TEXTURE
+import config
+from player import create_player
 import random
 
 GROUND_SIZE = 150
@@ -9,33 +9,35 @@ GROUND_HALF = GROUND_SIZE / 2
 ground = None
 player = None
 player_model = None
+sun = None
+bed = None
 
 trees = []
 rocks = []
 
 
 def create_world():
-    global ground, player, player_model
+    global ground, player, player_model, sun
 
     ground = Entity(
         model='plane',
-        scale=(GROUND_SIZE, 1, GROUND_SIZE),
+        scale=(GROUND_SIZE, 0.1, GROUND_SIZE),
         collider='box',
         name='ground'
     )
-    if hasattr(GRASS_TEXTURE, 'width'):
-        ground.texture = GRASS_TEXTURE
+    if config.is_texture(config.GRASS_TEXTURE):
+        ground.texture = config.GRASS_TEXTURE
         ground.color = color.white
         ground.texture_scale = (GROUND_SIZE / 2, GROUND_SIZE / 2)
     else:
-        ground.color = GRASS_TEXTURE
+        ground.color = config.GRASS_TEXTURE
 
-    player = FirstPersonController()
-    player.cursor.visible = False
-    player_model = Entity(model='cube', color=color.azure, scale=(1, 2, 1), parent=player, position=(0, -1, 0))
+    player, player_model = create_player()
 
     Sky()
-    DirectionalLight().look_at(Vec3(1, -1, -1))
+    sun = DirectionalLight()
+    sun.color = color.rgb(255/255, 250/255, 235/255)
+    sun.look_at(Vec3(1, -1, -1))
     spawn_trees()
     spawn_rocks()
     build_house()
@@ -68,15 +70,21 @@ def spawn_rocks(num_rocks=8):
 
 def build_house():
     # Simple 3 walls house
-    if hasattr(WOOD_TEXTURE, 'width'):  # It's a texture
-        Entity(model='cube', texture=WOOD_TEXTURE, scale=(10, 5, 0.5), position=(0, 2.5, -5), texture_scale=(1, 1))
-        Entity(model='cube', texture=WOOD_TEXTURE, scale=(10, 5, 0.5), position=(0, 2.5, 5), texture_scale=(1, 1))
-        Entity(model='cube', texture=WOOD_TEXTURE, scale=(0.5, 5, 10), position=(-5, 2.5, 0), texture_scale=(1, 1))
-        Entity(model='cube', texture=WOOD_TEXTURE, scale=(10, 0.5, 10), position=(0, 0, 0), texture_scale=(1, 1))
-        Entity(model='cube', texture=WOOD_TEXTURE, scale=(11, 1, 11), position=(0, 5.5, 0), texture_scale=(1, 1))
+    if config.is_texture(config.WOOD_TEXTURE):  # It's a texture
+        Entity(model='cube', texture=config.WOOD_TEXTURE, scale=(10, 5, 0.5), position=(0, 2.5, -5), texture_scale=(1, 1))
+        Entity(model='cube', texture=config.WOOD_TEXTURE, scale=(10, 5, 0.5), position=(0, 2.5, 5), texture_scale=(1, 1))
+        Entity(model='cube', texture=config.WOOD_TEXTURE, scale=(0.5, 5, 10), position=(-5, 2.5, 0), texture_scale=(1, 1))
+        Entity(model='cube', texture=config.WOOD_TEXTURE, scale=(10, 0.5, 10), position=(0, 0, 0), texture_scale=(1, 1))
+        Entity(model='cube', texture=config.WOOD_TEXTURE, scale=(11, 1, 11), position=(0, 5.5, 0), texture_scale=(1, 1))
     else:  # It's a color
-        Entity(model='cube', color=WOOD_TEXTURE, scale=(10, 5, 0.5), position=(0, 2.5, -5))
-        Entity(model='cube', color=WOOD_TEXTURE, scale=(10, 5, 0.5), position=(0, 2.5, 5))
-        Entity(model='cube', color=WOOD_TEXTURE, scale=(0.5, 5, 10), position=(-5, 2.5, 0))
-        Entity(model='cube', color=WOOD_TEXTURE, scale=(10, 0.5, 10), position=(0, 0, 0))
-        Entity(model='cube', color=WOOD_TEXTURE, scale=(11, 1, 11), position=(0, 5.5, 0))
+        Entity(model='cube', color=config.WOOD_TEXTURE, scale=(10, 5, 0.5), position=(0, 2.5, -5))
+        Entity(model='cube', color=config.WOOD_TEXTURE, scale=(10, 5, 0.5), position=(0, 2.5, 5))
+        Entity(model='cube', color=config.WOOD_TEXTURE, scale=(0.5, 5, 10), position=(-5, 2.5, 0))
+        Entity(model='cube', color=config.WOOD_TEXTURE, scale=(10, 0.5, 10), position=(0, 0, 0))
+        Entity(model='cube', color=config.WOOD_TEXTURE, scale=(11, 1, 11), position=(0, 5.5, 0))
+
+    # Add a simple bed inside the house
+    global bed
+    bed = Entity(model='cube', color=color.azure, scale=(2.8, 0.25, 1.8), position=(1.2, 0.4, -1.8), collider='box')
+    bed.is_bed = True
+    Entity(model='cube', color=color.white, scale=(0.8, 0.15, 1.0), position=(1.8, 0.225, -1.8), parent=bed)
