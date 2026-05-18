@@ -44,7 +44,15 @@ def spawn_ground_item(item_type, position):
     elif item_type == "stone":
         Entity(model='cube', color=color.gray, scale=(0.6, 0.6, 0.6), parent=root, position=(0, 0.5, 0))
     elif item_type == "seed":
-        Entity(model='cube', color=color.green, scale=(0.3, 0.3, 0.1), parent=root, position=(0, 0.2, 0))
+        try:
+            seed_texture = load_texture('texture/seed.png')
+            if hasattr(seed_texture, 'width'):
+                Entity(model='cube', texture=seed_texture, scale=(0.3, 0.3, 0.1), parent=root, position=(0, 0.2, 0), texture_scale=(1, 1))
+            else:
+                Entity(model='cube', color=color.green, scale=(0.3, 0.3, 0.1), parent=root, position=(0, 0.2, 0))
+        except Exception as e:
+            print(f"Failed to load seed texture: {e}")
+            Entity(model='cube', color=color.green, scale=(0.3, 0.3, 0.1), parent=root, position=(0, 0.2, 0))
     elif item_type == "wheat":
         Entity(model='cube', color=color.yellow, scale=(0.3, 0.3, 0.3), parent=root, position=(0, 0.2, 0))
     elif item_type == "damaged wheat":

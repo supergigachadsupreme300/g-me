@@ -4,6 +4,10 @@ import world
 
 time_text = None
 ammo_text = None
+player_hp_text = None
+player_stamina_text = None
+player_money_text = None
+quest_text = None
 pause_menu = None
 bed_confirm_menu = None
 bed_confirm_yes = None
@@ -15,11 +19,16 @@ buffalo_leave = None
 
 
 def setup_ui():
-    global time_text, ammo_text, pause_menu, bed_confirm_menu, bed_confirm_yes, bed_confirm_no
+    global time_text, ammo_text, player_hp_text, player_stamina_text, player_money_text
+    global pause_menu, bed_confirm_menu, bed_confirm_yes, bed_confirm_no
     global buffalo_dialog, buffalo_dialog_text, buffalo_sell, buffalo_leave
 
-    time_text = Text(parent=camera.ui, text='', position=(-0.88, 0.45), origin=(0, 0), scale=1.4, color=color.white, background=True)
+    time_text = Text(parent=camera.ui, text='', position=(-0.88, -0.45), origin=(0, 0), scale=1.4, color=color.white, background=True)
     ammo_text = Text(parent=camera.ui, text='Ammo: 0/0', position=(0.8, 0.44), origin=(0, 0), scale=1.2, color=color.white, background=True)
+    player_hp_text = Text(parent=camera.ui, text='HP: 100/100', position=(-0.96, 0.45), origin=(0, 0), scale=1.2, color=color.rgb(255/255, 80/255, 80/255), background=True)
+    player_stamina_text = Text(parent=camera.ui, text='Stamina: 100/100', position=(-0.96, 0.39), origin=(0, 0), scale=1.2, color=color.rgb(100/255, 200/255, 255/255), background=True)
+    player_money_text = Text(parent=camera.ui, text='Money: 0', position=(-0.96, 0.33), origin=(0, 0), scale=1.2, color=color.rgb(255/255, 220/255, 100/255), background=True)
+    quest_text = Text(parent=camera.ui, text='Quest: Harvest wheat 0/100', position=(-0.96, 0.27), origin=(0, 0), scale=1.1, color=color.white, background=True)
 
     pause_menu = Entity(parent=camera.ui, enabled=False)
     Entity(parent=pause_menu, model='quad', color=color.rgba(0, 0, 0, 180/255), scale=(1.6, 1.2), position=(0, 0, 0))
@@ -43,6 +52,21 @@ def setup_ui():
 def update_ammo_text(gun_ammo, gun_max_ammo):
     if ammo_text is not None:
         ammo_text.text = f"Ammo: {gun_ammo}/{gun_max_ammo}"
+
+
+def update_player_hud(hp, max_hp, stamina, max_stamina, money):
+    if player_hp_text is not None:
+        player_hp_text.text = f"HP: {int(hp)}/{int(max_hp)}"
+    if player_stamina_text is not None:
+        player_stamina_text.text = f"Stamina: {int(stamina)}/{int(max_stamina)}"
+    if player_money_text is not None:
+        player_money_text.text = f"Money: {int(money)}"
+
+
+def update_quest_text(name, progress, goal):
+    if quest_text is not None:
+        status = 'Completed' if progress >= goal else f'{progress}/{goal}'
+        quest_text.text = f"Quest: {name} ({status})"
 
 
 def update_time_ui(current_day, time_of_day):
