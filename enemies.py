@@ -237,21 +237,13 @@ class Rat:
         self.state = DEAD
         items.spawn_ground_item("fertilizer", self.entity.position + Vec3(0, 0.2, 0))
         destroy(self.entity)
-        destroy(self.health_bar)
         if self in enemies:
             enemies.remove(self)
-        print(f"Rat died and dropped fertilizer")
 
 
 def spawn_rat(position):
     load_rat_assets()
     rat = Rat(position)
-    texture_choice = random.choice(rat_texture)
-    if hasattr(texture_choice, 'width'):
-        rat.entity.texture = texture_choice
-        rat.entity.color = color.white
-    else:
-        rat.entity.color = texture_choice
     enemies.append(rat)
     return rat
 

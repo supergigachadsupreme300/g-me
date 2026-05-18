@@ -181,6 +181,9 @@ def update():
     update_time_ui()
     set_day_night()
 
+    update_projectiles()
+    enemies.update_enemies()
+
     if tools.hoe.enabled:
         fields.field_preview.enabled = False
         hit = raycast(camera.world_position, camera.forward, distance=MAX_PLACE_DISTANCE, ignore=(world.player, fields.field_preview))
@@ -248,9 +251,6 @@ def update():
     else:
         fields.field_preview.enabled = False
         building_system.hide_building_preview()
-
-    update_projectiles()
-    enemies.update_enemies()
 
 
 def is_bed_entity(entity):
@@ -462,10 +462,7 @@ def handle_input(key):
                         tree["bar"].scale_x = max(0, tree["hp"] / 5)
                         if tree["hp"] <= 0:
                             items.spawn_ground_item("wood", tree["trunk"].position + Vec3(0, 0, 2))
-                            destroy(tree["trunk"])
-                            destroy(tree["leaves"])
-                            destroy(tree["bar"])
-                            world.trees.remove(tree)
+                            world.remove_tree(tree)
                         break
 
         if tools.pickaxe.enabled:
@@ -478,9 +475,7 @@ def handle_input(key):
                         rock["bar"].scale_x = max(0, rock["hp"] / 7.5)
                         if rock["hp"] <= 0:
                             items.spawn_ground_item("stone", rock["rock"].position + Vec3(0, 0, 2))
-                            destroy(rock["rock"])
-                            destroy(rock["bar"])
-                            world.rocks.remove(rock)
+                            world.remove_rock(rock)
                         break
 
         if tools.hoe.enabled:
