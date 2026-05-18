@@ -14,7 +14,7 @@ def setup_ui():
     global time_text, ammo_text, pause_menu, bed_confirm_menu, bed_confirm_yes, bed_confirm_no
 
     time_text = Text(parent=camera.ui, text='', position=(-0.88, 0.45), origin=(0, 0), scale=1.4, color=color.white, background=True)
-    ammo_text = Text(text='Ammo: 0/0', position=(0.8, 0.44), origin=(0, 0), scale=1.2, color=color.white, background=True)
+    ammo_text = Text(parent=camera.ui, text='Ammo: 0/0', position=(0.8, 0.44), origin=(0, 0), scale=1.2, color=color.white, background=True)
 
     pause_menu = Entity(parent=camera.ui, enabled=False)
     Entity(parent=pause_menu, model='quad', color=color.rgba(0, 0, 0, 180/255), scale=(1.6, 1.2), position=(0, 0, 0))

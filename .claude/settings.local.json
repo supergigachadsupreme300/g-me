@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"import ast; ast.parse\\(open\\('world.py', encoding='utf-8'\\).read\\(\\)\\); ast.parse\\(open\\('building_system.py', encoding='utf-8'\\).read\\(\\)\\); ast.parse\\(open\\('game.py', encoding='utf-8'\\).read\\(\\)\\); print\\('OK'\\)\")"
+    ]
+  }
+}
