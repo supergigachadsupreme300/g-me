@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-=======
->>>>>>> DEVELOP
 from ursina import *
 import math
 import config
