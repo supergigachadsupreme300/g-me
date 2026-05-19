@@ -14,7 +14,10 @@ def create_field(pos):
         "wheat_planted": False,
         "wheat_stage": 0,
         "wheat_nodes": [],
-        "wheat_hp": 0
+        "wheat_hp": 0,
+        "peashooter_planted": False,
+        "peashooter_entity": None,
+        "peashooter_hp": 0
     })
     return root
 
@@ -82,6 +85,39 @@ def plant_wheat_on_field(field_data):
 
     _update_wheat_patch(field_data, 1)
     invoke(lambda: advance_wheat_growth(field_data), delay=4)
+    return True
+
+
+def plant_peashooter_on_field(field_data):
+    if field_data["wheat_planted"] or field_data["peashooter_planted"]:
+        return False
+
+    field_data["peashooter_planted"] = True
+    field_data["peashooter_hp"] = 20
+
+    try:
+        from ursina import load_model, load_texture
+        model = load_model('model/peashooter/source/peashooterlowpoly.obj')
+        texture = load_texture('model/peashooter/texture/peashooter.png')
+        field_data["peashooter_entity"] = Entity(
+            model=model,
+            texture=texture,
+            scale=0.55,
+            position=(0, 0.1, -0.15),
+            parent=field_data["entity"],
+            collider='box'
+        )
+    except Exception as e:
+        print(f"Failed to load peashooter model or texture: {e}")
+        field_data["peashooter_entity"] = Entity(
+            model='cube',
+            color=color.lime,
+            scale=(0.8, 1.0, 0.5),
+            position=(0, 0.6, 0),
+            parent=field_data["entity"],
+            collider='box'
+        )
+
     return True
 
 

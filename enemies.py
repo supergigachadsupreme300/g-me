@@ -1,4 +1,4 @@
-from ursina import Entity, color, Vec3, raycast, destroy, load_model, load_texture, time
+from ursina import Entity, Text, color, Vec3, raycast, destroy, load_model, load_texture, time
 from math import atan2, degrees
 import time as pytime
 import random
@@ -78,7 +78,7 @@ class Rat:
         position = Vec3(position.x, 0.0, position.z)
         texture_choice = random.choice(rat_texture)
         entity_kwargs = {
-            'model': rat_model if rat_model is not None else 'cube',
+            'model': 'cube',
             'scale': (0.8, 0.8, 0.8),
             'position': position,
             'collider': 'box'
@@ -89,10 +89,21 @@ class Rat:
         else:
             entity_kwargs['color'] = texture_choice
         self.entity = Entity(**entity_kwargs)
-        self.entity.y = self.entity.scale_y / 2
+        self.entity.y = self.entity.scale_y / 2 + 0.05
         self.entity.double_sided = True  # Fix texture appearing inside
+
+        if rat_model not in (None, 'cube'):
+            self.visual = Entity(parent=self.entity, model=rat_model, scale=0.8, position=(0, 0.12, 0), double_sided=True)
+            if hasattr(texture_choice, 'width'):
+                self.visual.texture = texture_choice
+                self.visual.color = color.white
+            else:
+                self.visual.color = texture_choice
+            self.entity.color = color.clear
+
         self.velocity_y = 0
         self.health_bar = Entity(model='cube', color=color.red, scale=(0.5, 0.05, 0.05), parent=self.entity, position=(0, 0.8, 0), origin=(0, 0))
+        self.name_text = Text(text=self.__class__.__name__, parent=self.entity, position=(0, 1.1, 0), origin=(0, 0), scale=1, color=color.white, billboard=True, always_on_top=True)
         self.state = SEARCH_WHEAT
         self.target_field = None
         self.target_building = None

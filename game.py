@@ -190,6 +190,7 @@ def select_slot(index):
     inventory.selected_slot = index
     current_item = inventory.get_item(inventory.inventory[index])
     tools.set_active_item(current_item)
+    rendering.show_ammo(current_item == "gun")
     inventory.update_inventory_ui()
 
 
@@ -247,6 +248,7 @@ def update():
 
     update_projectiles()
     enemies.update_enemies()
+    update_quest_ui()
 
     if tools.hoe.enabled:
         fields.field_preview.enabled = False
@@ -392,6 +394,8 @@ def setup_game():
         tasks.set_active_quest(tasks.create_harvest_wheat_quest())
     if world.player is not None:
         rendering.update_player_hud(world.player.hp, world.player.max_hp, world.player.stamina, world.player.max_stamina, world.player.money)
+        current_item = inventory.get_item(inventory.inventory[inventory.selected_slot])
+        rendering.show_ammo(current_item == "gun")
     update_quest_ui()
 
 
@@ -479,6 +483,22 @@ def handle_input(key):
                         inventory.show_message("Wheat planted on field", 1.5)
                     else:
                         inventory.show_message("Wheat is already growing here", 1.5)
+            return
+
+        if inventory.get_item(inventory.inventory[inventory.selected_slot]) == "peashooter seed":
+            hit_info = raycast(camera.world_position, camera.forward, distance=MAX_PLACE_DISTANCE)
+            if hit_info.hit:
+                field_data = fields.find_field_by_entity(hit_info.entity)
+                if field_data:
+                    success = fields.plant_peashooter_on_field(field_data)
+                    if success:
+                        inventory.remove_item(inventory.selected_slot)
+                        if inventory.get_item(inventory.inventory[inventory.selected_slot]) is None:
+                            select_slot(inventory.selected_slot)
+                        inventory.update_inventory_ui()
+                        inventory.show_message("Peashooter planted on field", 1.5)
+                    else:
+                        inventory.show_message("Cannot plant here", 1.5)
             return
 
         if inventory.get_item(inventory.inventory[inventory.selected_slot]) == "fertilizer":
@@ -633,14 +653,21 @@ def setup_game():
     items.spawn_ground_item("axe", Vec3(0, 1, 0))
     items.spawn_ground_item("pickaxe", Vec3(2, 1, 0))
     items.spawn_ground_item("hoe", Vec3(-2, 1, 0))
-    items.spawn_ground_item("hammer", Vec3(6, 1, 0))
     items.spawn_ground_item("seed", Vec3(4, 1, 0))
-    items.spawn_ground_item("sword", Vec3(8, 1, 0))
-    items.spawn_ground_item("gun", Vec3(10, 1, 0))
-    items.spawn_ground_item("ammo", Vec3(12, 1, 0))
-    items.spawn_ground_item("scythe", Vec3(14, 1, 0))
+    items.spawn_ground_item("peashooter seed", Vec3(6, 1, 0))
+    items.spawn_ground_item("hammer", Vec3(8, 1, 0))
+    items.spawn_ground_item("sword", Vec3(10, 1, 0))
+    items.spawn_ground_item("gun", Vec3(12, 1, 0))
+    items.spawn_ground_item("ammo", Vec3(14, 1, 0))
+    items.spawn_ground_item("scythe", Vec3(16, 1, 0))
 
     inventory.update_inventory_ui()
+    if tasks.get_active_quest() is None:
+        tasks.set_active_quest(tasks.create_harvest_wheat_quest())
+
+    rendering.update_player_hud(world.player.hp, world.player.max_hp, world.player.stamina, world.player.max_stamina, world.player.money)
+    rendering.update_quest_text(*tasks.get_quest_status())
+
     update_time_ui()
     set_day_night()
     spawn_rats_on_edge(4)

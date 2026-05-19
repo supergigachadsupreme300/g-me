@@ -1,4 +1,7 @@
-from ursina import Entity, Sky, DirectionalLight, color, Vec3, load_model, load_texture
+<<<<<<< HEAD
+=======
+>>>>>>> DEVELOP
+from ursina import *
 import math
 import config
 from player import create_player
@@ -16,7 +19,6 @@ buffalo = None
 
 trees = []
 rocks = []
-
 
 def create_world():
     global ground, player, player_model, sun
@@ -45,6 +47,7 @@ def create_world():
     build_house()
     build_shop()
     spawn_buffalo()
+    spawn_vendor_cart()
 
 
 def spawn_trees(num_trees=10):
@@ -337,3 +340,32 @@ def spawn_buffalo():
     if texture is not None:
         buffalo.texture = texture
     buffalo.is_buffalo = True
+
+
+def spawn_vendor_cart():
+    vendor_root = Entity(position=(-GROUND_HALF + 8, 0.5, -GROUND_HALF + 8))
+    # cart body
+    Entity(parent=vendor_root, model='cube', color=color.rgb(200, 120, 60), scale=(4, 1.4, 2), position=(0, 0.9, 0), collider='box')
+    Entity(parent=vendor_root, model='cube', color=color.rgb(180, 80, 40), scale=(4.2, 0.4, 2.2), position=(0, 1.6, 0))
+    Entity(parent=vendor_root, model='cube', color=color.gray, scale=(0.2, 0.8, 0.2), position=(1.9, 1.1, -0.8))
+    Entity(parent=vendor_root, model='cube', color=color.white, scale=(2, 0.2, 1), position=(0, 2.1, 0.9))
+
+    # wheels
+    wheel_positions = [(-1.4, 0.35, -0.8), (1.4, 0.35, -0.8), (-1.4, 0.35, 0.8), (1.4, 0.35, 0.8)]
+    for pos in wheel_positions:
+        Entity(parent=vendor_root, model='cylinder', color=color.black, scale=(0.3, 0.3, 0.3), position=pos, rotation=(90, 0, 0))
+
+    # vendor character
+    vendor = Entity(parent=vendor_root, position=(0, 0, 1.8))
+    Entity(parent=vendor, model='cube', color=color.azure, scale=(0.5, 1.0, 0.4), position=(0, 1.0, 0))
+    head = Entity(parent=vendor, model='cube', color=color.white, scale=(0.45, 0.45, 0.45), position=(0, 1.9, 0))
+    try:
+        face_texture = load_texture('texture/seed.png')
+        if hasattr(face_texture, 'width'):
+            Entity(parent=head, model='quad', texture=face_texture, scale=(0.35, 0.35), position=(0, 0, 0.26))
+    except Exception:
+        pass
+    Entity(parent=vendor, model='cube', color=color.azure, scale=(0.15, 0.6, 0.15), position=(-0.35, 1.2, 0))
+    Entity(parent=vendor, model='cube', color=color.azure, scale=(0.15, 0.6, 0.15), position=(0.35, 1.2, 0))
+    Entity(parent=vendor, model='cube', color=color.blue, scale=(0.18, 0.7, 0.18), position=(-0.15, 0.35, 0))
+    Entity(parent=vendor, model='cube', color=color.blue, scale=(0.18, 0.7, 0.18), position=(0.15, 0.35, 0))
