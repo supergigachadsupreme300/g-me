@@ -11,6 +11,7 @@ ground = None
 player = None
 player_model = None
 sun = None
+sky = None
 bed = None
 buffalo = None
 
@@ -18,7 +19,7 @@ trees = []
 rocks = []
 
 def create_world():
-    global ground, player, player_model, sun
+    global ground, player, player_model, sun, sky
 
     ground = Entity(
         model='plane',
@@ -35,7 +36,7 @@ def create_world():
 
     player, player_model = create_player()
 
-    Sky()
+    sky = Sky()
     sun = DirectionalLight()
     sun.color = color.rgb(255/255, 250/255, 235/255)
     sun.look_at(Vec3(1, -1, -1))
@@ -350,8 +351,8 @@ def spawn_vendor_cart():
     # wheels
     wheel_positions = [(-1.4, 0.35, -0.8), (1.4, 0.35, -0.8), (-1.4, 0.35, 0.8), (1.4, 0.35, 0.8)]
     for pos in wheel_positions:
-        # use torus as a wheel-like primitive to avoid missing 'cylinder' model warnings
-        Entity(parent=vendor_root, model='torus', color=color.black, scale=(0.18, 0.18, 0.18), position=pos, rotation=(90, 0, 0))
+        Entity(parent=vendor_root, model='sphere', color=color.black,
+               scale=(0.18, 0.18, 0.05), position=pos, rotation=(90, 0, 0))
 
     # vendor character
     vendor = Entity(parent=vendor_root, position=(0, 0, 1.8))

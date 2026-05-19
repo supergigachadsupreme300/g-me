@@ -1,6 +1,7 @@
-from ursina import Entity, Text, Button, color, scene, camera, mouse, window
+from ursina import Entity, Text, Button, color, scene, camera, mouse, window, load_texture
 import world
 
+starry_texture = None
 
 time_text = None
 ammo_text = None
@@ -90,10 +91,28 @@ def set_day_night(time_of_day):
         world.sun.color = color.rgb(255/255, 255/255, 235/255)
         window.color = color.rgb(135/255, 206/255, 235/255)
         scene.fog_color = color.rgb(135/255, 206/255, 235/255)
+        if world.sky is not None:
+            world.sky.texture = None
+            world.sky.color = color.rgb(135/255, 206/255, 235/255)
     else:
         world.sun.color = color.rgb(120/255, 140/255, 255/255)
         window.color = color.rgb(15/255, 20/255, 55/255)
         scene.fog_color = color.rgb(15/255, 20/255, 55/255)
+        if world.sky is not None:
+            global starry_texture
+            if starry_texture is None:
+                try:
+                    starry_texture = load_texture('texture/starry.png')
+                    print('Loaded night sky texture: texture/starry.png')
+                except Exception as e:
+                    print(f'Failed to load night sky texture: {e}')
+                    starry_texture = None
+            if starry_texture is not None:
+                world.sky.texture = starry_texture
+                world.sky.color = color.white
+            else:
+                world.sky.texture = None
+                world.sky.color = color.rgb(15/255, 20/255, 55/255)
 
 
 def set_pause_button_callbacks(continue_callback, exit_callback):

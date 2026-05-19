@@ -30,6 +30,9 @@ def load_rat_assets():
 
     try:
         rat_model = load_model('model/rat/source/rat.fbx')
+        if not rat_model:
+            raise ValueError('rat.fbx loaded but returned no model')
+        print('Loaded rat model: model/rat/source/rat.fbx')
     except Exception as e:
         print(f"Failed to load rat model: {e}. Using fallback cube.")
         rat_model = 'cube'
