@@ -9,10 +9,12 @@ sword = None
 gun = None
 scythe = None
 fertilizer = None
+seed = None
+peashooter_seed = None
 
 
 def setup_tools():
-    global arm, axe, pickaxe, hoe, hammer, sword, gun, scythe, fertilizer
+    global arm, axe, pickaxe, hoe, hammer, sword, gun, scythe, fertilizer, seed, peashooter_seed
     arm = Entity(model='cube', color=color.brown, scale=(0.3, 1, 0.3),
                  position=(0.7, -0.6, 1.5), rotation=(20, -30, 0), parent=None, enabled=True)
     axe = Entity(position=(0.7, -0.6, 1.5), rotation=(0, 0, 0), parent=None, enabled=False)
@@ -31,6 +33,10 @@ def setup_tools():
     _make_scythe_on_parent(scythe)
     fertilizer = Entity(position=(0.7, -0.6, 1.5), rotation=(0, 0, 0), parent=None, enabled=False)
     _make_fertilizer_on_parent(fertilizer)
+    seed = Entity(position=(0.7, -0.6, 1.5), rotation=(0, 0, 0), parent=None, enabled=False)
+    _make_seed_on_parent(seed)
+    peashooter_seed = Entity(position=(0.7, -0.6, 1.5), rotation=(0, 0, 0), parent=None, enabled=False)
+    _make_peashooter_seed_on_parent(peashooter_seed)
 
 
 def _make_axe_on_parent(parent_entity):
@@ -80,6 +86,30 @@ def _make_fertilizer_on_parent(parent_entity):
         Entity(model='cube', color=color.green, scale=(0.3, 0.3, 0.3), parent=parent_entity, position=(0, 0, 0))
 
 
+def _make_seed_on_parent(parent_entity):
+    try:
+        from ursina import load_texture
+        tex = load_texture('texture/seed.png')
+        if hasattr(tex, 'width'):
+            Entity(model='cube', texture=tex, color=color.rgb(180/255, 120/255, 60/255), scale=(0.25, 0.25, 0.1), parent=parent_entity, position=(0, 0.2, 0), texture_scale=(1, 1))
+            return
+    except Exception:
+        pass
+    Entity(model='cube', color=color.rgb(180/255, 120/255, 60/255), scale=(0.25, 0.25, 0.1), parent=parent_entity, position=(0, 0.2, 0))
+
+
+def _make_peashooter_seed_on_parent(parent_entity):
+    try:
+        from ursina import load_texture
+        tex = load_texture('texture/seed.png')
+        if hasattr(tex, 'width'):
+            Entity(model='cube', texture=tex, color=color.rgb(255/255, 220/255, 80/255), scale=(0.25, 0.25, 0.1), parent=parent_entity, position=(0, 0.2, 0), texture_scale=(1, 1))
+            return
+    except Exception:
+        pass
+    Entity(model='cube', color=color.rgb(255/255, 220/255, 80/255), scale=(0.25, 0.25, 0.1), parent=parent_entity, position=(0, 0.2, 0))
+
+
 def _make_scythe_on_parent(parent_entity):
     Entity(model='cube', color=color.brown, scale=(0.12, 0.8, 0.12), parent=parent_entity, position=(0, 0, 0))
     Entity(model='cube', color=color.gray, scale=(0.05, 0.35, 0.05), parent=parent_entity, position=(0, 0.4, 0), rotation=(0, 0, 45))
@@ -96,6 +126,8 @@ def set_active_item(item_type):
     gun.enabled = (item_type == "gun")
     scythe.enabled = (item_type == "scythe")
     fertilizer.enabled = (item_type == "fertilizer")
+    seed.enabled = (item_type == "seed")
+    peashooter_seed.enabled = (item_type == "peashooter seed")
 
 
 def swing_item(item_entity):
