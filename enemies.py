@@ -1,4 +1,4 @@
-from ursina import Entity, color, Vec3, raycast, destroy, load_model, load_texture, time
+from ursina import Entity, Text, color, Vec3, raycast, destroy, load_model, load_texture, time
 from math import atan2, degrees
 import time as pytime
 import random
@@ -16,7 +16,7 @@ def load_rat_assets():
     if rat_model is not None and rat_texture:
         return
 
-    for path in ['texture/rat_grey.png', 'texture/rat_khaki.png', 'texture/rat_bege_psd.png']:
+    for path in ['model/rat/texture/rat_grey.png', 'model/rat/texture/rat_khaki.png', 'model/rat/texture/rat_bege_psd.png']:
         try:
             tex = load_texture(path)
             if tex:
@@ -29,7 +29,7 @@ def load_rat_assets():
         rat_texture = [color.rgb(120/255, 80/255, 40/255)]  # fallback màu nâu
 
     try:
-        rat_model = load_model('model/rat.fbx')
+        rat_model = load_model('model/rat/source/rat.fbx')
     except Exception as e:
         print(f"Failed to load rat model: {e}. Using fallback cube.")
         rat_model = 'cube'
@@ -78,7 +78,7 @@ class Rat:
         position = Vec3(position.x, 0.0, position.z)
         texture_choice = random.choice(rat_texture)
         entity_kwargs = {
-            'model': rat_model if rat_model is not None else 'cube',
+            'model': 'cube',
             'scale': (0.8, 0.8, 0.8),
             'position': position,
             'collider': 'box'
@@ -89,10 +89,21 @@ class Rat:
         else:
             entity_kwargs['color'] = texture_choice
         self.entity = Entity(**entity_kwargs)
-        self.entity.y = self.entity.scale_y / 2
+        self.entity.y = self.entity.scale_y / 2 + 0.05
         self.entity.double_sided = True  # Fix texture appearing inside
+
+        if rat_model not in (None, 'cube'):
+            self.visual = Entity(parent=self.entity, model=rat_model, scale=0.8, position=(0, 0.12, 0), double_sided=True)
+            if hasattr(texture_choice, 'width'):
+                self.visual.texture = texture_choice
+                self.visual.color = color.white
+            else:
+                self.visual.color = texture_choice
+            self.entity.color = color.clear
+
         self.velocity_y = 0
         self.health_bar = Entity(model='cube', color=color.red, scale=(0.5, 0.05, 0.05), parent=self.entity, position=(0, 0.8, 0), origin=(0, 0))
+        self.name_text = Text(text=self.__class__.__name__, parent=self.entity, position=(0, 1.1, 0), origin=(0, 0), scale=1, color=color.white, billboard=True, always_on_top=True)
         self.state = SEARCH_WHEAT
         self.target_field = None
         self.target_building = None
@@ -254,7 +265,7 @@ def update_enemies():
 
 #Chihai
 try:
-    grasshopper_texture = load_texture('model/grasshopper/grasshopper_tex.jpg')
+    grasshopper_texture = load_texture('model/grasshopper/texture/grasshopper_tex.jpg')
     print("Loaded grasshopper texture")
 except Exception as e:
     print(f"Failed loading grasshopper texture: {e}")
@@ -272,7 +283,7 @@ class Grasshopper(Rat):
         self.mesh = Entity(parent=self.entity)
         
         try:
-            self.mesh.model = load_model('model/grasshopper/grasshopper.obj')
+            self.mesh.model = load_model('model/grasshopper/source/grasshopper.obj')
         except Exception as e:
             print(f"Không tìm thấy model châu chấu: {e}. Dùng khối vuông thay thế.")
             self.mesh.model = 'cube'
@@ -301,7 +312,7 @@ def spawn_grasshopper(position):
     return g
 
 #Chihai quai vat tung tung sahur
-tex_sahur_path = 'model/tungtungsahur/tungtungsahur_tex.png'
+tex_sahur_path = 'model/sahur/texture/tungtungsahur_tex.png'
 sahur_texture = load_texture(tex_sahur_path)
 
 if sahur_texture is None:
@@ -320,7 +331,7 @@ class Sahur(Rat):
         self.mesh = Entity(parent=self.entity)
         
         try:
-            self.entity.model = load_model('model/tungtungsahur/tungtungsahur.fbx') 
+            self.entity.model = load_model('model/sahur/source/tungtungsahur.fbx') 
         except Exception as e:
             print(f"Không tìm thấy model Sahur: {e}")
             self.entity.model = 'cube'
