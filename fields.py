@@ -1,6 +1,9 @@
-from ursina import Entity, Vec3, color, invoke, curve, destroy
+from ursina import Entity, Vec3, color, invoke, curve, destroy, time as ursina_time
 import random
 from items import spawn_ground_item
+
+# projectiles fired by peashooters
+peashooter_projectiles = []
 
 fields = []
 field_preview = Entity(model='cube', color=color.rgba(150/255, 100/255, 50/255, 140/255), scale=(1, 0.2, 1), enabled=False)
@@ -119,6 +122,65 @@ def plant_peashooter_on_field(field_data):
         )
 
     return True
+
+
+def update_peashooters():
+    # Called once per frame from game.update()
+    import enemies as enemies_mod
+    now = ursina_time.time
+    for field_data in fields:
+        if not field_data.get("peashooter_planted"):
+            continue
+        if field_data.get("peashooter_entity") is None:
+            continue
+        last = field_data.get("last_shot", 0)
+        cooldown = 1.0
+        # find nearest enemy within range
+        pe = field_data["peashooter_entity"]
+        target = None
+        best = None
+        for enemy in enemies_mod.enemies:
+            dist = (enemy.entity.world_position - pe.world_position).length()
+            if dist <= 10.0 and (best is None or dist < best):
+                best = dist
+                target = enemy
+        if target and now - last >= cooldown:
+            # spawn green projectile towards target
+            spawn_pos = pe.world_position + Vec3(0, 0.5, 0)
+            proj = Entity(model='sphere', color=color.lime, scale=0.12, position=spawn_pos, collider='box')
+            direction = (target.entity.world_position - spawn_pos).normalized()
+            proj.velocity = direction * 18
+            proj.damage = 6
+            proj.age = 0.0
+            proj.lifetime = 3.0
+            peashooter_projectiles.append(proj)
+            field_data['last_shot'] = now
+
+
+def update_peashooter_projectiles():
+    import enemies as enemies_mod
+    for proj in list(peashooter_projectiles):
+        proj.position += proj.velocity * ursina_time.dt
+        proj.age += ursina_time.dt
+        hit_info = proj.intersects()
+        if hit_info.hit:
+            enemy = enemies_mod.find_enemy_by_entity(hit_info.entity)
+            if enemy:
+                enemy.take_damage(proj.damage)
+                try:
+                    destroy(proj)
+                except Exception:
+                    pass
+                if proj in peashooter_projectiles:
+                    peashooter_projectiles.remove(proj)
+                continue
+        if proj.age >= proj.lifetime:
+            try:
+                destroy(proj)
+            except Exception:
+                pass
+            if proj in peashooter_projectiles:
+                peashooter_projectiles.remove(proj)
 
 
 def update_wheat_health_bar(field_data):

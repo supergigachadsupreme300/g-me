@@ -246,7 +246,16 @@ class Rat:
 
     def die(self):
         self.state = DEAD
-        items.spawn_ground_item("fertilizer", self.entity.position + Vec3(0, 0.2, 0))
+        # drop one random loot item on death
+        try:
+            loot_choices = ["seed", "peashooter seed", "fertilizer", "ammo"]
+            dropped = random.choice(loot_choices)
+            items.spawn_ground_item(dropped, self.entity.position + Vec3(0, 0.2, 0))
+        except Exception:
+            try:
+                items.spawn_ground_item("fertilizer", self.entity.position + Vec3(0, 0.2, 0))
+            except Exception:
+                pass
         destroy(self.entity)
         if self in enemies:
             enemies.remove(self)
