@@ -8,7 +8,7 @@ if sys.stdout.encoding != 'utf-8':
 if sys.stderr.encoding != 'utf-8':
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace', line_buffering=True)
 
-from ursina import Ursina, mouse, window, application, camera
+from ursina import *
 import config
 import world
 import tools

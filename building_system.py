@@ -1,3 +1,4 @@
+import math
 from ursina import Entity, color, Vec3, destroy
 from math import cos, sin, radians
 
@@ -140,28 +141,115 @@ def _create_details(name, pos, size, rot):
                                color.rgb(105/255, 68/255, 33/255), rot))
 
     elif name == "small_house":
-        roof_c = color.rgb(155/255, 65/255, 40/255)
-        ridge_c = color.rgb(130/255, 48/255, 28/255)
-        door_c = color.rgb(75/255, 45/255, 15/255)
-        win_c  = color.rgb(135/255, 195/255, 215/255)
-        # Overhanging flat roof
-        details.append(_detail((x, y+h/2+0.2, z), (w+1.5, 0.55, d+1.5), roof_c, rot))
-        details.append(_detail((x, y+h/2+0.48, z), (w+1.8, 0.25, d+1.8), ridge_c, rot))
-        # Door on front face (local +Z direction)
-        dox, doz = _lz(d/2 + 0.02, rot)
-        details.append(_detail((x+dox, y - h/2 + 1.3, z+doz), (1.5, 2.6, 0.18), door_c, rot))
-        # Door frame
-        details.append(_detail((x+dox, y - h/2 + 1.3, z+doz),
-                               (1.8, 2.9, 0.12), color.rgb(60/255, 35/255, 10/255), rot))
-        # Windows either side of door
-        for tf in (-1.8, 1.8):
+        roof_c    = color.rgb(162/255, 62/255, 38/255)
+        ridge_c   = color.rgb(88/255, 28/255, 10/255)
+        eave_c    = color.rgb(145/255, 88/255, 40/255)
+        door_c    = color.rgb(65/255, 38/255, 12/255)
+        frame_c   = color.rgb(40/255, 22/255, 6/255)
+        win_c     = color.rgb(140/255, 200/255, 220/255)
+        shutt_c   = color.rgb(58/255, 96/255, 44/255)
+        stone_c   = color.rgb(112/255, 102/255, 92/255)
+        chimney_c = color.rgb(98/255, 85/255, 74/255)
+        porch_c   = color.rgb(148/255, 92/255, 42/255)
+
+        # ── Gabled roof ────────────────────────────────────────────────
+        rise      = 2.5
+        half_w    = w / 2
+        panel_len = math.sqrt(half_w**2 + rise**2)
+        tilt      = math.degrees(math.atan2(rise, half_w))
+        overhang  = 1.8
+
+        ox, oz = _lx(half_w / 2, rot)
+        details.append(Entity(model='cube', color=roof_c,
+                              scale=(panel_len, 0.55, d + overhang),
+                              position=(x + ox, y + h/2 + rise/2, z + oz),
+                              rotation=(0, rot, -tilt)))
+        ox, oz = _lx(-half_w / 2, rot)
+        details.append(Entity(model='cube', color=roof_c,
+                              scale=(panel_len, 0.55, d + overhang),
+                              position=(x + ox, y + h/2 + rise/2, z + oz),
+                              rotation=(0, rot, tilt)))
+        # Ridge beam
+        details.append(_detail((x, y+h/2+rise+0.08, z),
+                               (0.65, 0.35, d+overhang+0.15), ridge_c, rot))
+        # Eave boards
+        for sign in (-1, 1):
+            ox, oz = _lx(sign * half_w, rot)
+            details.append(_detail((x+ox, y+h/2+0.06, z),
+                                   (0.55, 0.3, d+overhang+0.15), eave_c, rot))
+
+        # ── Gable end fill (stacked decreasing-width slabs) ────────────
+        for tf_sign in (-1, 1):
+            gox, goz = _lz(tf_sign * (d/2 + 0.04), rot)
+            for i in range(6):
+                t    = (i + 0.5) / 6
+                sw   = w * (1.0 - t) + 0.15
+                slab_cy = y + h/2 + (i + 0.5) * rise / 6
+                sh   = rise / 6 + 0.15
+                details.append(_detail((x+gox, slab_cy, z+goz),
+                                       (sw, sh, 0.55),
+                                       color.rgb(200/255, 160/255, 100/255), rot))
+
+        # ── Stone foundation ───────────────────────────────────────────
+        details.append(_detail((x, y-h/2-0.22, z), (w+1.4, 0.5, d+1.4), stone_c, rot))
+        details.append(_detail((x, y-h/2-0.48, z), (w+0.8, 0.22, d+0.8), stone_c, rot))
+
+        # ── Chimney ────────────────────────────────────────────────────
+        c1x, c1z = _lx(w * 0.28, rot)
+        c2x, c2z = _lz(d * 0.22, rot)
+        ch_cx, ch_cz = x + c1x + c2x, z + c1z + c2z
+        ch_bot = y + h/2 - 0.8
+        ch_top = y + h/2 + rise + 1.2
+        details.append(_detail((ch_cx, (ch_bot+ch_top)/2, ch_cz),
+                               (1.3, ch_top-ch_bot, 1.3), chimney_c, rot))
+        details.append(_detail((ch_cx, ch_top+0.22, ch_cz),
+                               (1.6, 0.44, 1.6),
+                               color.rgb(66/255, 54/255, 46/255), rot))
+
+        # ── Front door ────────────────────────────────────────────────
+        dox, doz = _lz(d/2 + 0.04, rot)
+        details.append(_detail((x+dox, y-h/2+1.3, z+doz),
+                               (1.55, 2.65, 0.18), door_c, rot))
+        details.append(_detail((x+dox, y-h/2+1.3, z+doz),
+                               (1.92, 3.0, 0.10), frame_c, rot))
+        # Door knob
+        khx, khz = _lx(0.58, rot)
+        details.append(_detail((x+dox+khx, y-h/2+1.05, z+doz+khz),
+                               (0.14, 0.14, 0.25),
+                               color.rgb(205/255, 165/255, 52/255), rot))
+
+        # ── Porch overhang + posts ─────────────────────────────────────
+        phox, phoz = _lz(d/2 + 0.65, rot)
+        details.append(_detail((x+phox, y-h/2+3.0, z+phoz),
+                               (4.0, 0.28, 1.3), porch_c, rot))
+        for s in (-1, 1):
+            pcx, pcz = _lx(s * 1.6, rot)
+            details.append(_detail((x+phox+pcx, y-h/2+1.5, z+phoz+pcz),
+                                   (0.22, 3.0, 0.22), frame_c, rot))
+
+        # ── Front windows ─────────────────────────────────────────────
+        for tf in (-2.4, 2.4):
             wx, wz = _lx(tf, rot)
-            details.append(_detail((x+dox+wx, y+0.4, z+doz+wz), (1.3, 1.3, 0.14), win_c, rot))
-            # Window cross
             details.append(_detail((x+dox+wx, y+0.4, z+doz+wz),
-                                   (0.1, 1.3, 0.15), color.rgb(60/255, 50/255, 40/255), rot))
+                                   (1.45, 1.45, 0.14), win_c, rot))
             details.append(_detail((x+dox+wx, y+0.4, z+doz+wz),
-                                   (1.3, 0.1, 0.15), color.rgb(60/255, 50/255, 40/255), rot))
+                                   (0.1, 1.45, 0.16), frame_c, rot))
+            details.append(_detail((x+dox+wx, y+0.4, z+doz+wz),
+                                   (1.45, 0.1, 0.16), frame_c, rot))
+            for s in (-1, 1):
+                ssx, ssz = _lx(s * 0.9, rot)
+                details.append(_detail((x+dox+wx+ssx, y+0.4, z+doz+wz+ssz),
+                                       (0.22, 1.45, 0.12), shutt_c, rot))
+
+        # ── Side windows ──────────────────────────────────────────────
+        for wsign in (-1, 1):
+            swox, swoz = _lx(wsign * (half_w + 0.03), rot)
+            details.append(_detail((x+swox, y+0.4, z+swoz),
+                                   (0.14, 1.3, 1.3), win_c, rot))
+            details.append(_detail((x+swox, y+0.4, z+swoz),
+                                   (0.16, 0.1, 1.3), frame_c, rot))
+            details.append(_detail((x+swox, y+0.4, z+swoz),
+                                   (0.16, 1.3, 0.1), frame_c, rot))
 
     elif name == "wood_floor":
         plank_c = color.rgb(140/255, 100/255, 50/255)
