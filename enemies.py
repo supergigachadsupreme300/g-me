@@ -287,7 +287,7 @@ class Grasshopper(Rat):
 
         self.entity.model = 'cube'
         self.entity.color = color.clear 
-        self.entity.scale = (0.5, 0.5, 0.5) 
+        self.entity.scale = (0.4, 0.4, 0.4) 
         
         self.mesh = Entity(parent=self.entity)
         
@@ -365,3 +365,169 @@ def spawn_sahur(position):
     s = Sahur(position)
     enemies.append(s)
     return s
+
+#Chihai quai vat soi
+tex_wolf_path = 'model/werewolf/lambert1_albedo.jpg' 
+wolf_texture = load_texture(tex_wolf_path)
+
+if wolf_texture is None:
+    print(f"Không tìm thấy ảnh Sói tại '{tex_wolf_path}'")
+    wolf_texture = color.gray 
+
+class Wolf(Rat):
+    def __init__(self, position):
+        super().__init__(position)
+        
+        self.entity.model = 'cube'
+        self.entity.color = color.clear
+        self.entity.texture = None
+        self.entity.scale = (0.8, 0.8, 0.8) 
+
+        self.mesh = Entity(parent=self.entity)
+        try:
+            self.mesh.model = load_model('model/werewolf/Animation_Werewolf_Idle_Beta_02.fbx')
+        except Exception as e:
+            print(f"Không tìm thấy model Sói: {e}. Dùng khối vuông thay thế.")
+            self.mesh.model = 'cube'
+            
+        if hasattr(wolf_texture, 'width'):
+            self.mesh.texture = wolf_texture
+            self.mesh.color = color.white
+        else:
+            self.mesh.texture = None
+            self.mesh.color = wolf_texture
+            
+        self.mesh.scale = (0.02, 0.02, 0.02) 
+        self.mesh.y = -0.5
+        
+        self.hp = 20
+        self.max_hp = 20
+        self.speed = 3.5
+        self.attack_damage = 5
+        
+        self.health_bar.y = 1.2
+        self.health_bar.color = color.blue
+
+def spawn_wolf(position):
+    w = Wolf(position)
+    enemies.append(w)
+    return w
+
+#Chihai quai vat kẻ trộm và cẩu tặc
+try:
+    thief_texture = load_texture('model/thief/tenant texture.png')
+except Exception as e:
+    thief_texture = color.black
+
+try:
+    dogthief_texture = load_texture('model/thief/tenant texture.png')
+except Exception as e:
+    dogthief_texture = color.rgb(50, 50, 50)
+
+class Thief:
+    def __init__(self, position):
+        self.entity = Entity(model='cube', color=color.clear, scale=(0.8, 1.8, 0.8), position=position, collider='box')
+        
+        # 2. Lớp vỏ hiển thị Mesh
+        self.mesh = Entity(parent=self.entity)
+        try:
+            self.mesh.model = load_model('model/thief/Ready Tower Tenant walk.fbx')
+        except Exception as e:
+            self.mesh.model = 'cube'
+            
+        if hasattr(thief_texture, 'width'):
+            self.mesh.texture = thief_texture
+            self.mesh.color = color.white
+        else:
+            self.mesh.texture = None
+            self.mesh.color = thief_texture
+            
+        self.mesh.scale = (0.02, 0.02, 0.01)
+        self.mesh.y = -0.6
+        
+        self.hp = 30
+        self.max_hp = 30
+        self.speed = 3.5
+        self.attack_damage = 5 
+        self.last_attack_time = 0
+        self.health_bar = Entity(parent=self.entity, y=1.2, model='cube', color=color.red, scale=(1, 0.1, 0.1))
+
+    def take_damage(self, amount):
+        self.hp -= amount
+        self.health_bar.scale_x = max(0, self.hp / self.max_hp)
+        if self.hp <= 0:
+            self.die()
+
+    def die(self):
+        if self in enemies:
+            enemies.remove(self)
+        destroy(self.entity)
+
+    def update(self):
+        player_pos = world.player.position
+        dist = (self.entity.position - player_pos).length()
+        
+        if dist > 2.5:
+            direction = (player_pos - self.entity.position).normalized()
+            self.entity.position += direction * self.speed * time.dt
+            self.entity.look_at(player_pos)
+        else:
+            if pytime.time() - self.last_attack_time > 1.5:
+                self.last_attack_time = pytime.time()
+                import game, inventory
+                if game.player_money >= self.attack_damage:
+                    game.player_money -= self.attack_damage
+                    inventory.show_message(f"Bị ĂN TRỘM mất {self.attack_damage} Gold! Còn {game.player_money} Gold", 2)
+                else:
+                    game.player_money = 0
+                    inventory.show_message("Ăn trộm: Ngươi cạn tiền rồi!", 2)
+
+def spawn_thief(position):
+    t = Thief(position)
+    enemies.append(t)
+    return t
+
+
+class DogThief(Thief):
+    def __init__(self, position):
+        super().__init__(position) 
+        self.speed = 4.0 
+        
+        if hasattr(dogthief_texture, 'width'):
+            self.mesh.texture = dogthief_texture
+            self.mesh.color = color.white
+        else:
+            self.mesh.texture = None
+            self.mesh.color = dogthief_texture
+            
+        
+    def update(self):
+        import pet 
+        target_dog = None
+        min_dist = float('inf')
+        
+        for p in pet.pets:
+            if p.__class__.__name__ == 'Dog':
+                dist = (self.entity.position - p.entity.position).length()
+                if dist < min_dist:
+                    min_dist = dist
+                    target_dog = p
+                    
+        if target_dog:
+            if min_dist > 2.5:
+                direction = (target_dog.entity.position - self.entity.position).normalized()
+                self.entity.position += direction * self.speed * time.dt
+                self.entity.look_at(target_dog.entity.position)
+            else:
+                if pytime.time() - self.last_attack_time > 1.5:
+                    self.last_attack_time = pytime.time()
+                    target_dog.take_damage(25) 
+                    import inventory
+                    inventory.show_message("CẨU TẶC đang ăn trộm chó của bạn!", 1.5)
+        else:
+            super().update()
+
+def spawn_dog_thief(position):
+    dt = DogThief(position)
+    enemies.append(dt)
+    return dt
