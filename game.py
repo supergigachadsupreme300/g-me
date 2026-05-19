@@ -1,6 +1,7 @@
 from ursina import Entity, color, Vec3, raycast, destroy, time, mouse, camera, application, held_keys
 from math import atan2, degrees
 import random
+import pet
 
 import world
 import inventory
@@ -94,6 +95,14 @@ def should_spawn_night_enemies():
 
 
 def spawn_rats_on_edge(count=4):
+    spawn_functions = [
+        enemies.spawn_rat,
+        enemies.spawn_grasshopper,
+        enemies.spawn_wolf,
+        enemies.spawn_sahur,
+        enemies.spawn_thief,       # Kích hoạt Ăn trộm tiền
+        enemies.spawn_dog_thief    # Kích hoạt Cẩu tặc
+    ]
     for i in range(count):
         edge = world.GROUND_HALF - 2
         if random.random() < 0.5:
@@ -104,12 +113,18 @@ def spawn_rats_on_edge(count=4):
             z = random.choice([-edge, edge])
         enemies.spawn_rat(Vec3(x, 1, z))
         rand = random.random()
-        if rand < 0.6:       
-            enemies.spawn_rat(Vec3(x, 1, z))
-        elif rand < 0.85:    
-            enemies.spawn_grasshopper(Vec3(x, 1, z))
-        else:                 
-            enemies.spawn_sahur(Vec3(x, 1, z))
+        if rand < 0.45:        # 45% tỷ lệ sinh ra Chuột gốc
+                    enemies.spawn_rat(Vec3(x, 1, z))
+        elif rand < 0.70:     # 25% tỷ lệ sinh ra Châu Chấu
+                    enemies.spawn_grasshopper(Vec3(x, 1, z))
+        elif rand < 0.88:     # 18% tỷ lệ sinh ra Sói dữ (Quái vật mới)
+                    enemies.spawn_wolf(Vec3(x, 1, z))
+        elif rand < 0.95:     # 7% tỷ lệ sinh ra Sahur (Quái hiếm/Siêu mạnh)
+                    enemies.spawn_thief(Vec3(x, 1, z))
+        else:                 # 12% tỷ lệ sinh ra Sahur (Quái hiếm/Siêu mạnh)
+                    enemies.spawn_sahur(Vec3(x, 1, z))
+        chosen_spawn_function = random.choice(spawn_functions)
+        chosen_spawn_function(Vec3(x, 1, z))
 
 def spawn_projectile(position, direction):
     projectile = Entity(model='sphere', color=color.yellow, scale=0.15, position=position, collider='box')
@@ -248,6 +263,7 @@ def update():
 
     update_projectiles()
     enemies.update_enemies()
+    pet.update_pets()
     # Peashooter auto-fire and projectile updates
     try:
         fields.update_peashooters()
@@ -660,12 +676,13 @@ def setup_game():
     items.spawn_ground_item("pickaxe", Vec3(2, 1, 0))
     items.spawn_ground_item("hoe", Vec3(-2, 1, 0))
     items.spawn_ground_item("seed", Vec3(4, 1, 0))
+    items.spawn_ground_item("sword", Vec3(8, 1, 0))
+    items.spawn_ground_item("gun", Vec3(10, 1, 0))
+    items.spawn_ground_item("ammo", Vec3(12, 1, 0))
+    items.spawn_ground_item("scythe", Vec3(14, 1, 0))
+    pet.spawn_dog(Vec3(2, 1, 2))
+    pet.spawn_toad(Vec3(-2, 1, 2))
     items.spawn_ground_item("peashooter seed", Vec3(6, 1, 0))
-    items.spawn_ground_item("hammer", Vec3(8, 1, 0))
-    items.spawn_ground_item("sword", Vec3(10, 1, 0))
-    items.spawn_ground_item("gun", Vec3(12, 1, 0))
-    items.spawn_ground_item("ammo", Vec3(14, 1, 0))
-    items.spawn_ground_item("scythe", Vec3(16, 1, 0))
 
     inventory.update_inventory_ui()
     if tasks.get_active_quest() is None:
@@ -676,7 +693,7 @@ def setup_game():
 
     update_time_ui()
     set_day_night()
-    spawn_rats_on_edge(4)
+    spawn_rats_on_edge(20)
 
     crosshair = Entity(parent=camera, model='quad', color=color.white, scale=0.01, position=(0, 0, 1.2))
 
