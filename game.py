@@ -264,6 +264,12 @@ def update():
     update_projectiles()
     enemies.update_enemies()
     pet.update_pets()
+    # Peashooter auto-fire and projectile updates
+    try:
+        fields.update_peashooters()
+        fields.update_peashooter_projectiles()
+    except Exception:
+        pass
     update_quest_ui()
 
     if tools.hoe.enabled:
