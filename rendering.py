@@ -23,12 +23,13 @@ def setup_ui():
     global pause_menu, bed_confirm_menu, bed_confirm_yes, bed_confirm_no
     global buffalo_dialog, buffalo_dialog_text, buffalo_sell, buffalo_leave
 
-    time_text = Text(parent=camera.ui, text='', position=(-0.88, -0.45), origin=(0, 0), scale=1.4, color=color.white, background=True)
-    ammo_text = Text(parent=camera.ui, text='Ammo: 0/0', position=(0.8, 0.44), origin=(0, 0), scale=1.2, color=color.white, background=True)
-    player_hp_text = Text(parent=camera.ui, text='HP: 100/100', position=(-0.96, 0.45), origin=(0, 0), scale=1.2, color=color.rgb(255/255, 80/255, 80/255), background=True)
-    player_stamina_text = Text(parent=camera.ui, text='Stamina: 100/100', position=(-0.96, 0.39), origin=(0, 0), scale=1.2, color=color.rgb(100/255, 200/255, 255/255), background=True)
-    player_money_text = Text(parent=camera.ui, text='Money: 0', position=(-0.96, 0.33), origin=(0, 0), scale=1.2, color=color.rgb(255/255, 220/255, 100/255), background=True)
-    quest_text = Text(parent=camera.ui, text='Quest: Harvest wheat 0/100', position=(-0.96, 0.27), origin=(0, 0), scale=1.1, color=color.white, background=True)
+    time_text = Text(parent=camera.ui, text='', position=(-0.92, -0.45), origin=(0, 0), scale=1.4, color=color.white, background=True)
+    ammo_text = Text(parent=camera.ui, text='Ammo: 0/0', position=(-0.92, 0.44), origin=(0, 0), scale=1.2, color=color.white, background=True)
+    ammo_text.enabled = False
+    player_hp_text = Text(parent=camera.ui, text='HP: 100/100', position=(-0.8, 0.41), origin=(0, 0), scale=1.2, color=color.rgb(255/255, 80/255, 80/255), background=True)
+    player_stamina_text = Text(parent=camera.ui, text='Stamina: 100/100', position=(-0.75, 0.345), origin=(0, 0), scale=1.2, color=color.rgb(100/255, 200/255, 255/255), background=True)
+    player_money_text = Text(parent=camera.ui, text='Money: 0', position=(-0.8, 0.275), origin=(0, 0), scale=1.2, color=color.rgb(255/255, 220/255, 100/255), background=True)
+    quest_text = Text(parent=camera.ui, text='Quest: Harvest wheat 0/100', position=(-0.7, 0.21), origin=(0, 0), scale=1.1, color=color.white, background=True)
 
     pause_menu = Entity(parent=camera.ui, enabled=False)
     Entity(parent=pause_menu, model='quad', color=color.rgba(0, 0, 0, 180/255), scale=(1.6, 1.2), position=(0, 0, 0))
@@ -50,8 +51,13 @@ def setup_ui():
 
 
 def update_ammo_text(gun_ammo, gun_max_ammo):
-    if ammo_text is not None:
+    if ammo_text is not None and ammo_text.enabled:
         ammo_text.text = f"Ammo: {gun_ammo}/{gun_max_ammo}"
+
+
+def show_ammo(enabled: bool):
+    if ammo_text is not None:
+        ammo_text.enabled = enabled
 
 
 def update_player_hud(hp, max_hp, stamina, max_stamina, money):
