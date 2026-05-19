@@ -97,13 +97,13 @@ def plant_peashooter_on_field(field_data):
 
     try:
         from ursina import load_model, load_texture
-        model = load_model('model/peashooter/source/peashooterlowpoly.obj')
-        texture = load_texture('model/peashooter/texture/peashooter.png')
+        model = load_model('model\peashooter\source\PVZ_Peashooter.glb')
+        texture = load_texture('model\peashooter\textures\peashooter.png')
         field_data["peashooter_entity"] = Entity(
             model=model,
             texture=texture,
             scale=0.55,
-            position=(0, 0.1, -0.15),
+            position=(0, 0.5, 0),
             parent=field_data["entity"],
             collider='box'
         )
