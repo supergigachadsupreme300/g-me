@@ -1,5 +1,6 @@
 from ursina import Entity, Vec3, color, invoke, curve, destroy
 import random
+from enemies import Rat
 from items import spawn_ground_item
 
 fields = []

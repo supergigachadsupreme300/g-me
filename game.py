@@ -17,6 +17,7 @@ GUN_MAX_AMMO = 6
 gun_ammo = 0
 gun_projectiles = []
 player_money = 0
+harvest_count = 0  # Biến đếm số cây lúa đã gặt
 game_paused = False
 
 WHEAT_PRICE = 10
@@ -63,8 +64,11 @@ def spawn_rats_on_edge(count=4):
         enemies.spawn_grasshopper,
         enemies.spawn_wolf,
         enemies.spawn_sahur,
-        enemies.spawn_thief,       # Kích hoạt Ăn trộm tiền
-        enemies.spawn_dog_thief    # Kích hoạt Cẩu tặc
+        enemies.spawn_thief,       
+        enemies.spawn_dog_thief,    
+        enemies.spawn_zombie,
+        enemies.spawn_dinosaur,
+        enemies.spawn_mushroom
     ]
     for i in range(count):
         edge = world.GROUND_HALF - 2
@@ -336,6 +340,8 @@ def face_buffalo_towards_player(buffalo_entity):
 
 def handle_input(key):
     global gun_ammo
+    def handle_input(key):
+        global gun_ammo, harvest_count  # <-- Thêm harvest_count vào đây
     if key in [str(i) for i in range(1, 10)] + ['0']:
         idx = 9 if key == '0' else int(key) - 1
         select_slot(idx)
@@ -441,19 +447,33 @@ def handle_input(key):
             hit_info = raycast(camera.world_position, camera.forward, distance=MAX_PLACE_DISTANCE)
             if hit_info.hit:
                 field_data = fields.find_field_by_entity(hit_info.entity)
+                # Nếu là lúa đã chín (stage >= 4)
                 if field_data and field_data["wheat_planted"] and field_data["wheat_stage"] >= 4 and field_data["wheat_hp"] > 0:
+                    
+                    # Lưu lại vị trí ô đất trước khi xóa lúa để Lúa Quái Vật có thể sinh ra đúng chỗ đó
+                    spawn_pos = field_data["pos"] 
+                    
                     if field_data["wheat_hp"] == 20:
                         harvested = "wheat"
                         inventory.show_message("Harvested ripe wheat", 1.5)
                     else:
                         harvested = "damaged wheat"
                         inventory.show_message("Harvested damaged wheat", 1.5)
+                        
                     fields.destroy_wheat(field_data)
+                    
                     if not inventory.add_item(harvested):
                         items.spawn_ground_item(harvested, world.player.position + world.player.forward * 2)
                         inventory.show_message("Inventory full, dropped harvested wheat", 2)
                     else:
                         inventory.update_inventory_ui()
+                        
+                    # --- CƠ CHẾ SINH QUÁI VẬT LÚA ---
+                    harvest_count += 1
+                    if harvest_count % 3 == 0:
+                        enemies.spawn_arrogant_wheat(spawn_pos)
+                        inventory.show_message("CẢNH BÁO: Lúa chín không cúi đầu đã thức tỉnh!", 3.0)
+                        
                 else:
                     inventory.show_message("No ripe wheat to harvest here", 1.5)
             return
@@ -557,7 +577,6 @@ def handle_input(key):
             valid = building_system.can_place_building(building_system.building_preview.position)
             building_system.update_building_preview(building_system.building_preview.position, valid)
         return
-
 
 def setup_game():
     global crosshair
