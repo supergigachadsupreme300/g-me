@@ -24,8 +24,10 @@ def setup_ui():
     global pause_menu, bed_confirm_menu, bed_confirm_yes, bed_confirm_no
     global buffalo_dialog, buffalo_dialog_text, buffalo_sell, buffalo_leave
 
-    time_text = Text(parent=camera.ui, text='', position=(-0.92, -0.45), origin=(0, 0), scale=1.4, color=color.white, background=True)
-    ammo_text = Text(parent=camera.ui, text='Ammo: 0/0', position=(-0.92, 0.44), origin=(0, 0), scale=1.2, color=color.white, background=True)
+    # moved time_text below player HUD (near player money) and ammo above inventory
+    time_text = Text(parent=camera.ui, text='', position=(-0.8, 0.22), origin=(0, 0), scale=1.2, color=color.white, background=True)
+    ammo_text = Text(parent=camera.ui, text='Ammo: 0/0', position=(0, -0.37), origin=(0, 0), scale=1.2, color=color.white, background=True)
+    ammo_text.enabled = False
     ammo_text.enabled = False
     player_hp_text = Text(parent=camera.ui, text='HP: 100/100', position=(-0.8, 0.41), origin=(0, 0), scale=1.2, color=color.rgb(255/255, 80/255, 80/255), background=True)
     player_stamina_text = Text(parent=camera.ui, text='Stamina: 100/100', position=(-0.75, 0.345), origin=(0, 0), scale=1.2, color=color.rgb(100/255, 200/255, 255/255), background=True)
@@ -71,9 +73,11 @@ def update_player_hud(hp, max_hp, stamina, max_stamina, money):
 
 
 def update_quest_text(name, progress, goal):
+    global quest_text
     if quest_text is not None:
         status = 'Completed' if progress >= goal else f'{progress}/{goal}'
-        quest_text.text = f"Quest: {name} ({status})"
+        quest_text.text = f"Quest: {name} {status}"
+        quest_text.enabled = True
 
 
 def update_time_ui(current_day, time_of_day):

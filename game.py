@@ -95,15 +95,14 @@ def should_spawn_night_enemies():
 
 
 def spawn_rats_on_edge(count=4):
-    spawn_functions = [
-        enemies.spawn_rat,
-        enemies.spawn_grasshopper,
-        enemies.spawn_wolf,
-        enemies.spawn_sahur,
-        enemies.spawn_thief,       # Kích hoạt Ăn trộm tiền
-        enemies.spawn_dog_thief    # Kích hoạt Cẩu tặc
-    ]
+    MAX_ENEMIES = 12
+    if len(enemies.enemies) >= MAX_ENEMIES:
+        return
+
     for i in range(count):
+        if len(enemies.enemies) >= MAX_ENEMIES:
+            break
+
         edge = world.GROUND_HALF - 2
         if random.random() < 0.5:
             x = random.choice([-edge, edge])
@@ -111,20 +110,18 @@ def spawn_rats_on_edge(count=4):
         else:
             x = random.uniform(-edge, edge)
             z = random.choice([-edge, edge])
-        enemies.spawn_rat(Vec3(x, 1, z))
+
         rand = random.random()
-        if rand < 0.45:        # 45% tỷ lệ sinh ra Chuột gốc
-                    enemies.spawn_rat(Vec3(x, 1, z))
-        elif rand < 0.70:     # 25% tỷ lệ sinh ra Châu Chấu
-                    enemies.spawn_grasshopper(Vec3(x, 1, z))
-        elif rand < 0.88:     # 18% tỷ lệ sinh ra Sói dữ (Quái vật mới)
-                    enemies.spawn_wolf(Vec3(x, 1, z))
-        elif rand < 0.95:     # 7% tỷ lệ sinh ra Sahur (Quái hiếm/Siêu mạnh)
-                    enemies.spawn_thief(Vec3(x, 1, z))
-        else:                 # 12% tỷ lệ sinh ra Sahur (Quái hiếm/Siêu mạnh)
-                    enemies.spawn_sahur(Vec3(x, 1, z))
-        chosen_spawn_function = random.choice(spawn_functions)
-        chosen_spawn_function(Vec3(x, 1, z))
+        if rand < 0.7:
+            enemies.spawn_rat(Vec3(x, 1, z))
+        elif rand < 0.82:
+            enemies.spawn_grasshopper(Vec3(x, 1, z))
+        elif rand < 0.90:
+            enemies.spawn_wolf(Vec3(x, 1, z))
+        elif rand < 0.96:
+            enemies.spawn_thief(Vec3(x, 1, z))
+        else:
+            enemies.spawn_sahur(Vec3(x, 1, z))
 
 def spawn_projectile(position, direction):
     projectile = Entity(model='sphere', color=color.yellow, scale=0.15, position=position, collider='box')
@@ -359,6 +356,15 @@ def is_buffalo_entity(entity):
     return None
 
 
+def is_vendor_entity(entity):
+    current = entity
+    while current is not None:
+        if getattr(current, 'is_vendor', False):
+            return current
+        current = getattr(current, 'parent', None)
+    return None
+
+
 def show_buffalo_dialog():
     global game_paused
     game_paused = True
@@ -491,6 +497,15 @@ def handle_input(key):
                 rendering.show_buffalo_dialog(True)
                 game_paused = True
                 return
+            # vendor interaction (mirror buffalo interaction)
+            vendor_entity = is_vendor_entity(hit_info.entity)
+            if vendor_entity is not None:
+                try:
+                    import shop
+                    shop.open_shop()
+                except Exception as e:
+                    print('Failed to open shop from game input:', e)
+                return
         if inventory.get_item(inventory.inventory[inventory.selected_slot]) == "seed":
             hit_info = raycast(camera.world_position, camera.forward, distance=MAX_PLACE_DISTANCE)
             if hit_info.hit:
@@ -545,20 +560,15 @@ def handle_input(key):
             if hit_info.hit:
                 field_data = fields.find_field_by_entity(hit_info.entity)
                 if field_data and field_data["wheat_planted"] and field_data["wheat_stage"] >= 4 and field_data["wheat_hp"] > 0:
-                    if field_data["wheat_hp"] == 20:
-                        harvested = "wheat"
-                        inventory.show_message("Harvested ripe wheat", 1.5)
-                    else:
-                        harvested = "damaged wheat"
-                        inventory.show_message("Harvested damaged wheat", 1.5)
+                    harvested = "wheat" if field_data["wheat_stage"] >= 4 else "damaged wheat"
+                    inventory.show_message("Harvested ripe wheat", 1.5)
                     fields.destroy_wheat(field_data)
-                    if harvested == "wheat":
-                        completed = tasks.add_progress(1)
-                        if completed:
-                            reward = tasks.claim_reward()
-                            if reward is not None and reward.get('money') and world.player is not None:
-                                world.player.money += reward['money']
-                                inventory.show_message(f'Quest completed: {tasks.active_quest.name} (+{reward["money"]} coins)', 3.0)
+                    completed = tasks.add_progress(1)
+                    if completed:
+                        reward = tasks.claim_reward()
+                        if reward is not None and reward.get('money') and world.player is not None:
+                            world.player.money += reward['money']
+                            inventory.show_message(f'Quest completed: {tasks.active_quest.name} (+{reward["money"]} coins)', 3.0)
                     update_quest_ui()
                     if not inventory.add_item(harvested):
                         items.spawn_ground_item(harvested, world.player.position + world.player.forward * 2)
@@ -693,7 +703,7 @@ def setup_game():
 
     update_time_ui()
     set_day_night()
-    spawn_rats_on_edge(20)
+    spawn_rats_on_edge(8)
 
     crosshair = Entity(parent=camera, model='quad', color=color.white, scale=0.01, position=(0, 0, 1.2))
 

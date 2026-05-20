@@ -11,10 +11,12 @@ scythe = None
 fertilizer = None
 seed = None
 peashooter_seed = None
+wheat = None
+damaged_wheat = None
 
 
 def setup_tools():
-    global arm, axe, pickaxe, hoe, hammer, sword, gun, scythe, fertilizer, seed, peashooter_seed
+    global arm, axe, pickaxe, hoe, hammer, sword, gun, scythe, fertilizer, seed, peashooter_seed, wheat, damaged_wheat
     arm = Entity(model='cube', color=color.brown, scale=(0.3, 1, 0.3),
                  position=(0.7, -0.6, 1.5), rotation=(20, -30, 0), parent=None, enabled=True)
     axe = Entity(position=(0.7, -0.6, 1.5), rotation=(0, 0, 0), parent=None, enabled=False)
@@ -37,6 +39,10 @@ def setup_tools():
     _make_seed_on_parent(seed)
     peashooter_seed = Entity(position=(0.7, -0.6, 1.5), rotation=(0, 0, 0), parent=None, enabled=False)
     _make_peashooter_seed_on_parent(peashooter_seed)
+    wheat = Entity(position=(0.7, -0.6, 1.5), rotation=(0, 0, 0), parent=None, enabled=False)
+    _make_wheat_on_parent(wheat)
+    damaged_wheat = Entity(position=(0.7, -0.6, 1.5), rotation=(0, 0, 0), parent=None, enabled=False)
+    _make_damaged_wheat_on_parent(damaged_wheat)
 
 
 def _make_axe_on_parent(parent_entity):
@@ -101,13 +107,37 @@ def _make_seed_on_parent(parent_entity):
 def _make_peashooter_seed_on_parent(parent_entity):
     try:
         from ursina import load_texture
-        tex = load_texture('texture/seed.png')
+        tex = load_texture('texture/peashooter_seed.png')
         if hasattr(tex, 'width'):
             Entity(model='cube', texture=tex, color=color.rgb(255/255, 220/255, 80/255), scale=(0.25, 0.25, 0.1), parent=parent_entity, position=(0, 0.2, 0), texture_scale=(1, 1))
             return
     except Exception:
         pass
     Entity(model='cube', color=color.rgb(255/255, 220/255, 80/255), scale=(0.25, 0.25, 0.1), parent=parent_entity, position=(0, 0.2, 0))
+
+
+def _make_wheat_on_parent(parent_entity):
+    # try to use hay model if available, otherwise fallback to a yellow cube
+    try:
+        from ursina import load_model
+        # updated filename: use actual hay.fbx located in model/hay/source/
+        hay_model = load_model('model/hay/source/hay.fbx')
+        if hay_model:
+            m = Entity(parent=parent_entity)
+            try:
+                m.model = hay_model
+            except Exception:
+                m.model = 'cube'
+            m.scale = (0.6, 0.6, 0.6)
+            m.position = (0, -0.05, 0)
+            return
+    except Exception:
+        pass
+    Entity(model='cube', color=color.yellow, scale=(0.25, 0.25, 0.25), parent=parent_entity, position=(0, 0.15, 0))
+
+
+def _make_damaged_wheat_on_parent(parent_entity):
+    Entity(model='cube', color=color.brown, scale=(0.25, 0.25, 0.25), parent=parent_entity, position=(0, 0.15, 0))
 
 
 def _make_scythe_on_parent(parent_entity):
@@ -128,6 +158,8 @@ def set_active_item(item_type):
     fertilizer.enabled = (item_type == "fertilizer")
     seed.enabled = (item_type == "seed")
     peashooter_seed.enabled = (item_type == "peashooter seed")
+    wheat.enabled = (item_type == "wheat")
+    damaged_wheat.enabled = (item_type == "damaged wheat")
 
 
 def swing_item(item_entity):

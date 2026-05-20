@@ -80,29 +80,37 @@ class Rat:
         load_rat_assets()
         position = Vec3(position.x, 0.0, position.z)
         texture_choice = random.choice(rat_texture)
-        entity_kwargs = {
-            'model': 'cube',
-            'scale': (0.8, 0.8, 0.8),
-            'position': position,
-            'collider': 'box'
-        }
-        if hasattr(texture_choice, 'width'):
-            entity_kwargs['texture'] = texture_choice
-            entity_kwargs['color'] = color.white
+
+        if rat_model not in (None, 'cube'):
+            entity_kwargs = {
+                'model': rat_model,
+                'position': position,
+                'scale': (0.08, 0.08, 0.08),
+                'rotation_y': 180,
+                'collider': 'box',
+                'double_sided': True,
+            }
+            if hasattr(texture_choice, 'width'):
+                entity_kwargs['texture'] = texture_choice
+                entity_kwargs['color'] = color.white
+            else:
+                entity_kwargs['color'] = texture_choice
         else:
-            entity_kwargs['color'] = texture_choice
+            entity_kwargs = {
+                'model': 'cube',
+                'position': position,
+                'scale': (0.8, 0.8, 0.8),
+                'collider': 'box',
+            }
+            if hasattr(texture_choice, 'width'):
+                entity_kwargs['texture'] = texture_choice
+                entity_kwargs['color'] = color.white
+            else:
+                entity_kwargs['color'] = texture_choice
+
         self.entity = Entity(**entity_kwargs)
         self.entity.y = self.entity.scale_y / 2 + 0.05
         self.entity.double_sided = True  # Fix texture appearing inside
-
-        if rat_model not in (None, 'cube'):
-            self.visual = Entity(parent=self.entity, model=rat_model, scale=0.8, position=(0, 0.12, 0), double_sided=True)
-            if hasattr(texture_choice, 'width'):
-                self.visual.texture = texture_choice
-                self.visual.color = color.white
-            else:
-                self.visual.color = texture_choice
-            self.entity.color = color.clear
 
         self.velocity_y = 0
         self.health_bar = Entity(model='cube', color=color.red, scale=(0.5, 0.05, 0.05), parent=self.entity, position=(0, 0.8, 0), origin=(0, 0))
@@ -477,12 +485,12 @@ class Thief:
         else:
             if pytime.time() - self.last_attack_time > 1.5:
                 self.last_attack_time = pytime.time()
-                import game, inventory
-                if game.player_money >= self.attack_damage:
-                    game.player_money -= self.attack_damage
-                    inventory.show_message(f"Bị ĂN TRỘM mất {self.attack_damage} Gold! Còn {game.player_money} Gold", 2)
-                else:
-                    game.player_money = 0
+                import inventory
+                if world.player is not None and world.player.money >= self.attack_damage:
+                    world.player.money -= self.attack_damage
+                    inventory.show_message(f"Bị ĂN TRỘM mất {self.attack_damage} Gold! Còn {world.player.money} Gold", 2)
+                elif world.player is not None:
+                    world.player.money = 0
                     inventory.show_message("Ăn trộm: Ngươi cạn tiền rồi!", 2)
 
 def spawn_thief(position):
