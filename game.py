@@ -1,4 +1,4 @@
-from ursina import Entity, color, Vec3, raycast, destroy, time, mouse, camera, application, held_keys
+from ursina import Entity, color, Vec3, raycast, destroy, time, mouse, camera, application
 from math import atan2, degrees
 import random
 import pet
@@ -11,17 +11,14 @@ import tools
 import building_system
 import enemies
 import rendering
-import tasks
 
 MAX_PLACE_DISTANCE = 20
 GUN_MAX_AMMO = 6
 gun_ammo = 0
 gun_projectiles = []
+player_money = 0
+harvest_count = 0  # Biến đếm số cây lúa đã gặt
 game_paused = False
-stamina_regen_rate = 25.0  # per second
-stamina_sprint_cost = 35.0  # per second while sprinting
-sprint_speed_multiplier = 2.0
-next_enemy_spawn_absolute = None
 
 WHEAT_PRICE = 10
 DAMAGED_WHEAT_PRICE = 3
@@ -61,47 +58,17 @@ def set_day_night():
     rendering.set_day_night(time_of_day)
 
 
-def update_quest_ui():
-    quest_name, quest_progress, quest_goal = tasks.get_quest_status()
-    rendering.update_quest_text(quest_name, quest_progress, quest_goal)
-
-
-def should_spawn_night_enemies():
-    global next_enemy_spawn_absolute
-    absolute_time = current_day * 24 + time_of_day
-
-    # Initialize the first night spawn point when night starts
-    if next_enemy_spawn_absolute is None:
-        if 18.5 <= time_of_day < 24:
-            next_enemy_spawn_absolute = current_day * 24 + 18.5
-        elif 0 <= time_of_day < 6.5:
-            next_enemy_spawn_absolute = current_day * 24 + 0.5
-
-    if next_enemy_spawn_absolute is None:
-        return False
-
-    if absolute_time >= next_enemy_spawn_absolute:
-        if next_enemy_spawn_absolute % 24 >= 6.5 and next_enemy_spawn_absolute % 24 < 18.5:
-            next_enemy_spawn_absolute = None
-            return False
-
-        # Advance to the next spawn time for the night cycle
-        next_enemy_spawn_absolute += 1.0
-        if next_enemy_spawn_absolute % 24 == 6.5:
-            next_enemy_spawn_absolute = None
-        return True
-
-    return False
-
-
 def spawn_rats_on_edge(count=4):
     spawn_functions = [
         enemies.spawn_rat,
         enemies.spawn_grasshopper,
         enemies.spawn_wolf,
         enemies.spawn_sahur,
-        enemies.spawn_thief,       # Kích hoạt Ăn trộm tiền
-        enemies.spawn_dog_thief    # Kích hoạt Cẩu tặc
+        enemies.spawn_thief,       
+        enemies.spawn_dog_thief,    
+        enemies.spawn_zombie,
+        enemies.spawn_dinosaur,
+        enemies.spawn_mushroom
     ]
     for i in range(count):
         edge = world.GROUND_HALF - 2
@@ -205,7 +172,6 @@ def select_slot(index):
     inventory.selected_slot = index
     current_item = inventory.get_item(inventory.inventory[index])
     tools.set_active_item(current_item)
-    rendering.show_ammo(current_item == "gun")
     inventory.update_inventory_ui()
 
 
@@ -214,7 +180,7 @@ def snap_to_grid(position):
 
 
 def update():
-    global time_of_day, current_day, last_time_stage, next_enemy_spawn_absolute
+    global time_of_day, current_day, last_time_stage
     if game_paused:
         return
 
@@ -234,43 +200,9 @@ def update():
     update_time_ui()
     set_day_night()
 
-    if should_spawn_night_enemies():
-        spawn_rats_on_edge(max(3, 2 + current_day))
-        inventory.show_message('Night enemies have spawned!', 2.0)
-
-    if world.player is not None:
-        # Sprint stamina handling
-        if held_keys['shift'] or held_keys['left shift'] or held_keys['right shift']:
-            if world.player.stamina > 0:
-                world.player.is_sprinting = True
-                world.player.speed = world.player.base_speed * world.player.sprint_speed_multiplier
-                world.player.stamina -= stamina_sprint_cost * time.dt
-                if world.player.stamina < 0:
-                    world.player.stamina = 0
-            else:
-                world.player.is_sprinting = False
-                world.player.speed = world.player.base_speed
-        else:
-            world.player.is_sprinting = False
-            world.player.speed = world.player.base_speed
-            if world.player.stamina < world.player.max_stamina:
-                world.player.stamina += stamina_regen_rate * time.dt
-                if world.player.stamina > world.player.max_stamina:
-                    world.player.stamina = world.player.max_stamina
-
-        # Update HUD
-        rendering.update_player_hud(world.player.hp, world.player.max_hp, world.player.stamina, world.player.max_stamina, world.player.money)
-
     update_projectiles()
     enemies.update_enemies()
     pet.update_pets()
-    # Peashooter auto-fire and projectile updates
-    try:
-        fields.update_peashooters()
-        fields.update_peashooter_projectiles()
-    except Exception:
-        pass
-    update_quest_ui()
 
     if tools.hoe.enabled:
         fields.field_preview.enabled = False
@@ -372,6 +304,7 @@ def close_buffalo_dialog():
 
 
 def sell_wheat_to_buffalo():
+    global player_money
     wheat_amount = inventory.count_item('wheat')
     damaged_amount = inventory.count_item('damaged wheat')
     if wheat_amount == 0 and damaged_amount == 0:
@@ -381,8 +314,7 @@ def sell_wheat_to_buffalo():
     inventory.remove_all('wheat')
     inventory.remove_all('damaged wheat')
     total_money = wheat_amount * WHEAT_PRICE + damaged_amount * DAMAGED_WHEAT_PRICE
-    if world.player is not None:
-        world.player.money += total_money
+    player_money += total_money
     inventory.show_message(f'Sold {wheat_amount} wheat + {damaged_amount} damaged wheat for {total_money} coins', 3)
     inventory.update_inventory_ui()
     close_buffalo_dialog()
@@ -406,23 +338,10 @@ def face_buffalo_towards_player(buffalo_entity):
     buffalo_entity.rotation_y = angle % 360
 
 
-def setup_game():
-    if world.player is not None:
-        try:
-            world.player.speed = world.player.base_speed
-        except Exception:
-            pass
-    if tasks.get_active_quest() is None:
-        tasks.set_active_quest(tasks.create_harvest_wheat_quest())
-    if world.player is not None:
-        rendering.update_player_hud(world.player.hp, world.player.max_hp, world.player.stamina, world.player.max_stamina, world.player.money)
-        current_item = inventory.get_item(inventory.inventory[inventory.selected_slot])
-        rendering.show_ammo(current_item == "gun")
-    update_quest_ui()
-
-
 def handle_input(key):
-    global gun_ammo, game_paused
+    global gun_ammo
+    def handle_input(key):
+        global gun_ammo, harvest_count  # <-- Thêm harvest_count vào đây
     if key in [str(i) for i in range(1, 10)] + ['0']:
         idx = 9 if key == '0' else int(key) - 1
         select_slot(idx)
@@ -437,6 +356,9 @@ def handle_input(key):
             distance=3,
             ignore=(world.player, world.ground, fields.field_preview, building_system.building_preview)
         )
+        if hit_info.hit and is_bed_entity(hit_info.entity):
+            prompt_sleep()
+            return
         if hit_info.hit:
             root = items.find_ground_item_root(hit_info.entity)
             if root is not None:
@@ -481,9 +403,6 @@ def handle_input(key):
         if rendering.buffalo_dialog is not None and rendering.buffalo_dialog.enabled:
             return
         hit_info = raycast(camera.world_position, camera.forward, distance=MAX_PLACE_DISTANCE)
-        if hit_info.hit and is_bed_entity(hit_info.entity):
-            prompt_sleep()
-            return
         if hit_info.hit:
             buffalo_entity = is_buffalo_entity(hit_info.entity)
             if buffalo_entity is not None:
@@ -507,22 +426,6 @@ def handle_input(key):
                         inventory.show_message("Wheat is already growing here", 1.5)
             return
 
-        if inventory.get_item(inventory.inventory[inventory.selected_slot]) == "peashooter seed":
-            hit_info = raycast(camera.world_position, camera.forward, distance=MAX_PLACE_DISTANCE)
-            if hit_info.hit:
-                field_data = fields.find_field_by_entity(hit_info.entity)
-                if field_data:
-                    success = fields.plant_peashooter_on_field(field_data)
-                    if success:
-                        inventory.remove_item(inventory.selected_slot)
-                        if inventory.get_item(inventory.inventory[inventory.selected_slot]) is None:
-                            select_slot(inventory.selected_slot)
-                        inventory.update_inventory_ui()
-                        inventory.show_message("Peashooter planted on field", 1.5)
-                    else:
-                        inventory.show_message("Cannot plant here", 1.5)
-            return
-
         if inventory.get_item(inventory.inventory[inventory.selected_slot]) == "fertilizer":
             hit_info = raycast(camera.world_position, camera.forward, distance=MAX_PLACE_DISTANCE)
             if hit_info.hit:
@@ -544,27 +447,33 @@ def handle_input(key):
             hit_info = raycast(camera.world_position, camera.forward, distance=MAX_PLACE_DISTANCE)
             if hit_info.hit:
                 field_data = fields.find_field_by_entity(hit_info.entity)
+                # Nếu là lúa đã chín (stage >= 4)
                 if field_data and field_data["wheat_planted"] and field_data["wheat_stage"] >= 4 and field_data["wheat_hp"] > 0:
+                    
+                    # Lưu lại vị trí ô đất trước khi xóa lúa để Lúa Quái Vật có thể sinh ra đúng chỗ đó
+                    spawn_pos = field_data["pos"] 
+                    
                     if field_data["wheat_hp"] == 20:
                         harvested = "wheat"
                         inventory.show_message("Harvested ripe wheat", 1.5)
                     else:
                         harvested = "damaged wheat"
                         inventory.show_message("Harvested damaged wheat", 1.5)
+                        
                     fields.destroy_wheat(field_data)
-                    if harvested == "wheat":
-                        completed = tasks.add_progress(1)
-                        if completed:
-                            reward = tasks.claim_reward()
-                            if reward is not None and reward.get('money') and world.player is not None:
-                                world.player.money += reward['money']
-                                inventory.show_message(f'Quest completed: {tasks.active_quest.name} (+{reward["money"]} coins)', 3.0)
-                    update_quest_ui()
+                    
                     if not inventory.add_item(harvested):
                         items.spawn_ground_item(harvested, world.player.position + world.player.forward * 2)
                         inventory.show_message("Inventory full, dropped harvested wheat", 2)
                     else:
                         inventory.update_inventory_ui()
+                        
+                    # --- CƠ CHẾ SINH QUÁI VẬT LÚA ---
+                    harvest_count += 1
+                    if harvest_count % 3 == 0:
+                        enemies.spawn_arrogant_wheat(spawn_pos)
+                        inventory.show_message("CẢNH BÁO: Lúa chín không cúi đầu đã thức tỉnh!", 3.0)
+                        
                 else:
                     inventory.show_message("No ripe wheat to harvest here", 1.5)
             return
@@ -669,12 +578,12 @@ def handle_input(key):
             building_system.update_building_preview(building_system.building_preview.position, valid)
         return
 
-
 def setup_game():
     global crosshair
     items.spawn_ground_item("axe", Vec3(0, 1, 0))
     items.spawn_ground_item("pickaxe", Vec3(2, 1, 0))
     items.spawn_ground_item("hoe", Vec3(-2, 1, 0))
+    items.spawn_ground_item("hammer", Vec3(6, 1, 0))
     items.spawn_ground_item("seed", Vec3(4, 1, 0))
     items.spawn_ground_item("sword", Vec3(8, 1, 0))
     items.spawn_ground_item("gun", Vec3(10, 1, 0))
@@ -682,15 +591,8 @@ def setup_game():
     items.spawn_ground_item("scythe", Vec3(14, 1, 0))
     pet.spawn_dog(Vec3(2, 1, 2))
     pet.spawn_toad(Vec3(-2, 1, 2))
-    items.spawn_ground_item("peashooter seed", Vec3(6, 1, 0))
 
     inventory.update_inventory_ui()
-    if tasks.get_active_quest() is None:
-        tasks.set_active_quest(tasks.create_harvest_wheat_quest())
-
-    rendering.update_player_hud(world.player.hp, world.player.max_hp, world.player.stamina, world.player.max_stamina, world.player.money)
-    rendering.update_quest_text(*tasks.get_quest_status())
-
     update_time_ui()
     set_day_night()
     spawn_rats_on_edge(20)

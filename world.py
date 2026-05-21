@@ -350,8 +350,7 @@ def spawn_vendor_cart():
     # wheels
     wheel_positions = [(-1.4, 0.35, -0.8), (1.4, 0.35, -0.8), (-1.4, 0.35, 0.8), (1.4, 0.35, 0.8)]
     for pos in wheel_positions:
-        # use torus as a wheel-like primitive to avoid missing 'cylinder' model warnings
-        Entity(parent=vendor_root, model='torus', color=color.black, scale=(0.18, 0.18, 0.18), position=pos, rotation=(90, 0, 0))
+        Entity(parent=vendor_root, model='cylinder', color=color.black, scale=(0.3, 0.3, 0.3), position=pos, rotation=(90, 0, 0))
 
     # vendor character
     vendor = Entity(parent=vendor_root, position=(0, 0, 1.8))
