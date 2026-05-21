@@ -35,6 +35,11 @@ def setup_tools_for_camera():
     tools.gun.parent = camera
     tools.scythe.parent = camera
     tools.fertilizer.parent = camera
+    # ensure stackable and plant items are parented to camera so they appear in-hand
+    tools.seed.parent = camera
+    tools.peashooter_seed.parent = camera
+    tools.wheat.parent = camera
+    tools.damaged_wheat.parent = camera
 
     positions = (0.7, -0.6, 1.5)
     tools.arm.position = positions
@@ -45,6 +50,10 @@ def setup_tools_for_camera():
     tools.sword.position = positions
     tools.gun.position = positions
     tools.fertilizer.position = positions
+    tools.seed.position = positions
+    tools.peashooter_seed.position = positions
+    tools.wheat.position = positions
+    tools.damaged_wheat.position = positions
 
 
 def run_game():

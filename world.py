@@ -11,14 +11,17 @@ ground = None
 player = None
 player_model = None
 sun = None
+sky = None
 bed = None
 buffalo = None
+vendor_root = None
+vendor_entity = None
 
 trees = []
 rocks = []
 
 def create_world():
-    global ground, player, player_model, sun
+    global ground, player, player_model, sun, sky
 
     ground = Entity(
         model='plane',
@@ -35,7 +38,7 @@ def create_world():
 
     player, player_model = create_player()
 
-    Sky()
+    sky = Sky()
     sun = DirectionalLight()
     sun.color = color.rgb(255/255, 250/255, 235/255)
     sun.look_at(Vec3(1, -1, -1))
@@ -340,6 +343,7 @@ def spawn_buffalo():
 
 
 def spawn_vendor_cart():
+    global vendor_root, vendor_entity
     vendor_root = Entity(position=(-GROUND_HALF + 8, 0.5, -GROUND_HALF + 8))
     # cart body
     Entity(parent=vendor_root, model='cube', color=color.rgb(200, 120, 60), scale=(4, 1.4, 2), position=(0, 0.9, 0), collider='box')
@@ -350,19 +354,58 @@ def spawn_vendor_cart():
     # wheels
     wheel_positions = [(-1.4, 0.35, -0.8), (1.4, 0.35, -0.8), (-1.4, 0.35, 0.8), (1.4, 0.35, 0.8)]
     for pos in wheel_positions:
-        Entity(parent=vendor_root, model='cylinder', color=color.black, scale=(0.3, 0.3, 0.3), position=pos, rotation=(90, 0, 0))
+        Entity(parent=vendor_root, model='cube', color=color.black,
+               scale=(0.25, 0.25, 0.08), position=pos, rotation=(0, 0, 0))
 
-    # vendor character
-    vendor = Entity(parent=vendor_root, position=(0, 0, 1.8))
-    Entity(parent=vendor, model='cube', color=color.azure, scale=(0.5, 1.0, 0.4), position=(0, 1.0, 0))
-    head = Entity(parent=vendor, model='cube', color=color.white, scale=(0.45, 0.45, 0.45), position=(0, 1.9, 0))
+    # vendor character: try to use mrkrab model if available
     try:
-        face_texture = load_texture('texture/seed.png')
-        if hasattr(face_texture, 'width'):
-            Entity(parent=head, model='quad', texture=face_texture, scale=(0.35, 0.35), position=(0, 0, 0.26))
+        vm = load_model('model/mrkrab/source/db_balloon_mr_krabs.obj')
+    except Exception as e:
+        print(f"Failed to load mrkrab model: {e}")
+        vm = None
+    try:
+        vt = load_texture('model/mrkrab/textures/krabs.png')
     except Exception:
-        pass
-    Entity(parent=vendor, model='cube', color=color.azure, scale=(0.15, 0.6, 0.15), position=(-0.35, 1.2, 0))
-    Entity(parent=vendor, model='cube', color=color.azure, scale=(0.15, 0.6, 0.15), position=(0.35, 1.2, 0))
-    Entity(parent=vendor, model='cube', color=color.blue, scale=(0.18, 0.7, 0.18), position=(-0.15, 0.35, 0))
-    Entity(parent=vendor, model='cube', color=color.blue, scale=(0.18, 0.7, 0.18), position=(0.15, 0.35, 0))
+        vt = None
+
+    if vm:
+        # reduce model size to half
+        vendor = Entity(parent=vendor_root, model=vm, position=(0, 0, 1.8), scale=0.4, collider='box', double_sided=True)
+        if vt is not None and hasattr(vt, 'width'):
+            vendor.texture = vt
+    else:
+        # fallback to simple blocky vendor
+        vendor = Entity(parent=vendor_root, position=(0, 0, 1.8), collider='box')
+        Entity(parent=vendor, model='cube', color=color.azure, scale=(0.5, 1.0, 0.4), position=(0, 1.0, 0))
+        head = Entity(parent=vendor, model='cube', color=color.white, scale=(0.45, 0.45, 0.45), position=(0, 1.9, 0))
+        try:
+            face_texture = load_texture('texture/seed.png')
+            if hasattr(face_texture, 'width'):
+                Entity(parent=head, model='quad', texture=face_texture, scale=(0.35, 0.35), position=(0, 0, 0.26))
+        except Exception:
+            pass
+        Entity(parent=vendor, model='cube', color=color.azure, scale=(0.15, 0.6, 0.15), position=(-0.35, 1.2, 0))
+        Entity(parent=vendor, model='cube', color=color.azure, scale=(0.15, 0.6, 0.15), position=(0.35, 1.2, 0))
+        Entity(parent=vendor, model='cube', color=color.blue, scale=(0.18, 0.7, 0.18), position=(-0.15, 0.35, 0))
+        Entity(parent=vendor, model='cube', color=color.blue, scale=(0.18, 0.7, 0.18), position=(0.15, 0.35, 0))
+
+    vendor_root.is_vendor = True
+    vendor.is_vendor = True
+    vendor_entity = vendor
+
+
+def input(key):
+    # left click on vendor opens shop
+    from ursina import mouse
+    if key == 'left mouse down':
+        hovered = getattr(mouse, 'hovered_entity', None)
+        # walk up parents to find an ancestor marked as vendor (child meshes may be hovered)
+        h = hovered
+        while h is not None and not getattr(h, 'is_vendor', False):
+            h = getattr(h, 'parent', None)
+        if h is not None and getattr(h, 'is_vendor', False):
+            try:
+                import shop
+                shop.open_shop()
+            except Exception as e:
+                print('Failed to open shop:', e)

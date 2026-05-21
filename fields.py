@@ -1,7 +1,11 @@
-from ursina import Entity, Vec3, color, invoke, curve, destroy
+from ursina import Entity, Vec3, color, invoke, curve, destroy, time as ursina_time
+import time as pytime
+from math import atan2, degrees
 import random
-from enemies import Rat
 from items import spawn_ground_item
+
+# projectiles fired by peashooters
+peashooter_projectiles = []
 
 fields = []
 field_preview = Entity(model='cube', color=color.rgba(150/255, 100/255, 50/255, 140/255), scale=(1, 0.2, 1), enabled=False)
@@ -120,6 +124,106 @@ def plant_peashooter_on_field(field_data):
         )
 
     return True
+
+
+def update_peashooters():
+    # Called once per frame from game.update()
+    # Use a local detection zone per peashooter: acquire target when an enemy
+    # enters the peashooter's range and keep targeting it until it leaves or dies.
+    import enemies as enemies_mod
+    now = pytime.time()
+    for field_data in fields:
+        if not field_data.get("peashooter_planted"):
+            continue
+        pe = field_data.get("peashooter_entity")
+        if pe is None:
+            continue
+        # detection range (units)
+        rng = field_data.get('peashooter_range', 16.0)
+        last = field_data.get("last_shot", 0)
+        cooldown = field_data.get('peashooter_cooldown', 1.0)
+
+        target = field_data.get('peashooter_target')
+        # acquire target if none
+        if target is None:
+            for enemy in enemies_mod.enemies:
+                if getattr(enemy, 'entity', None) is None:
+                    continue
+                try:
+                    dist = (enemy.entity.world_position - pe.world_position).length()
+                except Exception:
+                    continue
+                if dist <= rng:
+                    field_data['peashooter_target'] = enemy
+                    target = enemy
+                    print(f"Peashooter at {pe.world_position} acquired target: {enemy.__class__.__name__} at {enemy.entity.world_position}")
+                    break
+        else:
+            # validate existing target
+            if target not in enemies_mod.enemies or getattr(target, 'entity', None) is None:
+                field_data['peashooter_target'] = None
+                target = None
+            else:
+                try:
+                    if (target.entity.world_position - pe.world_position).length() > rng:
+                        field_data['peashooter_target'] = None
+                        target = None
+                except Exception:
+                    field_data['peashooter_target'] = None
+                    target = None
+
+        # if we have a valid target, attempt to shoot
+        if target is not None and (now - last) >= cooldown:
+            spawn_pos = pe.world_position + Vec3(0, 0.5, 0)
+            proj = Entity(model='sphere', color=color.lime, scale=0.12, position=spawn_pos, collider='box')
+            direction = (target.entity.world_position - spawn_pos).normalized()
+            proj.velocity = direction * field_data.get('peashooter_bullet_speed', 18)
+            proj.damage = field_data.get('peashooter_damage', 6)
+            proj.age = 0.0
+            proj.lifetime = field_data.get('peashooter_bullet_life', 3.0)
+            # avoid immediate self-collision by offsetting slightly and ignoring field root on intersects
+            proj._ignore = field_data.get('entity')
+            peashooter_projectiles.append(proj)
+            field_data['last_shot'] = now
+            # rotate peashooter to face the target (world-space yaw)
+            try:
+                dir_vec = target.entity.world_position - pe.world_position
+                ang = degrees(atan2(dir_vec.x, dir_vec.z))
+                pe.rotation_y = ang-90
+            except Exception:
+                pass
+            print(f"Peashooter fired at {target.entity.world_position} from {spawn_pos}")
+
+
+def update_peashooter_projectiles():
+    import enemies as enemies_mod
+    for proj in list(peashooter_projectiles):
+        proj.position += proj.velocity * ursina_time.dt
+        proj.age += ursina_time.dt
+        # ignore collision with own field entity if set
+        try:
+            ignore_list = (proj._ignore,) if getattr(proj, '_ignore', None) is not None else ()
+        except Exception:
+            ignore_list = ()
+        hit_info = proj.intersects(ignore=ignore_list)
+        if hit_info.hit:
+            enemy = enemies_mod.find_enemy_by_entity(hit_info.entity)
+            if enemy:
+                enemy.take_damage(proj.damage)
+                try:
+                    destroy(proj)
+                except Exception:
+                    pass
+                if proj in peashooter_projectiles:
+                    peashooter_projectiles.remove(proj)
+                continue
+        if proj.age >= proj.lifetime:
+            try:
+                destroy(proj)
+            except Exception:
+                pass
+            if proj in peashooter_projectiles:
+                peashooter_projectiles.remove(proj)
 
 
 def update_wheat_health_bar(field_data):

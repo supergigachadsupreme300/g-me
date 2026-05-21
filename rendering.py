@@ -1,6 +1,7 @@
-from ursina import Entity, Text, Button, color, scene, camera, mouse, window
+from ursina import Entity, Text, Button, color, scene, camera, mouse, window, load_texture
 import world
 
+starry_texture = None
 
 time_text = None
 ammo_text = None
@@ -22,9 +23,12 @@ def setup_ui():
     global time_text, ammo_text, player_hp_text, player_stamina_text, player_money_text
     global pause_menu, bed_confirm_menu, bed_confirm_yes, bed_confirm_no
     global buffalo_dialog, buffalo_dialog_text, buffalo_sell, buffalo_leave
+    global stats_panel, stats_lines, stats_button, quest_text
 
-    time_text = Text(parent=camera.ui, text='', position=(-0.92, -0.45), origin=(0, 0), scale=1.4, color=color.white, background=True)
-    ammo_text = Text(parent=camera.ui, text='Ammo: 0/0', position=(-0.92, 0.44), origin=(0, 0), scale=1.2, color=color.white, background=True)
+    # moved time_text below player HUD (near player money) and ammo above inventory
+    time_text = Text(parent=camera.ui, text='', position=(-0.8, 0.22), origin=(0, 0), scale=1.2, color=color.white, background=True)
+    ammo_text = Text(parent=camera.ui, text='Ammo: 0/0', position=(0, -0.37), origin=(0, 0), scale=1.2, color=color.white, background=True)
+    ammo_text.enabled = False
     ammo_text.enabled = False
     player_hp_text = Text(parent=camera.ui, text='HP: 100/100', position=(-0.8, 0.41), origin=(0, 0), scale=1.2, color=color.rgb(255/255, 80/255, 80/255), background=True)
     player_stamina_text = Text(parent=camera.ui, text='Stamina: 100/100', position=(-0.75, 0.345), origin=(0, 0), scale=1.2, color=color.rgb(100/255, 200/255, 255/255), background=True)
@@ -35,7 +39,10 @@ def setup_ui():
     Entity(parent=pause_menu, model='quad', color=color.rgba(0, 0, 0, 180/255), scale=(1.6, 1.2), position=(0, 0, 0))
     Text(text='Settings', parent=pause_menu, y=0.35, scale=2, color=color.white)
     Button(parent=pause_menu, text='Continue', scale=(0.5, 0.13), y=0.08)
-    Button(parent=pause_menu, text='Exit', scale=(0.5, 0.13), y=-0.15)
+    # Stats button (opens stats panel)
+    stats_button = Button(parent=pause_menu, text='Stats', scale=(0.45, 0.12), y=-0.02)
+    stats_button.on_click = lambda: show_stats(True)
+    Button(parent=pause_menu, text='Exit', scale=(0.5, 0.13), y=-0.22)
 
     bed_confirm_menu = Entity(parent=camera.ui, enabled=False)
     Entity(parent=bed_confirm_menu, model='quad', color=color.rgba(0, 0, 0, 180/255), scale=(1.4, 0.6), position=(0, 0, 0))
@@ -48,6 +55,18 @@ def setup_ui():
     buffalo_dialog_text = Text(parent=buffalo_dialog, text='Tôi thích ăn lúa', y=0.15, scale=1.2, color=color.white)
     buffalo_sell = Button(parent=buffalo_dialog, text='Sell wheat', scale=(0.4, 0.13), x=-0.2, y=-0.15)
     buffalo_leave = Button(parent=buffalo_dialog, text='Leave', scale=(0.4, 0.13), x=0.2, y=-0.15)
+
+    # Stats panel (hidden by default)
+    stats_panel = Entity(parent=camera.ui, enabled=False)
+    Entity(parent=stats_panel, model='quad', color=color.rgba(0,0,0,200/255), scale=(1.2, 0.7))
+    Text(parent=stats_panel, text='Player Stats', y=0.28, scale=1.4, color=color.white)
+    stats_lines = {
+        'harvested': Text(parent=stats_panel, text='Harvested wheat: 0', y=0.12, scale=1.0, color=color.white),
+        'enemies': Text(parent=stats_panel, text='Enemies killed: 0', y=0.0, scale=1.0, color=color.white),
+        'earned': Text(parent=stats_panel, text='Money earned: 0', y=-0.12, scale=1.0, color=color.white),
+        'stolen': Text(parent=stats_panel, text='Money stolen: 0', y=-0.24, scale=1.0, color=color.white),
+    }
+    Button(parent=stats_panel, text='Close', y=-0.33, scale=(0.25, 0.12), on_click=lambda: show_stats(False))
 
 
 def update_ammo_text(gun_ammo, gun_max_ammo):
@@ -70,9 +89,37 @@ def update_player_hud(hp, max_hp, stamina, max_stamina, money):
 
 
 def update_quest_text(name, progress, goal):
+    global quest_text, time_text
     if quest_text is not None:
         status = 'Completed' if progress >= goal else f'{progress}/{goal}'
-        quest_text.text = f"Quest: {name} ({status})"
+        quest_text.text = f"Quest: {name} {status}"
+        quest_text.enabled = True
+        # also ensure time UI sits below quest UI
+        if time_text is not None:
+            time_text.y = quest_text.y - 0.06
+
+
+def show_stats(enabled: bool):
+    global stats_panel
+    if stats_panel is None:
+        return
+    stats_panel.enabled = enabled
+    if enabled:
+        update_stats_display()
+
+
+def update_stats_display():
+    try:
+        import stats as stats_mod
+        s = stats_mod.get_summary()
+        stats_lines['harvested'].text = f"Harvested wheat: {s.get('harvested_wheat', 0)}"
+        enemies = s.get('enemies_killed', {})
+        enemies_str = ', '.join([f"{k}:{v}" for k, v in enemies.items()]) or '0'
+        stats_lines['enemies'].text = f"Enemies killed: {enemies_str}"
+        stats_lines['earned'].text = f"Money earned: {s.get('money_earned', 0)}"
+        stats_lines['stolen'].text = f"Money stolen: {s.get('money_stolen', 0)}"
+    except Exception:
+        pass
 
 
 def update_time_ui(current_day, time_of_day):
@@ -90,10 +137,28 @@ def set_day_night(time_of_day):
         world.sun.color = color.rgb(255/255, 255/255, 235/255)
         window.color = color.rgb(135/255, 206/255, 235/255)
         scene.fog_color = color.rgb(135/255, 206/255, 235/255)
+        if world.sky is not None:
+            world.sky.texture = None
+            world.sky.color = color.rgb(135/255, 206/255, 235/255)
     else:
         world.sun.color = color.rgb(120/255, 140/255, 255/255)
         window.color = color.rgb(15/255, 20/255, 55/255)
         scene.fog_color = color.rgb(15/255, 20/255, 55/255)
+        if world.sky is not None:
+            global starry_texture
+            if starry_texture is None:
+                try:
+                    starry_texture = load_texture('texture/starry.png')
+                    print('Loaded night sky texture: texture/starry.png')
+                except Exception as e:
+                    print(f'Failed to load night sky texture: {e}')
+                    starry_texture = None
+            if starry_texture is not None:
+                world.sky.texture = starry_texture
+                world.sky.color = color.white
+            else:
+                world.sky.texture = None
+                world.sky.color = color.rgb(15/255, 20/255, 55/255)
 
 
 def set_pause_button_callbacks(continue_callback, exit_callback):

@@ -47,9 +47,29 @@ def set_active_quest(quest: Quest) -> None:
 def add_progress(amount: int = 1) -> bool:
     if active_quest is None:
         return False
-    return active_quest.add_progress(amount)
-
-
+    # Update progress directly from stats instead of manual tracking
+    try:
+        import stats as stats_mod
+        active_quest.progress = stats_mod.get_summary()['harvested_wheat']
+    except Exception:
+        active_quest.progress += amount
+    
+    prev = active_quest.progress
+    result = active_quest.progress >= active_quest.goal
+    if result and not active_quest.completed:
+        active_quest.completed = True
+    
+    try:
+        print(f"Quest progress: {active_quest.name} {active_quest.progress}/{active_quest.goal}")
+    except Exception:
+        pass
+    try:
+        from rendering import update_quest_text
+        if active_quest is not None:
+            update_quest_text(active_quest.name, active_quest.progress, active_quest.goal)
+    except Exception:
+        pass
+    return result
 def get_quest_status() -> tuple[str, int, int]:
     if active_quest is None:
         return 'No active quest', 0, 0
