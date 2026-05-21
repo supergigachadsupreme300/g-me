@@ -21,22 +21,22 @@ ITEMS = [
 def setup_shop_ui():
     global SHOP_PANEL
     SHOP_PANEL = Entity(parent=camera.ui, enabled=False)
-    Entity(parent=SHOP_PANEL, model='quad', color=color.rgba(10, 10, 10, 220/255), scale=(1.2, 0.8))
-    Text(parent=SHOP_PANEL, text='Shop', y=0.34, scale=2, color=color.white)
+    Entity(parent=SHOP_PANEL, model='quad', color=color.rgba(10, 10, 10, 220/255), scale=(1.3, 0.95), position=(0, 0))
+    Text(parent=SHOP_PANEL, text='Shop', y=0.38, scale=2, color=color.white)
 
     # grid of item buttons
-    cols = 5
-    spacing_x = 0.36
-    spacing_y = 0.25
-    start_x = -0.8
-    start_y = 0.1
+    cols = 3
+    spacing_x = 0.42
+    spacing_y = 0.22
+    start_x = -0.55
+    start_y = 0.18
     for i, it in enumerate(ITEMS):
         x = start_x + (i % cols) * spacing_x
         y = start_y - (i // cols) * spacing_y
-        b = Button(parent=SHOP_PANEL, text=f"{it['type']}\n{it['price']}g", position=(x, y), scale=(0.3, 0.18))
+        b = Button(parent=SHOP_PANEL, text=f"{it['type']}\n{it['price']}g", position=(x, y), scale=(0.26, 0.14))
         b.on_click = (lambda item=it: buy_item(item))
 
-    Button(parent=SHOP_PANEL, text='Close', y=-0.33, scale=(0.25, 0.12), on_click=close_shop)
+    Button(parent=SHOP_PANEL, text='Close', y=-0.36, scale=(0.25, 0.12), on_click=close_shop)
 
 
 def open_shop():

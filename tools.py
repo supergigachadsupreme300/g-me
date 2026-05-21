@@ -120,16 +120,12 @@ def _make_wheat_on_parent(parent_entity):
     # try to use hay model if available, otherwise fallback to a yellow cube
     try:
         from ursina import load_model
-        # updated filename: use actual hay.fbx located in model/hay/source/
         hay_model = load_model('model/hay/source/hay.fbx')
         if hay_model:
-            m = Entity(parent=parent_entity)
-            try:
-                m.model = hay_model
-            except Exception:
-                m.model = 'cube'
-            m.scale = (0.6, 0.6, 0.6)
-            m.position = (0, -0.05, 0)
+            parent_entity.model = hay_model
+            parent_entity.scale = (0.35, 0.35, 0.35)
+            parent_entity.position = (0, -0.1, 0)
+            parent_entity.rotation = (0, 180, 0)
             return
     except Exception:
         pass

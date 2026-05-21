@@ -12,6 +12,7 @@ import building_system
 import enemies
 import rendering
 import tasks
+import stats
 
 MAX_PLACE_DISTANCE = 20
 GUN_MAX_AMMO = 6
@@ -41,6 +42,16 @@ def toggle_pause(paused: bool):
     global game_paused
     game_paused = paused
     rendering.toggle_pause(paused)
+    # Freeze player movement when paused
+    try:
+        if world.player is not None:
+            if paused:
+                world.player.speed = 0
+            else:
+                # restore base speed
+                world.player.speed = getattr(world.player, 'base_speed', 5.0)
+    except Exception:
+        pass
     if paused:
         inventory.show_message('Game paused', 1.5)
     else:
@@ -563,6 +574,11 @@ def handle_input(key):
                     harvested = "wheat" if field_data["wheat_stage"] >= 4 else "damaged wheat"
                     inventory.show_message("Harvested ripe wheat", 1.5)
                     fields.destroy_wheat(field_data)
+                    # record stats before updating quest progress
+                    try:
+                        stats.record_harvest(1)
+                    except Exception:
+                        pass
                     completed = tasks.add_progress(1)
                     if completed:
                         reward = tasks.claim_reward()
@@ -699,7 +715,7 @@ def setup_game():
         tasks.set_active_quest(tasks.create_harvest_wheat_quest())
 
     rendering.update_player_hud(world.player.hp, world.player.max_hp, world.player.stamina, world.player.max_stamina, world.player.money)
-    rendering.update_quest_text(*tasks.get_quest_status())
+    update_quest_ui()
 
     update_time_ui()
     set_day_night()
