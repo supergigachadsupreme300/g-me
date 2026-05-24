@@ -55,7 +55,7 @@ def spawn_ground_item(item_type, position):
             Entity(model='cube', color=color.rgb(180/255, 120/255, 60/255), scale=(0.3, 0.3, 0.1), parent=root, position=(0, 0.2, 0))
     elif item_type == "peashooter seed":
         try:
-            seed_texture = load_texture('texture/seed.png')
+            seed_texture = load_texture('texture/peashooter_seed.png')
             if hasattr(seed_texture, 'width'):
                 Entity(model='cube', texture=seed_texture, scale=(0.3, 0.3, 0.1), parent=root, position=(0, 0.2, 0), texture_scale=(1, 1), color=color.rgb(255/255, 220/255, 80/255))
             else:
