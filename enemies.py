@@ -300,7 +300,7 @@ def spawn_grasshopper(position):
     enemies.append(g)
     return g
 
-#Chihai quai vat tung tung sahur
+# Chihai quai vat tung tung sahur
 tex_sahur_path = 'model/tungtungsahur/tungtungsahur_tex.png'
 sahur_texture = load_texture(tex_sahur_path)
 
@@ -308,38 +308,87 @@ if sahur_texture is None:
     print(f"Không tìm thấy ảnh Sahur tại '{tex_sahur_path}'")
     sahur_texture = color.orange 
 
-
 class Sahur(Rat):
     def __init__(self, position):
         super().__init__(position)
         
-        self.entity.model = 'cube'
-        self.entity.color = color.clear
-        self.entity.texture = None
-        self.entity.scale = (1.2, 1.2, 1.2)
-        self.mesh = Entity(parent=self.entity)
+        self.entity = Entity(model='cube', color=color.clear, scale=(1.2, 1.2, 1.2), position=position, collider='box')
+        
+        self.mesh_run = Entity(parent=self.entity)
+        self.mesh_attack = Entity(parent=self.entity)
         
         try:
-            self.entity.model = load_model('model/tungtungsahur/tungtungsahur.fbx') 
+            self.mesh_run.model = load_model('model/tungtungsahur/tung_tung_sahur_running.glb') 
+            self.mesh_attack.model = load_model('model/tungtungsahur/tung_tung_sahur_baseball_hit.glb') 
         except Exception as e:
-            print(f"Không tìm thấy model Sahur: {e}")
-            self.entity.model = 'cube'
+            print(f"Không load được model GLB Sahur: {e}")
+            self.mesh_run.model = 'cube'
+            self.mesh_attack.model = 'cube'
             
-        if hasattr(sahur_texture, 'width'):
-            self.entity.texture = sahur_texture
-            self.entity.color = color.white 
-        else:
-            self.entity.texture = None 
-            self.entity.color = sahur_texture 
+        for mesh in (self.mesh_run, self.mesh_attack):
+            if hasattr(sahur_texture, 'width'):
+                mesh.texture = sahur_texture
+                mesh.color = color.white 
+            else:
+                mesh.texture = None 
+                mesh.color = sahur_texture 
+                
+            mesh.setTransparency(0)
+            mesh.double_sided = True
             
-        self.entity.scale = (0.003, 0.003, 0.003) 
-        self.entity.y = self.entity.scale_y / 2 
+            mesh.scale = (0.003, 0.003, 0.003) 
+            mesh.y = -0.6 
+            
+        self.mesh_run.enabled = True
+        self.mesh_attack.enabled = False
         
         self.hp = 35
         self.max_hp = 35
         self.speed = 1.5
         self.attack_damage = 8
+        self.attack_cooldown = 2.0
+        self.last_attack_time = 0
+        
         self.health_bar.y = 1.2
+        self.velocity_y = 0
+
+    def update(self):
+        import time as pytime
+        from ursina import time
+        import world
+        import inventory
+        
+        if self.hp <= 0:
+            return
+            
+        self.velocity_y -= 18.0 * time.dt 
+        self.entity.y += self.velocity_y * time.dt
+        if self.entity.y < self.entity.scale_y / 2:
+            self.entity.y = self.entity.scale_y / 2
+            self.velocity_y = 0
+            
+        player_pos = world.player.position
+        dist = (self.entity.position - player_pos).length()
+        
+        if dist > 2.0:
+            self.mesh_run.enabled = True
+            self.mesh_attack.enabled = False
+            
+            direction = (player_pos - self.entity.position).normalized()
+            self.entity.position += direction * self.speed * time.dt
+            self.face_direction(direction)
+        else:
+            self.mesh_run.enabled = False
+            self.mesh_attack.enabled = True
+            
+            if pytime.time() - self.last_attack_time > self.attack_cooldown:
+                self.last_attack_time = pytime.time()
+                
+                world.player.hp -= self.attack_damage
+                inventory.show_message(f"Bị Tung Tung Sahur nện! HP: {world.player.hp}/100", 2)
+                
+                direction = (player_pos - self.entity.position).normalized()
+                self.face_direction(direction)
 
 def spawn_sahur(position):
     s = Sahur(position)
