@@ -1,6 +1,9 @@
+import importlib.util
 from ursina import Entity, Text, color, Vec3, raycast, destroy, load_model, load_texture, time
 from math import atan2, degrees
+from direct.actor.Actor import Actor
 import time as pytime
+from panda3d.core import TextureStage
 import random
 import world
 import fields
@@ -257,7 +260,6 @@ class Rat:
 
     def die(self):
         self.state = DEAD
-        # drop one random loot item on death
         try:
             loot_choices = ["seed", "peashooter seed", "fertilizer", "ammo"]
             dropped = random.choice(loot_choices)
@@ -283,7 +285,6 @@ def update_enemies():
     for enemy in list(enemies):
         enemy.update()
 
-#Chihai
 try:
     grasshopper_texture = load_texture('model/grasshopper/texture/grasshopper_tex.jpg')
     print("Loaded grasshopper texture")
@@ -291,7 +292,6 @@ except Exception as e:
     print(f"Failed loading grasshopper texture: {e}")
     grasshopper_texture = color.green 
 
-#chihai quai vat chau chau
 class Grasshopper(Rat):
     def __init__(self, position):
         super().__init__(position)
@@ -331,122 +331,128 @@ def spawn_grasshopper(position):
     enemies.append(g)
     return g
 
-
-# Chihai quai vat tung tung sahur
-tex_sahur_path = 'model/tungtungsahur/tungtungsahur_tex.png'
+tex_sahur_path = 'model/tungtungsahur/shaded.png'
 sahur_texture = load_texture(tex_sahur_path)
 
 if sahur_texture is None:
-    print(f"Không tìm thấy ảnh Sahur tại '{tex_sahur_path}'")
-    sahur_texture = color.orange 
+    print(f"\033[91m[CẢNH BÁO] KHÔNG TÌM THẤY ẢNH TẠI: {tex_sahur_path}\033[0m")
+
+def _sahur_apply_tex(actor):
+    if sahur_texture is None or not hasattr(sahur_texture, '_texture'):
+        return
+    try:
+        actor.setTexture(sahur_texture._texture, 1)
+        for geom in actor.findAllMatches('**/+GeomNode'):
+            geom.setTexture(sahur_texture._texture, 1)
+    except Exception as e:
+        print(f"[LỖI DÁN ẢNH] {e}")
 
 class Sahur(Rat):
     def __init__(self, position):
         super().__init__(position)
-        
-        # 1. HITBOX VẬT LÝ (Giữ nguyên kích thước to để không lọt sàn)
+
+        # 1. HITBOX VẬT LÝ
         self.entity.model = 'cube'
-        self.entity.color = color.clear
+        self.entity.color = color.clear 
         self.entity.texture = None
         self.entity.scale = (1.2, 1.2, 1.2)
         
-        # 2. TẠO 2 LỚP VỎ 3D (CHẠY VÀ ĐÁNH)
-        self.mesh_run = Entity(parent=self.entity)
-        self.mesh_attack = Entity(parent=self.entity)
-        
+        self.visual = Entity(scale=(1, 1, 1))
+
+        self.actor = None
         try:
-            self.mesh_run.model = load_model('model/tungtungsahur/tungtungsahur_run.fbx') 
-            self.mesh_attack.model = load_model('model/tungtungsahur/tungtungsahur_attack.fbx') 
+            self.actor = Actor(
+                'model/tungtungsahur/tungtungsahur_run.glb', 
+                {
+                    'run': 'model/tungtungsahur/tungtungsahur_run.glb',
+                    'attack': 'model/tungtungsahur/tungtungsahur_hit.glb'
+                }
+            )
+            self.actor.reparent_to(self.visual)
+            self.actor.setHpr(180, 0, 0)
+
+            self.actor.setScale(0.3, 0.3, 0.3)
+            
+            self.actor.loop('run')
+            self._anim = 'run'
+            
         except Exception as e:
-            print(f"Không tìm thấy model Sahur: {e}")
-            self.mesh_run.model = 'cube'
-            self.mesh_attack.model = 'cube'
-            
-        # 3. GẮN ẢNH DA VÀO LỚP VỎ VÀ CHỈNH KÍCH THƯỚC
-        for mesh in (self.mesh_run, self.mesh_attack):
-            if hasattr(sahur_texture, 'width'):
-                mesh.texture = sahur_texture
-                mesh.color = color.white 
-            else:
-                mesh.texture = None 
-                mesh.color = sahur_texture 
-                
-            mesh.scale = (0.003, 0.003, 0.003) 
-            mesh.y = -0.5 # Hạ vỏ 3D xuống cho chạm đất
-            mesh.setTransparency(0)
-            mesh.double_sided = True
-            
-        # Mặc định ban đầu: Hiện dáng chạy, tắt dáng đánh
-        self.mesh_run.enabled = True
-        self.mesh_attack.enabled = False
-        
-        # 4. CHỈ SỐ SỨC MẠNH
+            print(f"[LỖI LOAD GLB] {e}")
+            print("GỢI Ý: Bạn đã mở Terminal và gõ 'pip install panda3d-gltf' chưa?")
+            self.visual.model = 'cube'
+            self.visual.color = color.red
+            self.visual.scale = (2, 2, 2) 
+            self._anim = None
+
         self.hp = 35
         self.max_hp = 35
         self.speed = 1.5
         self.attack_damage = 8
         self.attack_cooldown = 2.0
         self.last_attack_time = 0
-        
         self.health_bar.y = 1.2
         self.velocity_y = 0
 
+    def _switch(self, state):
+        if self._anim == state or self.actor is None:
+            return
+        self._anim = state
+        self.actor.loop(state) 
+
+    def die(self):
+        destroy(self.visual)
+        if self.actor:
+            try:
+                self.actor.cleanup()
+                self.actor.removeNode()
+            except Exception:
+                pass
+        super().die()
+
     def update(self):
-        import time as pytime
+        import time as pytime_mod
         from ursina import time
         import world
         import inventory
-        
+
         if self.hp <= 0:
             return
-            
-        # Trọng lực
-        self.velocity_y -= 18.0 * time.dt 
+
+        self.velocity_y -= 18.0 * time.dt
         self.entity.y += self.velocity_y * time.dt
         if self.entity.y < self.entity.scale_y / 2:
             self.entity.y = self.entity.scale_y / 2
             self.velocity_y = 0
-            
-        # Tự động thay đổi Animation
+
         player_pos = world.player.position
         dist = (self.entity.position - player_pos).length()
-        
+        direction = (player_pos - self.entity.position).normalized()
+
         if dist > 2.0:
-            # Ở xa: Bật dáng chạy, tắt dáng đánh
-            self.mesh_run.enabled = True
-            self.mesh_attack.enabled = False
-            
-            direction = (player_pos - self.entity.position).normalized()
+            self._switch('run')
             self.entity.position += direction * self.speed * time.dt
             self.face_direction(direction)
         else:
-            # Ở gần: Bật dáng đánh, tắt dáng chạy
-            self.mesh_run.enabled = False
-            self.mesh_attack.enabled = True
+            self._switch('attack')
+            self.face_direction(direction)
             
-            # Gây sát thương
-            if pytime.time() - self.last_attack_time > self.attack_cooldown:
-                self.last_attack_time = pytime.time()
-                
+            if pytime_mod.time() - self.last_attack_time > self.attack_cooldown:
+                self.last_attack_time = pytime_mod.time()
                 world.player.hp -= self.attack_damage
                 inventory.show_message(f"Bị Tung Tung Sahur nện! HP: {world.player.hp}/100", 2)
-                
-                direction = (player_pos - self.entity.position).normalized()
-                self.face_direction(direction)
+
+        self.visual.position = self.entity.position + Vec3(0, -0.6, 0)
+        self.visual.rotation = self.entity.rotation
 
 def spawn_sahur(position):
     s = Sahur(position)
     enemies.append(s)
     return s
 
-#Chihai quai vat soi
-tex_wolf_path = 'model/werewolf/lambert1_albedo.jpg' 
-wolf_texture = load_texture(tex_wolf_path)
-
-if wolf_texture is None:
-    print(f"Không tìm thấy ảnh Sói tại '{tex_wolf_path}'")
-    wolf_texture = color.gray 
-
+try:
+    thief_texture = load_texture('model/werewolf/Animation_Werewolf_Idle_Beta_02.fbx')
+except Exception as e:
+    wolf_texture = color.gray
 class Wolf(Rat):
     def __init__(self, position):
         super().__init__(position)
@@ -458,7 +464,7 @@ class Wolf(Rat):
 
         self.mesh = Entity(parent=self.entity)
         try:
-            self.mesh.model = load_model('model/werewolf/Animation_Werewolf_Idle_Beta_02.fbx')
+            self.mesh.model = wolf_texture
         except Exception as e:
             print(f"Không tìm thấy model Sói: {e}. Dùng khối vuông thay thế.")
             self.mesh.model = 'cube'
@@ -469,7 +475,6 @@ class Wolf(Rat):
         else:
             self.mesh.texture = None
             self.mesh.color = wolf_texture
-            
         self.mesh.scale = (0.02, 0.02, 0.02) 
         self.mesh.y = -0.5
         
@@ -486,7 +491,6 @@ def spawn_wolf(position):
     enemies.append(w)
     return w
 
-#Chihai quai vat kẻ trộm và cẩu tặc
 try:
     thief_texture = load_texture('model/thief/tenant texture.png')
 except Exception as e:
