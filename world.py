@@ -46,21 +46,45 @@ def create_world():
     spawn_rocks()
     build_house()
     build_shop()
+    build_road()
     spawn_buffalo()
     spawn_vendor_cart()
 
 
-def spawn_trees(num_trees=10):
+def spawn_trees(num_trees=60):
+    TREE_PATH = 'model/tree/source/minecraft_tree.glb'
+    SCALE     = 5
+    Y_OFFSET  = -0.429 * SCALE  # GLB model bottom offset to ground the tree
+
     for _ in range(num_trees):
         while True:
             x = random.randint(-int(GROUND_HALF) + 5, int(GROUND_HALF) - 5)
             z = random.randint(-int(GROUND_HALF) + 5, int(GROUND_HALF) - 5)
-            if abs(x) > 8 or abs(z) > 8:
+            near_house = abs(x) <= 9 and abs(z) <= 9
+            near_shop  = abs(x) <= 9 and 19 <= z <= 37
+            near_road  = 10 <= x <= 18
+            if not near_house and not near_shop and not near_road:
                 break
-        trunk = Entity(model='cube', color=color.brown, scale=(1, 4, 1), position=(x, 2, z), collider='box')
-        leaves = Entity(model='sphere', color=color.green, scale=3, position=(x, 5, z))
-        bar = Entity(model='cube', color=color.red, scale=(2, 0.2, 0.1), position=(x, 4.5, z))
-        trees.append({"trunk": trunk, "leaves": leaves, "hp": 10, "bar": bar})
+        trunk = Entity(
+            model=TREE_PATH,
+            position=(x, Y_OFFSET, z),
+            scale=SCALE,
+            collider='box',
+            double_sided=True,
+            color=color.white,
+            unlit=True,
+            rotation_y=random.randint(0, 359),
+        )
+        bar = Entity(model='cube', color=color.red, scale=(2, 0.2, 0.1),
+                     position=(x, 6, z))
+        trees.append({"trunk": trunk, "hp": 10, "bar": bar})
+
+
+def remove_tree(tree):
+    destroy(tree["trunk"])
+    destroy(tree["bar"])
+    if tree in trees:
+        trees.remove(tree)
 
 
 def spawn_rocks(num_rocks=8):
@@ -196,35 +220,34 @@ def build_house():
 
 
 def build_shop():
-    # Shop center at (25, 0, 0) — 20 units in front of the house entrance
-    sx, sz = 25, 0
-    sw, sh, sd = 10, 4, 10   # width (X), height, depth (Z)
+    # Shop center at (0, 0, 28) — north of house, entrance faces +X (toward road)
+    sx, sz = 0, 28
+    sw, sh, sd = 10, 4, 10
     hw, hd = sw / 2, sd / 2
-    cy = sh / 2               # wall center Y
+    cy = sh / 2
 
     def detail(scale, pos, col):
         return Entity(model='cube', color=col, scale=scale, position=pos)
 
-    # Color palette (lighter/greener to contrast with the house)
-    plaster_c  = color.rgb(242/255, 228/255, 198/255)
-    roof_c     = color.rgb(55/255, 108/255, 50/255)
-    ridge_c    = color.rgb(30/255, 65/255, 28/255)
-    eave_c     = color.rgb(145/255, 88/255, 40/255)
-    stone_c    = color.rgb(112/255, 102/255, 92/255)
-    frame_c    = color.rgb(42/255, 24/255, 8/255)
-    win_c      = color.rgb(140/255, 200/255, 220/255)
-    floor_c    = color.rgb(158/255, 128/255, 88/255)
-    counter_c  = color.rgb(110/255, 65/255, 25/255)
+    plaster_c    = color.rgb(242/255, 228/255, 198/255)
+    roof_c       = color.rgb(55/255, 108/255, 50/255)
+    ridge_c      = color.rgb(30/255, 65/255, 28/255)
+    eave_c       = color.rgb(145/255, 88/255, 40/255)
+    stone_c      = color.rgb(112/255, 102/255, 92/255)
+    frame_c      = color.rgb(42/255, 24/255, 8/255)
+    win_c        = color.rgb(140/255, 200/255, 220/255)
+    floor_c      = color.rgb(158/255, 128/255, 88/255)
+    counter_c    = color.rgb(110/255, 65/255, 25/255)
     countertop_c = color.rgb(135/255, 90/255, 38/255)
-    shelf_c    = color.rgb(120/255, 75/255, 30/255)
-    sign_c     = color.rgb(188/255, 138/255, 62/255)
-    awning_c   = color.rgb(188/255, 68/255, 40/255)
+    shelf_c      = color.rgb(120/255, 75/255, 30/255)
+    sign_c       = color.rgb(188/255, 138/255, 62/255)
+    awning_c     = color.rgb(188/255, 68/255, 40/255)
 
     # ── Walls + floor ───────────────────────────────────────────────────
-    detail((0.5, sh, sd),   (sx+hw, cy, sz), plaster_c)        # back  (x=+5)
-    detail((sw+0.5, sh, 0.5), (sx, cy, sz-hd), plaster_c)      # left  (z=-5)
-    detail((sw+0.5, sh, 0.5), (sx, cy, sz+hd), plaster_c)      # right (z=+5)
-    detail((sw, 0.5, sd),   (sx, 0, sz), floor_c)               # floor
+    detail((0.5, sh, sd),     (sx-hw, cy, sz), plaster_c)        # back  (x=-5)
+    detail((sw+0.5, sh, 0.5), (sx, cy, sz-hd), plaster_c)        # left  (z=23)
+    detail((sw+0.5, sh, 0.5), (sx, cy, sz+hd), plaster_c)        # right (z=33)
+    detail((sw, 0.5, sd),     (sx, 0, sz), floor_c)               # floor
 
     # ── Gabled roof ─────────────────────────────────────────────────────
     rise      = 2.2
@@ -244,7 +267,7 @@ def build_shop():
     detail((0.5, 0.28, sd+overhang*2+0.2), (sx+hw, sh+0.05, sz), eave_c)
     detail((0.5, 0.28, sd+overhang*2+0.2), (sx-hw, sh+0.05, sz), eave_c)
 
-    # Gable end fill (left z=-5 and right z=+5 faces)
+    # Gable end fill (z=23 and z=33 faces)
     for gz in (sz-hd, sz+hd):
         gz_face = gz + (-0.04 if gz < sz else 0.04)
         for i in range(5):
@@ -257,48 +280,45 @@ def build_shop():
     # ── Stone foundation ─────────────────────────────────────────────────
     detail((sw+1.2, 0.5, sd+1.2), (sx, -0.27, sz), stone_c)
 
-    # ── Entrance (-X face, facing house) ─────────────────────────────────
-    ent_x = sx - hw  # = 20
+    # ── Entrance (+X face, facing road) ──────────────────────────────────
+    ent_x = sx + hw  # = 5
     # Corner posts
     detail((0.4, sh+0.2, 0.4), (ent_x, cy, sz-hd+0.25), frame_c)
     detail((0.4, sh+0.2, 0.4), (ent_x, cy, sz+hd-0.25), frame_c)
     # Header beam
     detail((0.4, 0.4, sd-0.1), (ent_x, sh+0.2, sz), frame_c)
-    # Awning
-    detail((1.8, 0.22, sd*0.75), (ent_x-0.9, sh-0.55, sz), awning_c)
+    # Awning (extends outward in +X direction)
+    detail((1.8, 0.22, sd*0.75), (ent_x+0.9, sh-0.55, sz), awning_c)
     # Awning support posts
     for az in (-hd*0.55, hd*0.55):
-        detail((0.14, sh-0.55, 0.14), (ent_x-1.8, (sh-0.55)/2, sz+az), frame_c)
+        detail((0.14, sh-0.55, 0.14), (ent_x+1.8, (sh-0.55)/2, sz+az), frame_c)
 
-    # ── Sign board (faces player approaching from house) ─────────────────
-    detail((0.18, 1.4, 4.8), (ent_x-0.12, sh+rise*0.38, sz), sign_c)
-    detail((0.12, 1.65, 5.1), (ent_x-0.14, sh+rise*0.38, sz), frame_c)
-    # Decorative text lines on sign
+    # ── Sign board (faces +X / road side) ───────────────────────────────
+    detail((0.18, 1.4, 4.8), (ent_x+0.12, sh+rise*0.38, sz), sign_c)
+    detail((0.12, 1.65, 5.1), (ent_x+0.14, sh+rise*0.38, sz), frame_c)
     for dz in (-1.0, 0.0, 1.0):
-        detail((0.22, 0.18, 2.6), (ent_x-0.18, sh+rise*0.38+0.22, sz+dz), frame_c)
-        detail((0.22, 0.18, 2.6), (ent_x-0.18, sh+rise*0.38-0.22, sz+dz), frame_c)
+        detail((0.22, 0.18, 2.6), (ent_x+0.18, sh+rise*0.38+0.22, sz+dz), frame_c)
+        detail((0.22, 0.18, 2.6), (ent_x+0.18, sh+rise*0.38-0.22, sz+dz), frame_c)
 
     # ── Windows on side walls ─────────────────────────────────────────────
     for wx in (-sw/4, sw/4):
-        # Left wall (z = sz-hd, facing outward = -Z)
         detail((1.3, 1.3, 0.14), (sx+wx, cy+0.2, sz-hd-0.03), win_c)
         detail((0.1, 1.3, 0.16), (sx+wx, cy+0.2, sz-hd-0.03), frame_c)
         detail((1.3, 0.1, 0.16), (sx+wx, cy+0.2, sz-hd-0.03), frame_c)
-        # Right wall (z = sz+hd, facing outward = +Z)
         detail((1.3, 1.3, 0.14), (sx+wx, cy+0.2, sz+hd+0.03), win_c)
         detail((0.1, 1.3, 0.16), (sx+wx, cy+0.2, sz+hd+0.03), frame_c)
         detail((1.3, 0.1, 0.16), (sx+wx, cy+0.2, sz+hd+0.03), frame_c)
-    # Back wall window
-    detail((0.14, 1.3, 1.3), (sx+hw+0.03, cy+0.2, sz), win_c)
-    detail((0.16, 0.1, 1.3), (sx+hw+0.03, cy+0.2, sz), frame_c)
-    detail((0.16, 1.3, 0.1), (sx+hw+0.03, cy+0.2, sz), frame_c)
+    # Back wall window (-X face)
+    detail((0.14, 1.3, 1.3), (sx-hw-0.03, cy+0.2, sz), win_c)
+    detail((0.16, 0.1, 1.3), (sx-hw-0.03, cy+0.2, sz), frame_c)
+    detail((0.16, 1.3, 0.1), (sx-hw-0.03, cy+0.2, sz), frame_c)
 
-    # ── Counter (buffalo stands behind this) ──────────────────────────────
-    counter_x = sx + hw/2   # = 27.5, halfway between center and back wall
+    # ── Counter (buffalo stands behind this, near back wall) ──────────────
+    counter_x = sx - hw/2   # = -2.5, near back (-X) wall
     detail((0.9, 1.2, sd-1.0), (counter_x, 0.6, sz), counter_c)
     detail((1.15, 0.15, sd-0.8), (counter_x, 1.27, sz), countertop_c)
 
-    # ── Shelves on back wall ──────────────────────────────────────────────
+    # ── Shelves on back wall (-X face) ────────────────────────────────────
     item_colors = [
         color.rgb(165/255, 80/255, 40/255),
         color.rgb(90/255, 135/255, 60/255),
@@ -307,11 +327,11 @@ def build_shop():
         color.rgb(50/255, 130/255, 150/255),
     ]
     for shelf_y in (1.0, 1.9, 2.8):
-        detail((0.5, 0.12, sd-1.4), (sx+hw-0.3, shelf_y, sz), shelf_c)
+        detail((0.5, 0.12, sd-1.4), (sx-hw+0.3, shelf_y, sz), shelf_c)
     for si, shelf_y in enumerate((1.12, 2.02, 2.92)):
         for j, dz in enumerate((-3.5, -2.2, -0.9, 0.4, 1.7, 3.0)):
             if abs(dz) < hd - 0.8:
-                detail((0.3, 0.38, 0.3), (sx+hw-0.25, shelf_y, sz+dz),
+                detail((0.3, 0.38, 0.3), (sx-hw+0.25, shelf_y, sz+dz),
                        item_colors[(si + j) % len(item_colors)])
 
 
@@ -331,7 +351,8 @@ def spawn_buffalo():
     # unlit=True: bypass Ursina's lighting so GLB/PBR textures render correctly
     buffalo = Entity(
         model=model,
-        position=(29, 0, 0),
+        position=(-3.8, 0, 28),
+        rotation_y=90,
         scale=1.5,
         collider='box',
         double_sided=True,
@@ -340,6 +361,67 @@ def spawn_buffalo():
     if texture is not None:
         buffalo.texture = texture
     buffalo.is_buffalo = True
+
+
+def build_road():
+    # Road runs north-south (along Z) at x=14, covering z=-50 to z=70
+    road_cx  = 14.0
+    road_hw  = 3.8
+    road_len = 120.0
+    road_zc  = 10.0
+
+    curb_c   = color.rgb(118, 115, 108)
+    white_c  = color.white
+    yellow_c = color.rgb(235, 205, 45)
+
+    road_tex = None
+    try:
+        road_tex = load_texture('texture/Road006_1K_Color.jpeg')
+    except Exception as e:
+        print(f"Road texture: {e}")
+
+    # ── Asphalt surface ───────────────────────────────────────────────
+    road_surf = Entity(
+        model='cube',
+        scale=(road_hw * 2, 0.06, road_len),
+        position=(road_cx, 0.03, road_zc),
+        color=color.rgb(60, 62, 70),
+        unlit=True,
+    )
+    if road_tex:
+        road_surf.texture       = road_tex
+        road_surf.color         = color.white
+        road_surf.texture_scale = (1, road_len / 6)
+
+    # ── Raised kerbs ──────────────────────────────────────────────────
+    for side in (-1, 1):
+        kerb = Entity(
+            model='cube',
+            scale=(0.55, 0.22, road_len),
+            position=(road_cx + side * (road_hw + 0.27), 0.11, road_zc),
+            color=curb_c,
+            unlit=True,
+        )
+        if road_tex:
+            kerb.texture       = road_tex
+            kerb.texture_scale = (0.3, road_len / 2)
+
+    # ── White edge lines ──────────────────────────────────────────────
+    for side in (-1, 1):
+        Entity(model='cube', color=white_c, unlit=True,
+               scale=(0.18, 0.03, road_len),
+               position=(road_cx + side * (road_hw - 0.22), 0.03, road_zc))
+
+    # ── Yellow dashed centre line ─────────────────────────────────────
+    dash_len  = 2.8
+    dash_gap  = 2.2
+    dash_step = dash_len + dash_gap
+    z_start   = road_zc - road_len / 2 + dash_len / 2
+    num_dashes = int(road_len / dash_step)
+    for i in range(num_dashes):
+        Entity(model='cube', color=yellow_c, unlit=True,
+               scale=(0.18, 0.03, dash_len),
+               position=(road_cx, 0.03, z_start + i * dash_step))
 
 
 def spawn_vendor_cart():
