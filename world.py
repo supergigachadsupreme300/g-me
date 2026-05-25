@@ -1,5 +1,6 @@
 from ursina import *
 import math
+from ursina import time as ursina_time
 import config
 from player import create_player
 import random
@@ -16,6 +17,8 @@ bed = None
 buffalo = None
 vendor_root = None
 vendor_entity = None
+vendor_spawn_button = None
+vendors = []
 
 trees = []
 rocks = []
@@ -45,10 +48,10 @@ def create_world():
     spawn_trees()
     spawn_rocks()
     build_house()
+    create_vendor_spawn_button()
     build_shop()
     build_road()
     spawn_buffalo()
-    spawn_vendor_cart()
 
 
 def spawn_trees(num_trees=60):
@@ -335,6 +338,19 @@ def build_shop():
                        item_colors[(si + j) % len(item_colors)])
 
 
+def create_vendor_spawn_button():
+    global vendor_spawn_button
+    # simplified single-entity spawn button in front of the house
+    vendor_spawn_button = Entity(
+        model='cube',
+        color=color.rgb(80, 180, 255),
+        scale=(2, 0.4, 2),
+        position=(0, 0.2, -9),
+        collider='box'
+    )
+    vendor_spawn_button.is_vendor_spawn = True
+
+
 def spawn_buffalo():
     global buffalo
     try:
@@ -425,19 +441,38 @@ def build_road():
 
 
 def spawn_vendor_cart():
-    global vendor_root, vendor_entity
-    vendor_root = Entity(position=(-GROUND_HALF + 8, 0.5, -GROUND_HALF + 8))
+    global vendor_root, vendor_entity, vendors
+    # define entry and exit positions
+    arrival_pos = Vec3(0, 0.5, -8)
+    offscreen_in = Vec3(0, 0.5, -30)
+    offscreen_out = Vec3(0, 0.5, 30)
+    # mark existing vendors to exit (they will run away)
+    for v in list(vendors):
+        try:
+            v._vendor_exiting = True
+            v._vendor_exit_target = offscreen_out + Vec3(random.uniform(-2,2), 0, random.uniform(-2,2))
+            v._vendor_moving = False
+        except Exception:
+            pass
+    # choose a random cart color so clicks are visibly distinguishable
+    cart_color = color.rgb(random.randint(80, 255), random.randint(50, 220), random.randint(50, 220))
+    # create new vendor root offscreen and register it
+    new_root = Entity(position=offscreen_in)
     # cart body
-    Entity(parent=vendor_root, model='cube', color=color.rgb(200, 120, 60), scale=(4, 1.4, 2), position=(0, 0.9, 0), collider='box')
-    Entity(parent=vendor_root, model='cube', color=color.rgb(180, 80, 40), scale=(4.2, 0.4, 2.2), position=(0, 1.6, 0))
-    Entity(parent=vendor_root, model='cube', color=color.gray, scale=(0.2, 0.8, 0.2), position=(1.9, 1.1, -0.8))
-    Entity(parent=vendor_root, model='cube', color=color.white, scale=(2, 0.2, 1), position=(0, 2.1, 0.9))
+    Entity(parent=new_root, model='cube', color=cart_color, scale=(4, 1.4, 2), position=(0, 0.9, 0), collider='box')
+    Entity(parent=new_root, model='cube', color=color.rgb(max(0, cart_color.r-20), max(0, cart_color.g-40), max(0, cart_color.b-20)), scale=(4.2, 0.4, 2.2), position=(0, 1.6, 0))
+    Entity(parent=new_root, model='cube', color=color.gray, scale=(0.2, 0.8, 0.2), position=(1.9, 1.1, -0.8))
+    Entity(parent=new_root, model='cube', color=color.white, scale=(2, 0.2, 1), position=(0, 2.1, 0.9))
 
-    # wheels
-    wheel_positions = [(-1.4, 0.35, -0.8), (1.4, 0.35, -0.8), (-1.4, 0.35, 0.8), (1.4, 0.35, 0.8)]
+    # wheels (keep references for rotation animation)
+    wheel_positions = [(-1.4, -0.35, -1), (1.4, -0.35, -1), (-1.4, -0.35, 1), (1.4, -0.35, 1)]
+    wheels = []
     for pos in wheel_positions:
-        Entity(parent=vendor_root, model='cube', color=color.black,
-               scale=(0.25, 0.25, 0.08), position=pos, rotation=(0, 0, 0))
+        w = Entity(parent=new_root, model='cube', color=color.black,
+                   scale=(0.5, 0.5, 0.2), position=pos, rotation=(0, 0, 0))
+        # subtle rim color to match cart
+        Entity(parent=w, model='cube', color=cart_color, scale=(0.4, 0.4, 0.06), position=(0, 0, 0.08))
+        wheels.append(w)
 
     # vendor character: try to use mrkrab model if available
     try:
@@ -452,12 +487,12 @@ def spawn_vendor_cart():
 
     if vm:
         # reduce model size to half
-        vendor = Entity(parent=vendor_root, model=vm, position=(0, 0, 1.8), scale=0.4, collider='box', double_sided=True)
+        vendor = Entity(parent=new_root, model=vm, position=(0, 0, 1.8), scale=0.4, collider='box', double_sided=True)
         if vt is not None and hasattr(vt, 'width'):
             vendor.texture = vt
     else:
         # fallback to simple blocky vendor
-        vendor = Entity(parent=vendor_root, position=(0, 0, 1.8), collider='box')
+        vendor = Entity(parent=new_root, position=(0, 0, 1.8), collider='box')
         Entity(parent=vendor, model='cube', color=color.azure, scale=(0.5, 1.0, 0.4), position=(0, 1.0, 0))
         head = Entity(parent=vendor, model='cube', color=color.white, scale=(0.45, 0.45, 0.45), position=(0, 1.9, 0))
         try:
@@ -471,23 +506,112 @@ def spawn_vendor_cart():
         Entity(parent=vendor, model='cube', color=color.blue, scale=(0.18, 0.7, 0.18), position=(-0.15, 0.35, 0))
         Entity(parent=vendor, model='cube', color=color.blue, scale=(0.18, 0.7, 0.18), position=(0.15, 0.35, 0))
 
-    vendor_root.is_vendor = True
+    new_root.is_vendor = True
     vendor.is_vendor = True
+    # vendor movement/animation properties (per-vendor)
+    new_root._vendor_wheels = wheels
+    new_root._vendor_arrival = arrival_pos
+    new_root._vendor_speed = 6.0
+    new_root._vendor_moving = True
+    new_root._vendor_exiting = False
+    new_root._vendor_exit_target = None
+    new_root._vendor_model = vendor
+    new_root._vendor_model_base_y = getattr(vendor, 'y', 0)
+    # register vendor and update global refs to newest
+    vendors.append(new_root)
+    vendor_root = new_root
     vendor_entity = vendor
 
 
 def input(key):
-    # left click on vendor opens shop
+    # left click on vendor opens shop or spawns the vendor cart
     from ursina import mouse
     if key == 'left mouse down':
         hovered = getattr(mouse, 'hovered_entity', None)
-        # walk up parents to find an ancestor marked as vendor (child meshes may be hovered)
+        # walk up parents to find an ancestor marked as vendor or spawn button
         h = hovered
-        while h is not None and not getattr(h, 'is_vendor', False):
+        while h is not None and not (getattr(h, 'is_vendor', False) or getattr(h, 'is_vendor_spawn', False)):
             h = getattr(h, 'parent', None)
-        if h is not None and getattr(h, 'is_vendor', False):
+        if h is not None:
+            if getattr(h, 'is_vendor_spawn', False):
+                # always spawn a new vendor and keep the button active
+                spawn_vendor_cart()
+            elif getattr(h, 'is_vendor', False):
+                try:
+                    import shop
+                    shop.open_shop()
+                except Exception as e:
+                    print('Failed to open shop:', e)
+
+
+def is_vendor_spawn_entity(entity):
+    """Return the ancestor entity marked as vendor spawn button, or None."""
+    current = entity
+    while current is not None:
+        if getattr(current, 'is_vendor_spawn', False):
+            return current
+        current = getattr(current, 'parent', None)
+    return None
+
+
+def update():
+    # handle vendor cart movement, wheel rotation, and simple bobbing animation for all active vendors
+    global vendor_root, vendor_entity, vendors
+    if not vendors:
+        return
+
+    to_remove = []
+    for v in list(vendors):
+        # handle exiting vendors first
+        if getattr(v, '_vendor_exiting', False):
+            target = getattr(v, '_vendor_exit_target', None)
+            speed = getattr(v, '_vendor_speed', 6.0)
+            if target is not None:
+                dir_vec = (target - v.position)
+                dist = dir_vec.length()
+                if dist < 0.5:
+                    try:
+                        destroy(v)
+                    except Exception:
+                        pass
+                    to_remove.append(v)
+                    # if the removed vendor was the global vendor_root, clear refs
+                    if v is vendor_root:
+                        vendor_root = None
+                        vendor_entity = None
+                    continue
+                else:
+                    step = dir_vec.normalized() * speed * ursina_time.dt
+                    v.position = v.position + step
+        # handle incoming movement
+        elif getattr(v, '_vendor_moving', False):
+            target = getattr(v, '_vendor_arrival', None)
+            speed = getattr(v, '_vendor_speed', 6.0)
+            if target is not None:
+                dir_vec = (target - v.position)
+                dist = dir_vec.length()
+                if dist < 0.1:
+                    v.position = target
+                    v._vendor_moving = False
+                else:
+                    step = dir_vec.normalized() * speed * ursina_time.dt
+                    v.position = v.position + step
+        # rotate wheels if present
+        wheels = getattr(v, '_vendor_wheels', None)
+        if wheels:
+            for w in wheels:
+                w.rotation_x += 360 * ursina_time.dt
+        # bob vendor model if present
+        m = getattr(v, '_vendor_model', None)
+        if m is not None:
+            base_y = getattr(v, '_vendor_model_base_y', 0)
+            bob = math.sin(ursina_time.time() * 2.0) * 0.05
             try:
-                import shop
-                shop.open_shop()
-            except Exception as e:
-                print('Failed to open shop:', e)
+                m.y = base_y + bob
+            except Exception:
+                pass
+
+    # cleanup removed vendors from list
+    for r in to_remove:
+        if r in vendors:
+            vendors.remove(r)
