@@ -332,9 +332,8 @@ def spawn_grasshopper(position):
     return g
 
 
-#Chihai quai vat tung tung sahur
-tex_sahur_path = 'model/sahur/texture/tungtungsahur_tex.png'
-
+# Chihai quai vat tung tung sahur
+tex_sahur_path = 'model/tungtungsahur/tungtungsahur_tex.png'
 sahur_texture = load_texture(tex_sahur_path)
 
 if sahur_texture is None:
@@ -345,19 +344,25 @@ class Sahur(Rat):
     def __init__(self, position):
         super().__init__(position)
         
-        self.entity = Entity(model='cube', color=color.clear, scale=(1.2, 1.2, 1.2), position=position, collider='box')
+        # 1. HITBOX VẬT LÝ (Giữ nguyên kích thước to để không lọt sàn)
+        self.entity.model = 'cube'
+        self.entity.color = color.clear
+        self.entity.texture = None
+        self.entity.scale = (1.2, 1.2, 1.2)
         
+        # 2. TẠO 2 LỚP VỎ 3D (CHẠY VÀ ĐÁNH)
         self.mesh_run = Entity(parent=self.entity)
         self.mesh_attack = Entity(parent=self.entity)
         
         try:
-            self.mesh_run.model = load_model('model/tungtungsahur/tung_tung_sahur_running.glb') 
-            self.mesh_attack.model = load_model('model/tungtungsahur/tung_tung_sahur_baseball_hit.glb') 
+            self.mesh_run.model = load_model('model/tungtungsahur/tungtungsahur_run.fbx') 
+            self.mesh_attack.model = load_model('model/tungtungsahur/tungtungsahur_attack.fbx') 
         except Exception as e:
-            print(f"Không load được model GLB Sahur: {e}")
+            print(f"Không tìm thấy model Sahur: {e}")
             self.mesh_run.model = 'cube'
             self.mesh_attack.model = 'cube'
             
+        # 3. GẮN ẢNH DA VÀO LỚP VỎ VÀ CHỈNH KÍCH THƯỚC
         for mesh in (self.mesh_run, self.mesh_attack):
             if hasattr(sahur_texture, 'width'):
                 mesh.texture = sahur_texture
@@ -366,15 +371,16 @@ class Sahur(Rat):
                 mesh.texture = None 
                 mesh.color = sahur_texture 
                 
+            mesh.scale = (0.003, 0.003, 0.003) 
+            mesh.y = -0.5 # Hạ vỏ 3D xuống cho chạm đất
             mesh.setTransparency(0)
             mesh.double_sided = True
             
-            mesh.scale = (0.003, 0.003, 0.003) 
-            mesh.y = -0.6 
-            
+        # Mặc định ban đầu: Hiện dáng chạy, tắt dáng đánh
         self.mesh_run.enabled = True
         self.mesh_attack.enabled = False
         
+        # 4. CHỈ SỐ SỨC MẠNH
         self.hp = 35
         self.max_hp = 35
         self.speed = 1.5
@@ -394,16 +400,19 @@ class Sahur(Rat):
         if self.hp <= 0:
             return
             
+        # Trọng lực
         self.velocity_y -= 18.0 * time.dt 
         self.entity.y += self.velocity_y * time.dt
         if self.entity.y < self.entity.scale_y / 2:
             self.entity.y = self.entity.scale_y / 2
             self.velocity_y = 0
             
+        # Tự động thay đổi Animation
         player_pos = world.player.position
         dist = (self.entity.position - player_pos).length()
         
         if dist > 2.0:
+            # Ở xa: Bật dáng chạy, tắt dáng đánh
             self.mesh_run.enabled = True
             self.mesh_attack.enabled = False
             
@@ -411,9 +420,11 @@ class Sahur(Rat):
             self.entity.position += direction * self.speed * time.dt
             self.face_direction(direction)
         else:
+            # Ở gần: Bật dáng đánh, tắt dáng chạy
             self.mesh_run.enabled = False
             self.mesh_attack.enabled = True
             
+            # Gây sát thương
             if pytime.time() - self.last_attack_time > self.attack_cooldown:
                 self.last_attack_time = pytime.time()
                 

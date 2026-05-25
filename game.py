@@ -408,7 +408,6 @@ def sell_wheat_to_buffalo():
 def input(key):
     handle_input(key)
 
-
 def face_buffalo_towards_player(buffalo_entity):
     if buffalo_entity is None:
         return
@@ -439,6 +438,15 @@ def setup_game():
 
 
 def handle_input(key):
+    #=============================
+    if key == 't':
+        # Bấm phím T để gọi ĐÍCH DANH Tung Tung Sahur ra trước mặt
+        pos = world.player.position + world.player.forward * 5 
+        pos.y = 1 
+        enemies.spawn_sahur(pos)
+        inventory.show_message("Tung Tung Sahur xuất hiện!", 2.5)
+        return
+    #=============================
     global gun_ammo, game_paused
     if key in [str(i) for i in range(1, 10)] + ['0']:
         idx = 9 if key == '0' else int(key) - 1
