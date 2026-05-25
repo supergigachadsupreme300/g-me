@@ -106,6 +106,17 @@ def should_spawn_night_enemies():
 
 
 def spawn_rats_on_edge(count=4):
+    spawn_functions = [
+        enemies.spawn_rat,
+        enemies.spawn_grasshopper,
+        enemies.spawn_wolf,
+        enemies.spawn_sahur,
+        enemies.spawn_thief,       
+        enemies.spawn_dog_thief,   
+        enemies.spawn_zombie,
+        enemies.spawn_dinosaur,
+        enemies.spawn_mushroom
+    ]
     MAX_ENEMIES = 12
     if len(enemies.enemies) >= MAX_ENEMIES:
         return
@@ -445,6 +456,41 @@ def handle_input(key):
         pos.y = 1 
         enemies.spawn_sahur(pos)
         inventory.show_message("Tung Tung Sahur xuất hiện!", 2.5)
+        return
+    if key == 'p':
+        # Bấm phím P để triệu hồi Boss Khủng Long
+        pos = world.player.position + world.player.forward * 8 # Sinh ra xa xa một chút vì nó rất to
+        pos.y = 2 
+        enemies.spawn_dinosaur(pos)
+        inventory.show_message("CẢNH BÁO: BOSS KHỦNG LONG XUẤT HIỆN!", 3)
+        return
+    if key == 'm': 
+        # Bấm phím M để gọi ngẫu nhiên 5 con quái vật từ danh sách bốc thăm
+        spawn_rats_on_edge(5)
+        inventory.show_message("Đã triệu hồi 5 quái vật ngẫu nhiên!", 2)
+        return
+
+    if key == 'k': 
+        # Bấm phím K để gọi ĐÍCH DANH 1 con Zombie ra ngay trước mặt người chơi 5 mét
+        pos = world.player.position + world.player.forward * 5
+        pos.y = 1 # Đảm bảo quái sinh ra ở trên mặt đất
+        enemies.spawn_zombie(pos)
+        inventory.show_message("Cảnh báo: Zombie xuất hiện!", 2)
+        return
+        
+    if key == 'l':
+        # Bấm phím L để gọi ĐÍCH DANH Lúa Kiêu Ngạo
+        pos = world.player.position + world.player.forward * 5
+        pos.y = 1
+        enemies.spawn_arrogant_wheat(pos)
+        inventory.show_message("Cảnh báo: Lúa không cúi đầu!", 2)
+        return
+    if key == 'n':
+        # Bấm phím N (Nấm) để triệu hồi Quái vật Nấm
+        pos = world.player.position + world.player.forward * 4 
+        pos.y = 1 
+        enemies.spawn_mushroom(pos)
+        inventory.show_message("Nấm độc đã mọc lên!", 2)
         return
     #=============================
     global gun_ammo, game_paused
