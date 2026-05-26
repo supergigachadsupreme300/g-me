@@ -20,6 +20,9 @@ vendor_entity = None
 vendor_spawn_button = None
 vendors = []
 
+new_house_door_pivot = None
+new_house_door_open  = False
+
 trees = []
 rocks = []
 
@@ -51,6 +54,7 @@ def create_world():
     create_vendor_spawn_button()
     build_shop()
     build_road()
+    build_two_storey_house()
     spawn_buffalo()
 
 
@@ -64,9 +68,10 @@ def spawn_trees(num_trees=60):
             x = random.randint(-int(GROUND_HALF) + 5, int(GROUND_HALF) - 5)
             z = random.randint(-int(GROUND_HALF) + 5, int(GROUND_HALF) - 5)
             near_house = abs(x) <= 9 and abs(z) <= 9
-            near_shop  = abs(x) <= 9 and 51 <= z <= 69
-            near_road  = 10 <= x <= 18
-            if not near_house and not near_shop and not near_road:
+            near_shop     = abs(x) <= 9 and 51 <= z <= 69
+            near_road     = 10 <= x <= 18
+            near_new_house = 21 <= x <= 42 and abs(z) <= 10
+            if not near_house and not near_shop and not near_road and not near_new_house:
                 break
         trunk = Entity(
             model=TREE_PATH,
@@ -351,6 +356,184 @@ def create_vendor_spawn_button():
     vendor_spawn_button.is_vendor_spawn = True
 
 
+def build_two_storey_house():
+    global new_house_door_pivot, new_house_door_open
+
+    cx, cz  = 33, 0
+    hw, hd  = 7, 7
+    h1, h2  = 6, 5
+    total_h = h1 + h2   # 11
+    ent_x   = cx - hw   # 26
+    door_w  = 3.0
+    door_h  = 4.0
+    wing_w  = (hd * 2 - door_w) / 2   # 5.5
+
+    # ── Load textures ─────────────────────────────────────────────────
+    T = 'model/house/texture/'
+    def _tex(name):
+        try:    return load_texture(T + name)
+        except: return None
+
+    t_wall  = _tex('wall_plaster.png')
+    t_floor = _tex('wood_floor.png')
+    t_roof  = _tex('roof_tiles.png')
+    t_stone = _tex('stone_wall.png')
+
+    # ── Color fallbacks (used as tint when texture loads, or standalone) ─
+    wall_c  = color.white if t_wall  else color.rgb(235, 220, 195)
+    floor_c = color.white if t_floor else color.rgb(158, 118,  72)
+    roof_c  = color.white if t_roof  else color.rgb(112,  46,  26)
+    stone_c = color.white if t_stone else color.rgb(110, 102,  92)
+
+    ridge_c = color.rgb(68,  24, 10)
+    eave_c  = color.rgb(86,  50, 22)
+    frame_c = color.rgb(50,  28,  8)
+    win_c   = color.rgb(145, 205, 228)
+    shutt_c = color.rgb(50,  86, 38)
+    door_c  = color.rgb(82,  48, 14)
+    yard_c  = color.rgb(82,  128, 55)
+
+    def blk(scale, pos, col, coll=False, tex=None, ts=None):
+        e = Entity(model='cube', color=col, scale=scale, position=pos)
+        if tex:
+            e.texture = tex
+            if ts: e.texture_scale = ts
+        if coll: e.collider = 'box'
+        return e
+
+    def wall(scale, pos, ts=(3, 4)):
+        return blk(scale, pos, wall_c, coll=True, tex=t_wall, ts=ts)
+
+    def floor_slab(scale, pos, ts=(4, 4)):
+        return blk(scale, pos, floor_c, coll=True, tex=t_floor, ts=ts)
+
+    def stone(scale, pos, ts=(2, 2), coll=False):
+        return blk(scale, pos, stone_c, coll=coll, tex=t_stone, ts=ts)
+
+    # ── Foundation ───────────────────────────────────────────────────
+    stone((hw*2+2.2, 0.75, hd*2+2.2), (cx, -0.38, cz), ts=(5, 5), coll=True)
+
+    # ── Outer walls ───────────────────────────────────────────────────
+    wall((0.5,     total_h, hd*2),   (cx+hw, total_h/2, cz),                      ts=(4, 4))
+    wall((hw*2,    total_h, 0.5),    (cx,    total_h/2, cz-hd),                   ts=(5, 4))
+    wall((hw*2,    total_h, 0.5),    (cx,    total_h/2, cz+hd),                   ts=(5, 4))
+    wall((0.5,     total_h, wing_w), (ent_x, total_h/2, cz - door_w/2 - wing_w/2), ts=(2, 4))
+    wall((0.5,     total_h, wing_w), (ent_x, total_h/2, cz + door_w/2 + wing_w/2), ts=(2, 4))
+    wall((0.5, total_h-door_h, door_w), (ent_x, door_h+(total_h-door_h)/2, cz),   ts=(1, 2))
+
+    # ── Floors ───────────────────────────────────────────────────────
+    floor_slab((hw*2-0.5, 0.3, hd*2-0.5), (cx, 0.15,    cz), ts=(5, 5))
+    floor_slab((hw*2-0.5, 0.3, hd*2-0.5), (cx, h1+0.15, cz), ts=(5, 5))
+
+    # ── Interior dividing wall ────────────────────────────────────────
+    wall((0.4, h2*0.6, hd*2-1.0), (cx, h1+h2*0.3, cz), ts=(4, 2))
+
+    # ── Interior staircase ────────────────────────────────────────────
+    steps = 10
+    run   = (hw*2 - 2.0) / steps
+    rise  = h1 / steps
+    for i in range(steps):
+        sx = (cx + hw - 1.2) - (i + 0.5) * run
+        sy = rise * i + rise / 2
+        stone((run+0.06, rise, 3.2), (sx, sy, cz+hd-2.2), ts=(1, 1), coll=True)
+
+    # ── Gabled roof ──────────────────────────────────────────────────
+    r_rise   = 3.5
+    pan_len  = math.sqrt(hw**2 + r_rise**2)
+    tilt     = math.degrees(math.atan2(r_rise, hw))
+    overhang = 1.8
+    pan_z    = hd*2 + overhang*2
+
+    for side, ang in ((+1, tilt), (-1, -tilt)):
+        rp = Entity(model='cube', color=roof_c,
+                    scale=(pan_len, 0.72, pan_z),
+                    position=(cx + side*hw/2, total_h+r_rise/2, cz),
+                    rotation=(0, 0, ang))
+        if t_roof:
+            rp.texture       = t_roof
+            rp.texture_scale = (3, 10)
+
+    blk((0.78, 0.42, pan_z+0.2), (cx, total_h+r_rise+0.1, cz), ridge_c)
+    blk((0.62, 0.36, pan_z+0.2), (cx+hw, total_h+0.05, cz), eave_c)
+    blk((0.62, 0.36, pan_z+0.2), (cx-hw, total_h+0.05, cz), eave_c)
+
+    # Gable end fill (wall texture)
+    for gz in (cz-hd, cz+hd):
+        gf = gz + (-0.05 if gz < cz else 0.05)
+        for i in range(7):
+            t  = (i+0.5)/7
+            sw = hw*2*(1-t)+0.2
+            sy = total_h + (i+0.5)*r_rise/7
+            sh = r_rise/7 + 0.18
+            wall((sw, sh, 0.55), (cx, sy, gf), ts=(int(sw/2)+1, 1))
+
+    # ── Chimney ──────────────────────────────────────────────────────
+    chx = cx + hw - 2.5
+    chz = cz - hd + 2.5
+    cb  = total_h - 1.8
+    ct  = total_h + r_rise + 1.1
+    stone((1.6, ct-cb, 1.6), (chx, (cb+ct)/2, chz), ts=(1, 2))
+    blk((2.0, 0.55, 2.0), (chx, ct+0.27, chz), color.rgb(68, 58, 50))
+
+    # ── Windows ──────────────────────────────────────────────────────
+    for gy in (3.0, h1+3.0):
+        ws = 1.55 if gy < h1 else 1.4
+        for gz_s, go in ((cz-hd, -0.05), (cz+hd, 0.05)):
+            for wx in (cx-hw/2, cx+hw/2):
+                blk((ws, ws, 0.16),     (wx, gy, gz_s+go), win_c)
+                blk((0.12, ws, 0.2),    (wx, gy, gz_s+go), frame_c)
+                blk((ws, 0.12, 0.2),    (wx, gy, gz_s+go), frame_c)
+                if gy < h1:
+                    blk((0.28, ws, 0.14), (wx-0.95, gy, gz_s+go), shutt_c)
+                    blk((0.28, ws, 0.14), (wx+0.95, gy, gz_s+go), shutt_c)
+        blk((0.16, ws, ws),    (cx+hw+0.05, gy, cz), win_c)
+        blk((0.2, 0.12, ws),   (cx+hw+0.05, gy, cz), frame_c)
+        blk((0.2, ws, 0.12),   (cx+hw+0.05, gy, cz), frame_c)
+    for wz in (cz-door_w/2-wing_w/2, cz+door_w/2+wing_w/2):
+        blk((0.16, 1.4, 1.4), (ent_x-0.05, h1+3.0, wz), win_c)
+        blk((0.2, 0.12, 1.4), (ent_x-0.05, h1+3.0, wz), frame_c)
+        blk((0.2, 1.4, 0.12), (ent_x-0.05, h1+3.0, wz), frame_c)
+
+    # ── Door frame ───────────────────────────────────────────────────
+    blk((0.38, door_h, 0.38),      (ent_x, door_h/2, cz-door_w/2+0.2),  frame_c)
+    blk((0.38, door_h, 0.38),      (ent_x, door_h/2, cz+door_w/2-0.2),  frame_c)
+    blk((0.38, 0.45, door_w+0.22), (ent_x, door_h+0.22, cz),             frame_c)
+
+    # ── Interactive door ──────────────────────────────────────────────
+    hinge_z = cz - door_w/2 + 0.2
+    new_house_door_pivot = Entity(position=(ent_x, 0, hinge_z))
+    dp = Entity(parent=new_house_door_pivot, model='cube', color=door_c,
+                scale=(0.14, door_h-0.3, door_w-0.4),
+                position=(0, (door_h-0.3)/2, (door_w-0.4)/2),
+                collider='box')
+    dp.name = 'new_house_door'
+    blk((0.2, 0.2, 0.2),
+        (ent_x-0.1, door_h*0.45, hinge_z+(door_w-0.4)*0.8), color.rgb(200, 162, 48))
+    for dy in (door_h*0.28, door_h*0.68):
+        blk((0.16, door_h*0.36, 0.1),
+            (ent_x-0.09, dy, hinge_z+(door_w-0.4)*0.5), color.rgb(65, 36, 10))
+
+    # ── Entrance steps ────────────────────────────────────────────────
+    step_h = 0.28
+    step_d = 1.0
+    for i in range(3):
+        h   = (i+1) * step_h
+        xc  = ent_x - (2.5-i) * step_d
+        zw  = door_w + 2.4 - i*0.5
+        stone((step_d, h, zw), (xc, h/2, cz), ts=(1, 1), coll=True)
+
+    # ── Front yard ───────────────────────────────────────────────────
+    blk((8.0, 0.06, hd*2+4), (ent_x-4.0, 0.03, cz), yard_c)
+    for dz in (-hd-2, hd+2):
+        stone((8.0, 0.22, 0.35), (ent_x-4.0, 0.11, cz+dz), ts=(3, 1))
+    stone((0.35, 0.22, hd*2+4), (ent_x-8.0, 0.11, cz), ts=(1, 4))
+
+    # ── Upstairs bed ─────────────────────────────────────────────────
+    blk((3.0, 0.55, 1.8),  (cx+hw-2.0, h1+0.57, cz-hd+1.6), color.rgb(138, 48, 48))
+    blk((3.1, 1.25, 0.26), (cx+hw-2.0, h1+1.3,  cz-hd+0.58), color.rgb(72, 40, 14))
+
+
+
 def spawn_buffalo():
     global buffalo
     try:
@@ -524,8 +707,18 @@ def spawn_vendor_cart():
 
 
 def input(key):
-    # left click on vendor opens shop or spawns the vendor cart
+    global new_house_door_open
     from ursina import mouse
+
+    # 'E' — interact with the two-storey house door
+    if key == 'e' and new_house_door_pivot is not None and player is not None:
+        door_pos   = Vec3(new_house_door_pivot.x, 0, new_house_door_pivot.z)
+        player_pos = Vec3(player.x, 0, player.z)
+        if (player_pos - door_pos).length() < 5:
+            new_house_door_open = not new_house_door_open
+            target = -90 if new_house_door_open else 0
+            new_house_door_pivot.animate('rotation_y', target, duration=0.4)
+
     if key == 'left mouse down':
         hovered = getattr(mouse, 'hovered_entity', None)
         # walk up parents to find an ancestor marked as vendor or spawn button
