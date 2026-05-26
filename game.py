@@ -3,6 +3,7 @@ from ursina import Entity, color, Vec3, raycast, destroy, time, mouse, camera, a
 from math import atan2, degrees
 import random
 import pet
+import sound_manager
 
 import world
 
@@ -1115,6 +1116,10 @@ def handle_input(key):
         if tools.scythe.enabled:
 
             tools.swing_item(tools.scythe)
+            try:
+                sound_manager.play('sickle')
+            except Exception:
+                pass
 
             hit_info = raycast(camera.world_position, camera.forward, distance=MAX_PLACE_DISTANCE)
 
@@ -1178,6 +1183,10 @@ def handle_input(key):
                 update_ammo_text()
 
                 spawn_projectile(camera.world_position + camera.forward * 1.5, camera.forward)
+                try:
+                    sound_manager.play('gun')
+                except Exception:
+                    pass
 
                 inventory.show_message("Shot fired", 1.0)
 
@@ -1190,6 +1199,10 @@ def handle_input(key):
         if tools.axe.enabled:
 
             tools.swing_item(tools.axe)
+            try:
+                sound_manager.play('axe')
+            except Exception:
+                pass
 
             hit_info = raycast(camera.world_position, camera.forward, distance=3)
 
@@ -1215,6 +1228,10 @@ def handle_input(key):
         if tools.pickaxe.enabled:
 
             tools.swing_item(tools.pickaxe)
+            try:
+                sound_manager.play('pickaxe')
+            except Exception:
+                pass
 
             hit_info = raycast(camera.world_position, camera.forward, distance=3)
 
@@ -1240,6 +1257,10 @@ def handle_input(key):
         if tools.hoe.enabled:
 
             tools.swing_item(tools.hoe)
+            try:
+                sound_manager.play('hoe')
+            except Exception:
+                pass
 
             if fields.field_preview.enabled:
 
@@ -1258,6 +1279,10 @@ def handle_input(key):
 
         elif tools.sword.enabled:
             tools.swing_item(tools.sword)
+            try:
+                sound_manager.play('sword')
+            except Exception:
+                pass
 
             hit_info = raycast(camera.world_position, camera.forward, distance=3)
 
@@ -1280,6 +1305,10 @@ def handle_input(key):
         elif tools.hammer.enabled:
 
             tools.swing_item(tools.hammer)
+            try:
+                sound_manager.play('hammer')
+            except Exception:
+                pass
 
             if building_system.building_preview.enabled:
 
