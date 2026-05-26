@@ -64,7 +64,7 @@ def spawn_trees(num_trees=60):
             x = random.randint(-int(GROUND_HALF) + 5, int(GROUND_HALF) - 5)
             z = random.randint(-int(GROUND_HALF) + 5, int(GROUND_HALF) - 5)
             near_house = abs(x) <= 9 and abs(z) <= 9
-            near_shop  = abs(x) <= 9 and 19 <= z <= 37
+            near_shop  = abs(x) <= 9 and 51 <= z <= 69
             near_road  = 10 <= x <= 18
             if not near_house and not near_shop and not near_road:
                 break
@@ -224,7 +224,7 @@ def build_house():
 
 def build_shop():
     # Shop center at (0, 0, 28) — north of house, entrance faces +X (toward road)
-    sx, sz = 0, 28
+    sx, sz = 0, 60
     sw, sh, sd = 10, 4, 10
     hw, hd = sw / 2, sd / 2
     cy = sh / 2
@@ -367,7 +367,7 @@ def spawn_buffalo():
     # unlit=True: bypass Ursina's lighting so GLB/PBR textures render correctly
     buffalo = Entity(
         model=model,
-        position=(-3.8, 0, 28),
+        position=(-3.8, 0, 60),
         rotation_y=90,
         scale=1.5,
         collider='box',
@@ -383,8 +383,8 @@ def build_road():
     # Road runs north-south (along Z) at x=14, covering z=-50 to z=70
     road_cx  = 14.0
     road_hw  = 3.8
-    road_len = 120.0
-    road_zc  = 10.0
+    road_len = 150.0
+    road_zc  = 17.0
 
     curb_c   = color.rgb(118, 115, 108)
     white_c  = color.white
