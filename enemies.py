@@ -9,6 +9,7 @@ import world
 import fields
 import building_system
 import items
+import sound_manager
 
 rat_texture = []
 rat_model = None
@@ -269,6 +270,10 @@ class Rat:
                 items.spawn_ground_item("fertilizer", self.entity.position + Vec3(0, 0.2, 0))
             except Exception:
                 pass
+        try:
+            sound_manager.play('pop')
+        except Exception:
+            pass
         destroy(self.entity)
         if self in enemies:
             enemies.remove(self)
@@ -400,6 +405,11 @@ class Sahur(Rat):
             return
         self._anim = state
         self.actor.loop(state) 
+        if state == 'attack':
+            try:
+              sound_manager.play('bonk')
+            except Exception:
+                pass
 
     def die(self):
         destroy(self.visual)
@@ -437,7 +447,6 @@ class Sahur(Rat):
         else:
             self._switch('attack')
             self.face_direction(direction)
-            
             if pytime_mod.time() - self.last_attack_time > self.attack_cooldown:
                 self.last_attack_time = pytime_mod.time()
                 world.player.hp -= self.attack_damage

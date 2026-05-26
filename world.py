@@ -4,6 +4,7 @@ from ursina import time as ursina_time
 import config
 from player import create_player
 import random
+import sound_manager
 
 GROUND_SIZE = 150
 GROUND_HALF = GROUND_SIZE / 2
@@ -84,6 +85,10 @@ def spawn_trees(num_trees=60):
 
 
 def remove_tree(tree):
+    try:
+        sound_manager.play('tree')
+    except Exception:
+        pass
     destroy(tree["trunk"])
     destroy(tree["bar"])
     if tree in trees:
@@ -521,6 +526,10 @@ def spawn_vendor_cart():
     vendors.append(new_root)
     vendor_root = new_root
     vendor_entity = vendor
+    try:
+        sound_manager.play('mexican_truck')
+    except Exception:
+        pass
 
 
 def input(key):
