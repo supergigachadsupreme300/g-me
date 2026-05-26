@@ -14,6 +14,6 @@ def create_player():
     player.stamina_regen_rate = 25.0
     player.stamina_sprint_cost = 35.0
     player.is_sprinting = False
-    player.money = 0
+    player.money = 1000
     player_model = Entity(model='cube', color=color.azure, scale=(1, 2, 1), parent=player, position=(0, -1, 0))
     return player, player_model
