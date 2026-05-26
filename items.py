@@ -36,6 +36,10 @@ def spawn_ground_item(item_type, position):
         Entity(model='cube', color=color.brown, scale=(0.1, 0.8, 0.1), parent=root, position=(0, 0, 0))
         Entity(model='cube', color=color.gray, scale=(0.05, 0.35, 0.05), parent=root, position=(0, 0.4, 0.15), rotation=(0, 0, 45))
         Entity(model='cube', color=color.gray, scale=(0.05, 0.35, 0.05), parent=root, position=(0, 0.6, 0.3), rotation=(0, 0, 25))
+    elif item_type == "mobspawner":
+        Entity(model='cube', color=color.dark_gray, scale=(0.4, 0.4, 0.4), parent=root, position=(0, 0.2, 0))
+        Entity(model='sphere', color=color.red, scale=(0.22, 0.22, 0.22), parent=root, position=(0, 0.65, 0))
+        Entity(model='cube', color=color.black, scale=(0.15, 0.6, 0.15), parent=root, position=(0, 0.05, 0))
     elif item_type == "wood":
         if config.is_texture(config.WOOD_TEXTURE):
             Entity(model='cube', texture=config.WOOD_TEXTURE, scale=(0.6, 0.2, 0.2), parent=root, position=(0, 0.3, 0), texture_scale=(1, 1))

@@ -36,6 +36,14 @@ def create_harvest_wheat_quest() -> Quest:
     )
 
 
+def create_kill_enemies_quest() -> Quest:
+    return Quest(
+        name='Slay monsters',
+        objective={'description': 'Kill 100 enemies', 'target': 'enemies', 'count': 100},
+        reward={'item': 'gun', 'count': 1}
+    )
+
+
 active_quest: Quest | None = None
 
 
@@ -47,10 +55,19 @@ def set_active_quest(quest: Quest) -> None:
 def add_progress(amount: int = 1) -> bool:
     if active_quest is None:
         return False
-    # Update progress directly from stats instead of manual tracking
+    # Update progress directly from stats for known objective targets
     try:
         import stats as stats_mod
-        active_quest.progress = stats_mod.get_summary()['harvested_wheat']
+        summary = stats_mod.get_summary()
+        target = active_quest.objective.get('target', '')
+        if target == 'wheat':
+            active_quest.progress = summary.get('harvested_wheat', 0)
+        elif target == 'enemies':
+            enemies_map = summary.get('enemies_killed', {})
+            total = sum(enemies_map.values()) if isinstance(enemies_map, dict) else 0
+            active_quest.progress = total
+        else:
+            active_quest.progress += amount
     except Exception:
         active_quest.progress += amount
     

@@ -28,6 +28,21 @@ gun_ammo = 0
 
 gun_projectiles = []
 
+MOB_SPAWNER_TYPES = [
+    ("Rat", enemies.spawn_rat),
+    ("Grasshopper", enemies.spawn_grasshopper),
+    ("Wolf", enemies.spawn_wolf),
+    ("Sahur", enemies.spawn_sahur),
+    ("Thief", enemies.spawn_thief),
+    ("Dog Thief", enemies.spawn_dog_thief),
+    ("Zombie", enemies.spawn_zombie),
+    ("Mushroom", enemies.spawn_mushroom),
+    ("Arrogant Wheat", enemies.spawn_arrogant_wheat),
+    ("Dinosaur", enemies.spawn_dinosaur),
+]
+
+mob_spawner_index = 0
+
 game_paused = False
 
 stamina_regen_rate = 25.0  # per second
@@ -60,6 +75,31 @@ def update_ammo_text():
 
     rendering.update_ammo_text(gun_ammo, GUN_MAX_AMMO)
 
+
+
+def get_mobspawner_name():
+    return MOB_SPAWNER_TYPES[mob_spawner_index][0]
+
+
+def set_mobspawner_index(index):
+    global mob_spawner_index
+    mob_spawner_index = index % len(MOB_SPAWNER_TYPES)
+    inventory.set_mobspawner_target(get_mobspawner_name())
+
+
+def cycle_mobspawner(delta):
+    set_mobspawner_index(mob_spawner_index + delta)
+    inventory.show_message(f"Mob spawner: {get_mobspawner_name()}", 1.5)
+
+
+def spawn_selected_mob(position):
+    name, spawn_fn = MOB_SPAWNER_TYPES[mob_spawner_index]
+    try:
+        spawn_fn(position)
+        inventory.show_message(f"Spawned {name}", 1.5)
+    except Exception as e:
+        print(f"Failed to spawn {name}: {e}")
+        inventory.show_message(f"Unable to spawn {name}", 1.5)
 
 
 def toggle_pause(paused: bool):
@@ -766,85 +806,9 @@ def setup_game():
 
 
 def handle_input(key):
-
-    #=============================
-
-    if key == 't':
-
-        # Bấm phím T để gọi ĐÍCH DANH Tung Tung Sahur ra trước mặt
-
-        pos = world.player.position + world.player.forward * 5 
-
-        pos.y = 1 
-
-        enemies.spawn_sahur(pos)
-
-        inventory.show_message("Tung Tung Sahur xuất hiện!", 2.5)
-        return
-
-    if key == 'p':
-
-        # Bấm phím P để triệu hồi Boss Khủng Long
-
-        pos = world.player.position + world.player.forward * 8 # Sinh ra xa xa một chút vì nó rất to
-
-        pos.y = 2 
-        enemies.spawn_dinosaur(pos)
-
-        inventory.show_message("CẢNH BÁO: BOSS KHỦNG LONG XUẤT HIỆN!", 3)
-        return
-
-    if key == 'm': 
-
-        # Bấm phím M để gọi ngẫu nhiên 5 con quái vật từ danh sách bốc thăm
-        spawn_enemy_on_edge(5)
-
-        inventory.show_message("Đã triệu hồi 5 quái vật ngẫu nhiên!", 2)
-        return
-
-
-    if key == 'k': 
-
-        # Bấm phím K để gọi ĐÍCH DANH 1 con Zombie ra ngay trước mặt người chơi 5 mét
-
-        pos = world.player.position + world.player.forward * 5
-
-        pos.y = 1 # Đảm bảo quái sinh ra ở trên mặt đất
-
-        enemies.spawn_zombie(pos)
-
-        inventory.show_message("Cảnh báo: Zombie xuất hiện!", 2)
-        return
-        
-
-    if key == 'l':
-
-        # Bấm phím L để gọi ĐÍCH DANH Lúa Kiêu Ngạo
-
-        pos = world.player.position + world.player.forward * 5
-
-        pos.y = 1
-
-        enemies.spawn_arrogant_wheat(pos)
-
-        inventory.show_message("Cảnh báo: Lúa không cúi đầu!", 2)
-        return
-
-    if key == 'n':
-
-        # Bấm phím N (Nấm) để triệu hồi Quái vật Nấm
-
-        pos = world.player.position + world.player.forward * 4 
-
-        pos.y = 1 
-
-        enemies.spawn_mushroom(pos)
-
-        inventory.show_message("Nấm độc đã mọc lên!", 2)
-        return
-
-    #=============================
-
+    # (Summon keys removed: t,p,m,k,l,n)
+    # Input for summoning debug monsters was intentionally removed.
+    
     global gun_ammo, game_paused
 
     if key in [str(i) for i in range(1, 10)] + ['0']:
@@ -944,6 +908,13 @@ def handle_input(key):
     if key == 'left mouse down':
 
         if rendering.buffalo_dialog is not None and rendering.buffalo_dialog.enabled:
+            return
+
+        current_item = inventory.get_item(inventory.inventory[inventory.selected_slot])
+        if current_item == "mobspawner":
+            pos = world.player.position + world.player.forward * 5
+            pos.y = 1
+            spawn_selected_mob(pos)
             return
 
         hit_info = raycast(camera.world_position, camera.forward, distance=MAX_PLACE_DISTANCE)
@@ -1356,6 +1327,14 @@ def handle_input(key):
         return
 
 
+    if key == 'z' and inventory.get_item(inventory.inventory[inventory.selected_slot]) == "mobspawner":
+        cycle_mobspawner(-1)
+        return
+
+    if key == 'x' and inventory.get_item(inventory.inventory[inventory.selected_slot]) == "mobspawner":
+        cycle_mobspawner(1)
+        return
+
     if key == 'z' and tools.hammer.enabled:
 
         building_system.prev_building()
@@ -1401,6 +1380,8 @@ def setup_game():
 
     items.spawn_ground_item("scythe", Vec3(14, 1, 0))
 
+    items.spawn_ground_item("mobspawner", Vec3(16, 1, 0))
+
     pet.spawn_dog(Vec3(2, 1, 2))
 
     pet.spawn_toad(Vec3(-2, 1, 2))
@@ -1408,6 +1389,7 @@ def setup_game():
     items.spawn_ground_item("peashooter seed", Vec3(6, 1, 0))
 
 
+    set_mobspawner_index(0)
     inventory.update_inventory_ui()
 
     if tasks.get_active_quest() is None:
