@@ -2,6 +2,7 @@ from ursina import Entity, color, Vec3, raycast, destroy, time, mouse, camera, a
 from math import atan2, degrees
 import random
 import pet
+import sound_manager
 
 import world
 import inventory
@@ -647,6 +648,10 @@ def handle_input(key):
 
         if tools.scythe.enabled:
             tools.swing_item(tools.scythe)
+            try:
+                sound_manager.play('sickle')
+            except Exception:
+                pass
             hit_info = raycast(camera.world_position, camera.forward, distance=MAX_PLACE_DISTANCE)
             if hit_info.hit:
                 field_data = fields.find_field_by_entity(hit_info.entity)
@@ -680,6 +685,10 @@ def handle_input(key):
                 gun_ammo -= 1
                 update_ammo_text()
                 spawn_projectile(camera.world_position + camera.forward * 1.5, camera.forward)
+                try:
+                    sound_manager.play('gun')
+                except Exception:
+                    pass
                 inventory.show_message("Shot fired", 1.0)
             else:
                 inventory.show_message("No ammo. Press R to reload with ammo item", 1.5)
@@ -687,6 +696,10 @@ def handle_input(key):
 
         if tools.axe.enabled:
             tools.swing_item(tools.axe)
+            try:
+                sound_manager.play('axe')
+            except Exception:
+                pass
             hit_info = raycast(camera.world_position, camera.forward, distance=3)
             if hit_info.hit:
                 for tree in world.trees:
@@ -700,6 +713,10 @@ def handle_input(key):
 
         if tools.pickaxe.enabled:
             tools.swing_item(tools.pickaxe)
+            try:
+                sound_manager.play('pickaxe')
+            except Exception:
+                pass
             hit_info = raycast(camera.world_position, camera.forward, distance=3)
             if hit_info.hit:
                 for rock in world.rocks:
@@ -713,6 +730,10 @@ def handle_input(key):
 
         if tools.hoe.enabled:
             tools.swing_item(tools.hoe)
+            try:
+                sound_manager.play('hoe')
+            except Exception:
+                pass
             if fields.field_preview.enabled:
                 pos = fields.field_preview.position
                 exists = any((abs(f["pos"].x - pos.x) < 0.5 and abs(f["pos"].z - pos.z) < 0.5) for f in fields.fields)
@@ -723,6 +744,10 @@ def handle_input(key):
                     inventory.show_message("Field already exists here", 1.2)
         elif tools.sword.enabled:
             tools.swing_item(tools.sword)
+            try:
+                sound_manager.play('sword')
+            except Exception:
+                pass
             hit_info = raycast(camera.world_position, camera.forward, distance=3)
             if hit_info.hit:
                 enemy = enemies.find_enemy_by_entity(hit_info.entity)
@@ -735,6 +760,10 @@ def handle_input(key):
             pass
         elif tools.hammer.enabled:
             tools.swing_item(tools.hammer)
+            try:
+                sound_manager.play('hammer')
+            except Exception:
+                pass
             if building_system.building_preview.enabled:
                 preview_pos = building_system.building_preview.position
                 if building_system.can_place_building(preview_pos):
