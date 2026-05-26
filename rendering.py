@@ -9,6 +9,7 @@ player_hp_text = None
 player_stamina_text = None
 player_money_text = None
 quest_text = None
+mobspawner_text = None
 pause_menu = None
 bed_confirm_menu = None
 bed_confirm_yes = None
@@ -21,6 +22,7 @@ buffalo_leave = None
 
 def setup_ui():
     global time_text, ammo_text, player_hp_text, player_stamina_text, player_money_text
+    global mobspawner_text
     global pause_menu, bed_confirm_menu, bed_confirm_yes, bed_confirm_no
     global buffalo_dialog, buffalo_dialog_text, buffalo_sell, buffalo_leave
     global stats_panel, stats_lines, stats_button, quest_text
@@ -34,6 +36,7 @@ def setup_ui():
     player_stamina_text = Text(parent=camera.ui, text='Stamina: 100/100', position=(-0.75, 0.345), origin=(0, 0), scale=1.2, color=color.rgb(100/255, 200/255, 255/255), background=True)
     player_money_text = Text(parent=camera.ui, text='Money: 0', position=(-0.8, 0.275), origin=(0, 0), scale=1.2, color=color.rgb(255/255, 220/255, 100/255), background=True)
     quest_text = Text(parent=camera.ui, text='Quest: Harvest wheat 0/100', position=(-0.7, 0.21), origin=(0, 0), scale=1.1, color=color.white, background=True)
+    mobspawner_text = Text(parent=camera.ui, text='', position=(0, -0.37), origin=(0, 0), scale=1.0, color=color.yellow, background=True, enabled=False)
 
     # --- 2. GIAO DIỆN MENU SETTINGS CHUẨN ĐỒ ĐỒNG ĐỀU ---
     pause_menu = Entity(parent=camera.ui, enabled=False)
@@ -112,6 +115,20 @@ def update_quest_text(name, progress, goal):
         # also ensure time UI sits below quest UI
         if time_text is not None:
             time_text.y = quest_text.y - 0.06
+
+
+def update_mobspawner_text(target_name: str = None):
+    global mobspawner_text
+    if mobspawner_text is None:
+        return
+    mobspawner_text.text = f"Spawn target: {target_name}" if target_name else "Spawn target: Unknown"
+
+
+def show_mobspawner(enabled: bool):
+    global mobspawner_text
+    if mobspawner_text is None:
+        return
+    mobspawner_text.enabled = enabled
 
 
 def show_stats(enabled: bool):

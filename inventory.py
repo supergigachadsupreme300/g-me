@@ -1,11 +1,14 @@
 from ursina import Text, color
 
-TOOL_ITEMS = {"gun", "axe", "pickaxe", "hoe", "hammer", "sword", "scythe"}
+import rendering
+
+TOOL_ITEMS = {"gun", "axe", "pickaxe", "hoe", "hammer", "sword", "scythe", "mobspawner"}
 
 inventory = [None] * 10
 selected_slot = 0
 inventory_text = Text(text="", position=(0, -0.45), origin=(0, 0), scale=1.0, background=True)
 message_text = Text(text="", position=(0, 0.35), origin=(0, 0), scale=1.2, color=color.azure)
+selected_mobspawner_name = None
 
 
 def make_slot(item_type, count=1):
@@ -52,6 +55,19 @@ def update_inventory_ui():
         else:
             slots.append(f"{i+1}:{label}")
     inventory_text.text = "   ".join(slots)
+
+    current_item = get_item(inventory[selected_slot])
+    if current_item == "mobspawner":
+        rendering.update_mobspawner_text(selected_mobspawner_name)
+        rendering.show_mobspawner(True)
+    else:
+        rendering.show_mobspawner(False)
+
+
+def set_mobspawner_target(name):
+    global selected_mobspawner_name
+    selected_mobspawner_name = name
+    update_inventory_ui()
 
 
 def show_message(txt, duration=2):
