@@ -1,6 +1,9 @@
+import importlib.util
 from ursina import Entity, Text, color, Vec3, raycast, destroy, load_model, load_texture, time
 from math import atan2, degrees
+from direct.actor.Actor import Actor
 import time as pytime
+from panda3d.core import TextureStage
 import random
 import world
 import fields
@@ -257,7 +260,6 @@ class Rat:
 
     def die(self):
         self.state = DEAD
-        # drop one random loot item on death
         try:
             loot_choices = ["seed", "peashooter seed", "fertilizer", "ammo"]
             dropped = random.choice(loot_choices)
@@ -283,7 +285,7 @@ def update_enemies():
     for enemy in list(enemies):
         enemy.update()
 
-#Chihai
+#quai vat chau chau
 try:
     grasshopper_texture = load_texture('model/grasshopper/texture/grasshopper_tex.jpg')
     print("Loaded grasshopper texture")
@@ -291,7 +293,6 @@ except Exception as e:
     print(f"Failed loading grasshopper texture: {e}")
     grasshopper_texture = color.green 
 
-#chihai quai vat chau chau
 class Grasshopper(Rat):
     def __init__(self, position):
         super().__init__(position)
@@ -331,60 +332,130 @@ def spawn_grasshopper(position):
     enemies.append(g)
     return g
 
-#Chihai quai vat tung tung sahur
-tex_sahur_path = 'model/sahur/texture/tungtungsahur_tex.png'
+#quai vat tung tung sahur
+tex_sahur_path = 'model/tungtungsahur/shaded.png'
 sahur_texture = load_texture(tex_sahur_path)
 
 if sahur_texture is None:
-    print(f"Không tìm thấy ảnh Sahur tại '{tex_sahur_path}'")
-    sahur_texture = color.orange 
+    print(f"\033[91m[CẢNH BÁO] KHÔNG TÌM THẤY ẢNH TẠI: {tex_sahur_path}\033[0m")
 
+def _sahur_apply_tex(actor):
+    if sahur_texture is None or not hasattr(sahur_texture, '_texture'):
+        return
+    try:
+        actor.setTexture(sahur_texture._texture, 1)
+        for geom in actor.findAllMatches('**/+GeomNode'):
+            geom.setTexture(sahur_texture._texture, 1)
+    except Exception as e:
+        print(f"[LỖI DÁN ẢNH] {e}")
 
 class Sahur(Rat):
     def __init__(self, position):
         super().__init__(position)
-        
+
+        # 1. HITBOX VẬT LÝ
         self.entity.model = 'cube'
-        self.entity.color = color.clear
+        self.entity.color = color.clear 
         self.entity.texture = None
         self.entity.scale = (1.2, 1.2, 1.2)
-        self.mesh = Entity(parent=self.entity)
         
+        self.visual = Entity(scale=(1, 1, 1))
+
+        self.actor = None
         try:
-            self.entity.model = load_model('model/sahur/source/tungtungsahur.fbx') 
+            self.actor = Actor(
+                'model/tungtungsahur/tungtungsahur_run.glb', 
+                {
+                    'run': 'model/tungtungsahur/tungtungsahur_run.glb',
+                    'attack': 'model/tungtungsahur/tungtungsahur_hit.glb'
+                }
+            )
+            self.actor.reparent_to(self.visual)
+            self.actor.setHpr(180, 0, 0)
+
+            self.actor.setScale(0.3, 0.3, 0.3)
+            
+            self.actor.loop('run')
+            self._anim = 'run'
+            
         except Exception as e:
-            print(f"Không tìm thấy model Sahur: {e}")
-            self.entity.model = 'cube'
-            
-        if hasattr(sahur_texture, 'width'):
-            self.entity.texture = sahur_texture
-            self.entity.color = color.white 
-        else:
-            self.entity.texture = None 
-            self.entity.color = sahur_texture 
-            
-        self.entity.scale = (0.003, 0.003, 0.003) 
-        self.entity.y = self.entity.scale_y / 2 
-        
+            print(f"[LỖI LOAD GLB] {e}")
+            print("GỢI Ý: Bạn đã mở Terminal và gõ 'pip install panda3d-gltf' chưa?")
+            self.visual.model = 'cube'
+            self.visual.color = color.red
+            self.visual.scale = (2, 2, 2) 
+            self._anim = None
+
         self.hp = 35
         self.max_hp = 35
         self.speed = 1.5
         self.attack_damage = 8
+        self.attack_cooldown = 2.0
+        self.last_attack_time = 0
         self.health_bar.y = 1.2
+        self.velocity_y = 0
+
+    def _switch(self, state):
+        if self._anim == state or self.actor is None:
+            return
+        self._anim = state
+        self.actor.loop(state) 
+
+    def die(self):
+        destroy(self.visual)
+        if self.actor:
+            try:
+                self.actor.cleanup()
+                self.actor.removeNode()
+            except Exception:
+                pass
+        super().die()
+
+    def update(self):
+        import time as pytime_mod
+        from ursina import time
+        import world
+        import inventory
+
+        if self.hp <= 0:
+            return
+
+        self.velocity_y -= 18.0 * time.dt
+        self.entity.y += self.velocity_y * time.dt
+        if self.entity.y < self.entity.scale_y / 2:
+            self.entity.y = self.entity.scale_y / 2
+            self.velocity_y = 0
+
+        player_pos = world.player.position
+        dist = (self.entity.position - player_pos).length()
+        direction = (player_pos - self.entity.position).normalized()
+
+        if dist > 2.0:
+            self._switch('run')
+            self.entity.position += direction * self.speed * time.dt
+            self.face_direction(direction)
+        else:
+            self._switch('attack')
+            self.face_direction(direction)
+            
+            if pytime_mod.time() - self.last_attack_time > self.attack_cooldown:
+                self.last_attack_time = pytime_mod.time()
+                world.player.hp -= self.attack_damage
+                inventory.show_message(f"Bị Tung Tung Sahur nện! HP: {world.player.hp}/100", 2)
+
+        self.visual.position = self.entity.position + Vec3(0, -0.6, 0)
+        self.visual.rotation = self.entity.rotation
 
 def spawn_sahur(position):
     s = Sahur(position)
     enemies.append(s)
     return s
 
-#Chihai quai vat soi
-tex_wolf_path = 'model/werewolf/lambert1_albedo.jpg' 
-wolf_texture = load_texture(tex_wolf_path)
 
-if wolf_texture is None:
-    print(f"Không tìm thấy ảnh Sói tại '{tex_wolf_path}'")
-    wolf_texture = color.gray 
-
+try:
+    wolf_texture = load_texture('model/werewolf/lambert1_albedo.jpg')
+except Exception as e:
+    wolf_texture = color.gray
 class Wolf(Rat):
     def __init__(self, position):
         super().__init__(position)
@@ -407,7 +478,6 @@ class Wolf(Rat):
         else:
             self.mesh.texture = None
             self.mesh.color = wolf_texture
-            
         self.mesh.scale = (0.02, 0.02, 0.02) 
         self.mesh.y = -0.5
         
@@ -424,7 +494,6 @@ def spawn_wolf(position):
     enemies.append(w)
     return w
 
-#Chihai quai vat kẻ trộm và cẩu tặc
 try:
     thief_texture = load_texture('model/thief/tenant texture.png')
 except Exception as e:
@@ -439,7 +508,6 @@ class Thief:
     def __init__(self, position):
         self.entity = Entity(model='cube', color=color.clear, scale=(0.8, 1.8, 0.8), position=position, collider='box')
         
-        # 2. Lớp vỏ hiển thị Mesh
         self.mesh = Entity(parent=self.entity)
         try:
             self.mesh.model = load_model('model/thief/Ready Tower Tenant walk.fbx')
@@ -542,3 +610,340 @@ def spawn_dog_thief(position):
     dt = DogThief(position)
     enemies.append(dt)
     return dt
+
+#quai vat nam doc
+try:
+    mushroom_texture = load_texture('model/monsterMushroom/GribUV_lambert3_BaseColor.png')
+except Exception as e:
+    mushroom_texture = color.purple
+
+class MushroomMonster(Rat):
+    def __init__(self, position):
+        super().__init__(position) 
+        
+        self.entity.model = 'cube'
+        self.entity.color = color.clear
+        self.entity.scale = (0.5, 0.8, 0.5) 
+        
+        self.mesh = Entity(parent=self.entity)
+        try:
+            self.mesh.model = load_model('model/monsterMushroom/GribRiggedReady.fbx')
+        except Exception as e:
+            self.mesh.model = 'cube'
+            
+        if hasattr(mushroom_texture, 'width'):
+            self.mesh.texture = mushroom_texture
+            self.mesh.color = color.white
+        else:
+            self.mesh.texture = None
+            self.mesh.color = mushroom_texture
+            
+        self.mesh.setTransparency(0)   
+        self.mesh.alpha = 1            
+        self.mesh.double_sided = True  
+        
+        self.mesh.scale = (0.6, 0.6, 0.6) 
+        self.mesh.y = -0.4 
+        
+        self.hp = 30
+        self.max_hp = 30
+        self.speed = 1.5 
+        self.attack_damage = 10
+        self.attack_cooldown = 1.5 
+        self.last_attack_time = 0
+        
+        self.health_bar.y = 1.0
+        self.health_bar.color = color.magenta 
+        self.velocity_y = 0 
+
+    def update(self):
+        import time as pytime
+        from ursina import time
+        import world
+        import inventory
+        
+        if self.hp <= 0:
+            return
+            
+        self.velocity_y -= 18.0 * time.dt 
+        self.entity.y += self.velocity_y * time.dt
+        if self.entity.y < self.entity.scale_y / 2:
+            self.entity.y = self.entity.scale_y / 2
+            self.velocity_y = 0
+            
+        player_pos = world.player.position
+        dist = (self.entity.position - player_pos).length()
+        
+        if dist > 2.0:
+            direction = (player_pos - self.entity.position).normalized()
+            self.entity.position += direction * self.speed * time.dt
+            self.face_direction(direction)
+        else:
+            if pytime.time() - self.last_attack_time > self.attack_cooldown:
+                self.last_attack_time = pytime.time()
+                
+                world.player.hp -= self.attack_damage
+                inventory.show_message(f"Bị trúng BÀO TỬ ĐỘC của Nấm! HP: {world.player.hp}/100", 2)
+                
+                direction = (player_pos - self.entity.position).normalized()
+                self.face_direction(direction)
+
+def spawn_mushroom(position):
+    m = MushroomMonster(position)
+    enemies.append(m)
+    return m
+
+#boss khung long
+try:
+    dino_texture = load_texture('model/dinosaur/T Rex - Battling.png')
+except Exception as e:
+    dino_texture = color.rgb(50, 100, 40)
+
+class Dinosaur(Rat):
+    def __init__(self, position):
+        super().__init__(position) 
+        
+        self.entity.model = 'cube'
+        self.entity.color = color.clear
+        self.entity.scale = (2.5, 4.0, 5.0) 
+
+        self.mesh = Entity(parent=self.entity)
+        try:
+            self.mesh.model = load_model('model/dinosaur/TrexHigh.fbx')
+        except Exception as e:
+            self.mesh.model = 'cube'
+            
+        if hasattr(dino_texture, 'width'):
+            self.mesh.texture = dino_texture
+            self.mesh.color = color.white
+        else:
+            self.mesh.texture = None
+            self.mesh.color = dino_texture
+            
+        self.mesh.setTransparency(0)   
+        self.mesh.alpha = 1            
+        self.mesh.double_sided = True  
+        
+        self.mesh.scale = (0.005, 0.005, 0.005) 
+        self.mesh.y = -0.5 
+        
+        self.hp = 200
+        self.max_hp = 200
+        self.speed = 2.5 
+        self.attack_damage = 25
+        self.attack_cooldown = 2.5
+        self.last_attack_time = 0
+        
+        self.health_bar.y = 2.2
+        self.health_bar.scale_x = 1.5 
+        self.health_bar.color = color.red 
+        self.velocity_y = 0 
+
+    def update(self):
+        import time as pytime
+        from ursina import time
+        import world
+        import inventory
+        
+        if self.hp <= 0:
+            return
+            
+        self.velocity_y -= 18.0 * time.dt 
+        self.entity.y += self.velocity_y * time.dt
+        if self.entity.y < self.entity.scale_y / 2:
+            self.entity.y = self.entity.scale_y / 2
+            self.velocity_y = 0
+            
+        player_pos = world.player.position
+        dist = (self.entity.position - player_pos).length()
+        
+        if dist > 4.0:
+            direction = (player_pos - self.entity.position).normalized()
+            self.entity.position += direction * self.speed * time.dt
+            self.face_direction(direction)
+        else:
+            if pytime.time() - self.last_attack_time > self.attack_cooldown:
+                self.last_attack_time = pytime.time()
+                
+                world.player.hp -= self.attack_damage
+                inventory.show_message(f"Khủng long T-REX cắn! HP: {world.player.hp}/100", 2)
+                
+                direction = (player_pos - self.entity.position).normalized()
+                self.face_direction(direction)
+
+def spawn_dinosaur(position):
+    d = Dinosaur(position)
+    enemies.append(d)
+    return d
+
+#quai vat lua
+try:
+    arrogant_wheat_texture = load_texture('model/wheat/WheatTEX.png')
+except Exception as e:
+    arrogant_wheat_texture = color.rgb(255, 200, 0) 
+
+class ArrogantWheat(Rat):
+    def __init__(self, position):
+        super().__init__(position) 
+        
+        self.entity.model = 'cube'
+        self.entity.color = color.clear
+        self.entity.scale = (0.6, 2.0, 0.6) 
+        
+        self.mesh = Entity(parent=self.entity)
+        try:
+            self.mesh.model = load_model('model/wheat/WHEAT_spin.fbx')
+        except Exception as e:
+            self.mesh.model = 'cube'
+            
+        if hasattr(arrogant_wheat_texture, 'width'):
+            self.mesh.texture = arrogant_wheat_texture
+            self.mesh.color = color.white
+        else:
+            self.mesh.texture = None
+            self.mesh.color = arrogant_wheat_texture
+            
+        self.mesh.setTransparency(0)  
+        self.mesh.alpha = 1           
+        self.mesh.double_sided = True  
+        
+        self.mesh.scale = (0.023, 0.023, 0.023) 
+        self.mesh.y = -0.5
+        
+        self.hp = 40
+        self.max_hp = 40
+        self.speed = 4.0 
+        self.attack_damage = 8
+        self.attack_cooldown = 1.5 
+        self.last_attack_time = 0
+        
+        self.health_bar.y = 1.3
+        self.health_bar.color = color.magenta 
+        self.velocity_y = 0 
+
+    def die(self):
+        import items
+        items.spawn_ground_item("seed", self.entity.position + Vec3(0, 0.5, 0))
+        items.spawn_ground_item("wheat", self.entity.position + Vec3(0, 0.5, 0.5))
+        super().die()
+
+    def update(self):
+        import time as pytime
+        from ursina import time
+        import world
+        import inventory
+        
+        if self.hp <= 0:
+            return
+            
+        self.velocity_y -= 18.0 * time.dt 
+        self.entity.y += self.velocity_y * time.dt
+        
+        if self.entity.y < self.entity.scale_y / 2:
+            self.entity.y = self.entity.scale_y / 2
+            self.velocity_y = 0
+            
+        player_pos = world.player.position
+        dist = (self.entity.position - player_pos).length()
+        
+        if dist > 2.5:
+            direction = (player_pos - self.entity.position).normalized()
+            self.entity.position += direction * self.speed * time.dt
+            self.face_direction(direction)
+        else:
+            if pytime.time() - self.last_attack_time > self.attack_cooldown:
+                self.last_attack_time = pytime.time()
+                self.velocity_y = 7.0 
+                
+                world.player.hp -= self.attack_damage
+                inventory.show_message(f"Bị LÚA KIÊU NGẠO đập trúng! HP: {world.player.hp}/100", 2)
+                
+                direction = (player_pos - self.entity.position).normalized()
+                self.face_direction(direction)
+
+def spawn_arrogant_wheat(position):
+    aw = ArrogantWheat(position)
+    enemies.append(aw)
+    return aw
+
+#quai vat zombie
+try:
+    zombie_texture = load_texture('model/zombie/Disco.png')
+except Exception as e:
+    zombie_texture = color.green 
+
+class Zombie(Rat):
+    def __init__(self, position):
+        super().__init__(position) 
+        
+        self.entity.model = 'cube'
+        self.entity.color = color.clear
+        self.entity.scale = (0.8, 1.8, 0.8) 
+        
+        self.mesh = Entity(parent=self.entity)
+        try:
+            self.mesh.model = load_model('model/zombie/Disco.fbx')
+        except Exception as e:
+            self.mesh.model = 'cube'
+            
+        if hasattr(zombie_texture, 'width'):
+            self.mesh.texture = zombie_texture
+            self.mesh.color = color.white
+        else:
+            self.mesh.texture = None
+            self.mesh.color = zombie_texture
+            
+        self.mesh.setTransparency(0)   
+        self.mesh.alpha = 1            
+        self.mesh.double_sided = True  
+        
+        self.mesh.scale = (0.5, 0.5, 0.5) 
+        self.mesh.y = -0.2
+        
+        self.hp = 50
+        self.max_hp = 50
+        self.speed = 1.8 
+        self.attack_damage = 12
+        self.attack_cooldown = 2.0 
+        self.last_attack_time = 0
+        
+        self.health_bar.y = 1.2
+        self.health_bar.color = color.dark_gray 
+        self.velocity_y = 0 
+
+    def update(self):
+        import time as pytime
+        from ursina import time
+        import world
+        import inventory
+        
+        if self.hp <= 0:
+            return
+            
+        self.velocity_y -= 18.0 * time.dt 
+        self.entity.y += self.velocity_y * time.dt
+        if self.entity.y < self.entity.scale_y / 2:
+            self.entity.y = self.entity.scale_y / 2
+            self.velocity_y = 0
+            
+        player_pos = world.player.position
+        dist = (self.entity.position - player_pos).length()
+        
+        if dist > 2.0:
+            direction = (player_pos - self.entity.position).normalized()
+            self.entity.position += direction * self.speed * time.dt
+            self.face_direction(direction)
+        else:
+            if pytime.time() - self.last_attack_time > self.attack_cooldown:
+                self.last_attack_time = pytime.time()
+                
+                world.player.hp -= self.attack_damage
+                inventory.show_message(f"Bị ZOMBIE cắn! HP: {world.player.hp}/100", 2)
+                
+                direction = (player_pos - self.entity.position).normalized()
+                self.face_direction(direction)
+
+def spawn_zombie(position):
+    z = Zombie(position)
+    enemies.append(z)
+    return z
