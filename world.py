@@ -443,9 +443,9 @@ def build_road():
 def spawn_vendor_cart():
     global vendor_root, vendor_entity, vendors
     # define entry and exit positions
-    arrival_pos = Vec3(0, 0.5, -8)
-    offscreen_in = Vec3(0, 0.5, -30)
-    offscreen_out = Vec3(0, 0.5, 30)
+    arrival_pos = Vec3(15, 0.5, -8)
+    offscreen_in = Vec3(15, 0.5, -30)
+    offscreen_out = Vec3(15, 0.5, 30)
     # mark existing vendors to exit (they will run away)
     for v in list(vendors):
         try:
