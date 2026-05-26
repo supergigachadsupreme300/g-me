@@ -62,36 +62,23 @@ def update_ammo_text():
 
 
 def toggle_pause(paused: bool):
-
     global game_paused
     game_paused = paused
     rendering.toggle_pause(paused)
 
-    # Freeze player movement when paused
-
+    # Đóng băng hoàn toàn người chơi và camera khi pause
     try:
-
         if world.player is not None:
-
             if paused:
-
-                world.player.speed = 0
-
+                world.player.enabled = False  # Vô hiệu hóa cả di chuyển lẫn góc nhìn camera
             else:
-
-                # restore base speed
-
-                world.player.speed = getattr(world.player, 'base_speed', 5.0)
-
+                world.player.enabled = True   # Kích hoạt lại bình thường
     except Exception:
         pass
 
     if paused:
-
         inventory.show_message('Game paused', 1.5)
-
     else:
-
         inventory.show_message('Resumed', 1.0)
 
 
