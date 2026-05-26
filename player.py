@@ -7,10 +7,10 @@ def create_player():
     player.cursor.visible = False
     player.hp = 100
     player.max_hp = 100
-    player.stamina = 100
-    player.max_stamina = 100
+    player.stamina = 1000
+    player.max_stamina = 1000
     player.base_speed = 5.0
-    player.sprint_speed_multiplier = 2.0
+    player.sprint_speed_multiplier = 3.0
     player.stamina_regen_rate = 25.0
     player.stamina_sprint_cost = 35.0
     player.is_sprinting = False

@@ -290,6 +290,11 @@ def update():
     except Exception:
         pass
     update_quest_ui()
+    # world frame updates (vendor movement, etc.)
+    try:
+        world.update()
+    except Exception:
+        pass
 
     if tools.hoe.enabled:
         fields.field_preview.enabled = False
@@ -561,6 +566,27 @@ def handle_input(key):
                 face_buffalo_towards_player(buffalo_entity)
                 rendering.show_buffalo_dialog(True)
                 game_paused = True
+                return
+            # vendor interaction (mirror buffalo interaction)
+            # vendor spawn button: always attempt to spawn a new vendor regardless of current vendor
+            spawn_btn = None
+            try:
+                if hit_info.hit:
+                    spawn_btn = world.is_vendor_spawn_entity(hit_info.entity)
+            except Exception:
+                spawn_btn = None
+            # second raycast that ignores current vendor to catch the button behind it
+            if spawn_btn is None:
+                ignore_tuple = (world.vendor_root,) if getattr(world, 'vendor_root', None) is not None else ()
+                try:
+                    hit2 = raycast(camera.world_position, camera.forward, distance=MAX_PLACE_DISTANCE, ignore=ignore_tuple)
+                    if hit2.hit:
+                        spawn_btn = world.is_vendor_spawn_entity(hit2.entity)
+                except Exception:
+                    spawn_btn = None
+            if spawn_btn is not None:
+                # spawn_vendor_cart destroys any existing vendor already; always call it
+                world.spawn_vendor_cart()
                 return
             # vendor interaction (mirror buffalo interaction)
             vendor_entity = is_vendor_entity(hit_info.entity)
