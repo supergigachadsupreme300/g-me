@@ -10,6 +10,7 @@ import fields
 import building_system
 import items
 import sound_manager
+import stats
 
 rat_texture = []
 rat_model = None
@@ -272,6 +273,10 @@ class Rat:
                 pass
         try:
             sound_manager.play('pop')
+        except Exception:
+            pass
+        try:
+            stats.record_enemy_kill(self.__class__.__name__)
         except Exception:
             pass
         destroy(self.entity)

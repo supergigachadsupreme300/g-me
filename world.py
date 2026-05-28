@@ -463,6 +463,11 @@ def spawn_vendor_cart():
     cart_color = color.rgb(random.randint(80, 255), random.randint(50, 220), random.randint(50, 220))
     # create new vendor root offscreen and register it
     new_root = Entity(position=offscreen_in)
+    # rotate cart 90 degrees so it faces sideways by default
+    try:
+        new_root.rotation_y = -90
+    except Exception:
+        pass
     # cart body
     Entity(parent=new_root, model='cube', color=cart_color, scale=(4, 1.4, 2), position=(0, 0.9, 0), collider='box')
     Entity(parent=new_root, model='cube', color=color.rgb(max(0, cart_color.r-20), max(0, cart_color.g-40), max(0, cart_color.b-20)), scale=(4.2, 0.4, 2.2), position=(0, 1.6, 0))
@@ -609,7 +614,7 @@ def update():
         wheels = getattr(v, '_vendor_wheels', None)
         if wheels:
             for w in wheels:
-                w.rotation_x += 360 * ursina_time.dt
+                w.rotation_z += 360 * ursina_time.dt
         # bob vendor model if present
         m = getattr(v, '_vendor_model', None)
         if m is not None:
