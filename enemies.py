@@ -327,15 +327,90 @@ class Grasshopper(Rat):
             self.mesh.color = grasshopper_texture 
             
         self.mesh.scale = (0.1, 0.1, 0.1) 
-     
-        self.mesh.y = 3.5
+        self.mesh.y = 3
         
         self.hp = 8
         self.max_hp = 8
         self.speed = 4.0 
         self.attack_damage = 2
         
-        self.health_bar.color = color.lime
+        self.health_bar.color = color.green
+        self.health_bar.z = 1.5
+        self.health_bar.y = 6.5
+        self.health_bar.scale = (3, 0.2, 0.1) 
+
+        self.mesh.rotation_y = 90
+        
+        # --- 2. HIỂN THỊ CHỮ SỐ MÁU ---
+        self.hp_text = Text(
+            text=f"{self.hp}/{self.max_hp}",
+            parent=self.entity,
+            y=7.0,
+            z=1.5,        
+            scale=10,
+            billboard=True,
+            origin=(0, 0),
+            color=color.white
+        )
+
+        self.name_text.y = 7.5       
+        self.name_text.z = 1.5        
+        self.name_text.scale = 12     
+        self.name_text.color = color.yellow
+    # --- 3. GHI ĐÈ HÀM NHẬN SÁT THƯƠNG ĐỂ KHÔNG BỎ CHẠY ---
+    def take_damage(self, amount):
+        self.hp -= amount
+        
+        # Cập nhật thanh máu (nhân 1.5 vì scale ban đầu của thanh máu là 1.5)
+        self.health_bar.scale_x = max(0, self.hp / self.max_hp) * 1.5
+        
+        # Cập nhật số máu
+        if hasattr(self, 'hp_text'):
+            self.hp_text.text = f"{int(self.hp)}/{self.max_hp}"
+
+        if self.hp <= 0:
+            self.die()
+
+    # --- 4. GHI ĐÈ HÀM UPDATE ĐỂ RƯỢT ĐUỔI VÀ TẤN CÔNG ---
+    def update(self):
+        import time as pytime_mod
+        from ursina import time
+        import world
+        import inventory
+
+        # Trọng lực rơi
+        self.velocity_y -= 9.81 * time.dt
+        self.entity.y += self.velocity_y * time.dt
+        if self.entity.y < self.entity.scale_y / 2:
+            self.entity.y = self.entity.scale_y / 2
+            self.velocity_y = 0
+        
+        if self.state == DEAD or self.hp <= 0:
+            return
+
+        # Rượt đuổi người chơi
+        player_pos = world.player.position
+        dist = (self.entity.position - player_pos).length()
+        direction = (player_pos - self.entity.position)
+
+        if direction.length() > 0:
+            self.face_direction(direction)
+
+        if dist > 1.5:
+            # Chạy lại gần
+            self.entity.position += direction.normalized() * self.speed * time.dt
+        else:
+            # Ở gần thì cắn
+            if pytime_mod.time() - self.last_attack_time > self.attack_cooldown:
+                self.last_attack_time = pytime_mod.time()
+                world.player.hp -= self.attack_damage
+                inventory.show_message(f"Bị Châu chấu cắn! HP: {world.player.hp}/100", 2)
+                
+    def die(self):
+        # Dọn dẹp số máu khi quái chết
+        if hasattr(self, 'hp_text'):
+            destroy(self.hp_text)
+        super().die()
 
 def spawn_grasshopper(position):
     g = Grasshopper(position)
