@@ -953,14 +953,26 @@ try:
 except Exception as e:
     dino_texture = color.rgb(50, 100, 40)
 
+# Boss khủng long
 class Dinosaur(Rat):
     def __init__(self, position):
-        super().__init__(position) 
+        super().__init__(position, name="Khủng Long T-Rex", max_hp=200, ui_height=0.2, speed=2.5, attack_damage=25) 
         
-        self.entity.model = 'cube'
-        self.entity.color = color.clear
-        self.entity.scale = (2.5, 4.0, 5.0) 
+        destroy(self.mesh)
 
+        global global_boss_hud
+        if global_boss_hud is None:
+            global_boss_hud = BossHUD()
+
+        self.health_bar.enabled = False 
+        self.hp_text.enabled = False
+        
+        if hasattr(self, 'name_text'):
+            self.name_text.enabled = False
+        if hasattr(self, 'name_bg'):
+            self.name_bg.enabled = False
+        
+        self.entity.scale = (2.5, 4.0, 5.0) 
         self.mesh = Entity(parent=self.entity)
         try:
             self.mesh.model = load_model('model/dinosaur/TrexHigh.fbx')
@@ -981,20 +993,27 @@ class Dinosaur(Rat):
         self.mesh.scale = (0.005, 0.005, 0.005) 
         self.mesh.y = -0.5 
         
-        self.hp = 200
-        self.max_hp = 200
-        self.speed = 2.5 
-        self.attack_damage = 25
-        self.attack_cooldown = 2.5
-        self.last_attack_time = 0
+        self.attack_cooldown = 2.5 
+
+    def take_damage(self, amount):
+        self.hp -= amount
         
-        self.health_bar.y = 2.2
-        self.health_bar.scale_x = 1.5 
-        self.health_bar.color = color.red 
-        self.velocity_y = 0 
+        global global_boss_hud
+        if global_boss_hud is not None and global_boss_hud.enabled:
+            global_boss_hud.update_bar("KHỦNG LONG T-REX", self.hp, self.max_hp)
+
+        if self.hp <= 0:
+            self.die()
+
+    def die(self):
+        global global_boss_hud
+        if global_boss_hud is not None:
+            global_boss_hud.enabled = False
+            
+        super().die() 
 
     def update(self):
-        import time as pytime
+        import time as pytime_mod
         from ursina import time
         import world
         import inventory
@@ -1011,19 +1030,26 @@ class Dinosaur(Rat):
         player_pos = world.player.position
         dist = (self.entity.position - player_pos).length()
         
-        if dist > 4.0:
+        global global_boss_hud
+        if dist < 30: 
+            global_boss_hud.update_bar("KHỦNG LONG T-REX", self.hp, self.max_hp)
+            global_boss_hud.bar.color = color.orange 
+            global_boss_hud.enabled = True
+        else:
+            if global_boss_hud.enabled and global_boss_hud.name_text.text == "KHỦNG LONG T-REX":
+                global_boss_hud.enabled = False
+
+        if dist > 4.0: 
             direction = (player_pos - self.entity.position).normalized()
             self.entity.position += direction * self.speed * time.dt
             self.face_direction(direction)
         else:
-            if pytime.time() - self.last_attack_time > self.attack_cooldown:
-                self.last_attack_time = pytime.time()
-                
+            direction = (player_pos - self.entity.position).normalized()
+            self.face_direction(direction)
+            if pytime_mod.time() - self.last_attack_time > self.attack_cooldown:
+                self.last_attack_time = pytime_mod.time()
                 world.player.hp -= self.attack_damage
                 inventory.show_message(f"Khủng long T-REX cắn! HP: {world.player.hp}/100", 2)
-                
-                direction = (player_pos - self.entity.position).normalized()
-                self.face_direction(direction)
 
 def spawn_dinosaur(position):
     d = Dinosaur(position)
