@@ -128,6 +128,7 @@ def setup_tools_for_camera():
     # ensure stackable and plant items are parented to camera so they appear in-hand
     tools.seed.parent = camera
     tools.peashooter_seed.parent = camera
+    tools.mi_hao_hao.parent = camera
     tools.wheat.parent = camera
     tools.damaged_wheat.parent = camera
 
@@ -142,6 +143,7 @@ def setup_tools_for_camera():
     tools.fertilizer.position = positions
     tools.seed.position = positions
     tools.peashooter_seed.position = positions
+    tools.mi_hao_hao.position = positions
     tools.wheat.position = positions
     tools.damaged_wheat.position = positions
 

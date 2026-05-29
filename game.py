@@ -911,6 +911,13 @@ def handle_input(key):
             return
 
         current_item = inventory.get_item(inventory.inventory[inventory.selected_slot])
+        if current_item == "mì hảo hảo":
+            if world.player is not None:
+                world.player.hp = min(world.player.max_hp, world.player.hp + 30)
+            inventory.remove_item(inventory.selected_slot)
+            inventory.update_inventory_ui()
+            inventory.show_message("Ăn mì hảo hảo, hồi 30 HP", 2)
+            return
         if current_item == "mobspawner":
             pos = world.player.position + world.player.forward * 5
             pos.y = 1
@@ -1381,6 +1388,10 @@ def setup_game():
     items.spawn_ground_item("scythe", Vec3(14, 1, 0))
 
     items.spawn_ground_item("mobspawner", Vec3(16, 1, 0))
+
+    items.spawn_ground_item("mì hảo hảo", Vec3(18, 1, 0))
+
+    items.spawn_ground_item("wheat", Vec3(20,1,0))
 
     pet.spawn_dog(Vec3(2, 1, 2))
 
