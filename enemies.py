@@ -337,7 +337,7 @@ class Grasshopper(Rat):
         self.health_bar.color = color.green
         self.health_bar.z = 1.5
         self.health_bar.y = 6.5
-        self.health_bar.scale = (3, 0.2, 0.1) 
+        self.health_bar.scale = (3, 0.2, 1) 
 
         self.mesh.rotation_y = 90
         
@@ -345,18 +345,27 @@ class Grasshopper(Rat):
         self.hp_text = Text(
             text=f"{self.hp}/{self.max_hp}",
             parent=self.entity,
-            y=7.0,
-            z=1.5,        
+            y=6.5,
+            z=1.4,        
             scale=10,
             billboard=True,
             origin=(0, 0),
-            color=color.white
+            color=color.red
         )
-
-        self.name_text.y = 7.5       
+        self.name_bg = Entity(
+            parent=self.entity,
+            model='cube',
+            color=color.black,
+            y=7,               
+            z=1.5,                
+            scale=(4.0, 0.3, 1) 
+        )
+        self.name_text.y = 7      
         self.name_text.z = 1.5        
-        self.name_text.scale = 12     
+        self.name_text.scale = 20    
         self.name_text.color = color.yellow
+
+        
     # --- 3. GHI ĐÈ HÀM NHẬN SÁT THƯƠNG ĐỂ KHÔNG BỎ CHẠY ---
     def take_damage(self, amount):
         self.hp -= amount
