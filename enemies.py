@@ -12,55 +12,51 @@ import items
 import sound_manager
 import stats
 
+active_boss_huds = []
+
 class BossHUD(Entity):
     def __init__(self):
-        # Gắn vào camera.ui để nó không di chuyển theo camera
         super().__init__(parent=camera.ui, enabled=False)
+        self.bg = Entity(parent=self, model='quad', color=color.black66, scale=(0.8, 0.04))
+        self.bar = Entity(parent=self, model='quad', color=color.magenta, scale=(0.78, 0.03), z=-0.01)
+        self.name_text = Text(parent=self, text="", origin=(0,0), scale=1.5, color=color.white)
         
-        # Nền đen cho thanh máu
-        self.bg = Entity(parent=self, model='quad', color=color.black66, 
-                         scale=(0.8, 0.04), position=(0, 0.45))
-        
-        # Thanh máu chính (Màu tím/hồng giống Minecraft)
-        self.bar = Entity(parent=self, model='quad', color=color.magenta, 
-                          scale=(0.78, 0.03), position=(0, 0.45), z=-0.01)
-        
-        # Tên Boss hiện phía trên thanh máu
-        self.name_text = Text(parent=self, text="BOSS", origin=(0,0), 
-                              y=0.48, scale=1.5, color=color.white)
+        active_boss_huds.append(self)
 
-    def update_bar(self, name, hp, max_hp):
+    def update_bar(self, name, hp, max_hp, bar_color):
         self.name_text.text = name
-        # Cập nhật độ dài thanh máu (scale_x nhân với độ dài gốc 0.78)
         self.bar.scale_x = max(0, (hp / max_hp) * 0.78)
-        self.enabled = True
+        self.bar.color = bar_color
+        
+        if not self.enabled:
+            self.enabled = True
+        
+        self.reposition() 
 
-# Khởi tạo một cái dùng chung cho cả game
-global_boss_hud = None
+    def reposition(self):
+        visible_huds = [hud for hud in active_boss_huds if hud.enabled]
+        
+        start_y = 0.45
+        for i, hud in enumerate(visible_huds):
+            pos_y = start_y - (i * 0.08) 
+            hud.bg.y = pos_y
+            hud.bar.y = pos_y
+            hud.name_text.y = pos_y + 0.03
 
-def update(self):
-        # ... (các logic trọng lực cũ) ...
-
-        player_pos = world.player.position
-        dist = (self.entity.position - player_pos).length()
-
-        # HIỂN THỊ BOSS BAR KHI Ở GẦN (Ví dụ trong vòng 15 mét)
-        if dist < 15 and self.hp > 0:
-            global_boss_hud.update_bar(self.__class__.__name__, self.hp, self.max_hp)
-            # Bạn có thể đổi màu tùy quái vật
-            if isinstance(self, Wolf):
-                global_boss_hud.bar.color = color.red
-            else:
-                global_boss_hud.bar.color = color.magenta
-        elif dist >= 15:
-            # Nếu người chơi chạy xa, tắt thanh boss đi
-            global_boss_hud.enabled = False
-
-        # ... (logic rượt đuổi/tấn công cũ) ...
-
-def die(self):
-        global_boss_hud.enabled = False # Tắt thanh máu khi boss chết
-        super().die()
+    def hide(self):
+        self.enabled = False
+        self.reposition() 
+        
+    def destroy_hud(self):
+        if self in active_boss_huds:
+            active_boss_huds.remove(self)
+        destroy(self.bg)
+        destroy(self.bar)
+        destroy(self.name_text)
+        destroy(self)
+        
+        if active_boss_huds:
+            active_boss_huds[0].reposition()
 
 rat_texture = []
 rat_model = None
@@ -81,7 +77,7 @@ def load_rat_assets():
             print(f"Failed loading rat texture {path}: {e}")
 
     if not rat_texture:
-        rat_texture = [color.rgb(120/255, 80/255, 40/255)]  # fallback màu nâu
+        rat_texture = [color.rgb(120/255, 80/255, 40/255)]  
 
     try:
         rat_model = load_model('model/rat/source/rat.fbx')
@@ -458,12 +454,14 @@ class Sahur(Rat):
         
         destroy(self.mesh)
         
-        global global_boss_hud
-        if global_boss_hud is None:
-            global_boss_hud = BossHUD()
+        self.boss_hud = BossHUD()
 
         self.health_bar.enabled = False 
         self.hp_text.enabled = False
+        if hasattr(self, 'name_text'):
+            self.name_text.enabled = False
+        if hasattr(self, 'name_bg'):
+            self.name_bg.enabled = False
         
         self.entity.scale = (1.2, 1.2, 1.2)
         self.visual = Entity(scale=(1, 1, 1))
@@ -503,17 +501,15 @@ class Sahur(Rat):
     def take_damage(self, amount):
         self.hp -= amount
         
-        global global_boss_hud
-        if global_boss_hud is not None and global_boss_hud.enabled:
-            global_boss_hud.update_bar("TUNG TUNG SAHUR", self.hp, self.max_hp)
+        if self.boss_hud.enabled:
+            self.boss_hud.update_bar("TUNG TUNG SAHUR", self.hp, self.max_hp, color.magenta)
 
         if self.hp <= 0:
             self.die()
 
     def die(self):
-        global global_boss_hud
-        if global_boss_hud is not None:
-            global_boss_hud.enabled = False
+        if hasattr(self, 'boss_hud'):
+            self.boss_hud.destroy_hud()
             
         destroy(self.visual)
         if self.actor:
@@ -544,14 +540,11 @@ class Sahur(Rat):
         dist = (self.entity.position - player_pos).length()
         direction = (player_pos - self.entity.position).normalized()
 
-        global global_boss_hud
         if dist < 20: 
-            global_boss_hud.update_bar("TUNG TUNG SAHUR", self.hp, self.max_hp)
-            global_boss_hud.bar.color = color.magenta 
-            global_boss_hud.enabled = True
+            self.boss_hud.update_bar("TUNG TUNG SAHUR", self.hp, self.max_hp, color.magenta)
         else:
-            if global_boss_hud.enabled and global_boss_hud.name_text.text == "TUNG TUNG SAHUR":
-                global_boss_hud.enabled = False
+            if self.boss_hud.enabled:
+                self.boss_hud.hide()
 
         if dist > 2.0:
             self._switch('run')
@@ -573,7 +566,7 @@ def spawn_sahur(position):
     enemies.append(s)
     return s
 
-#quai vat soi
+# Quái vật sói
 try:
     wolf_texture = load_texture('model/werewolf/lambert1_albedo.jpg')
 except Exception as e:
@@ -585,12 +578,15 @@ class Wolf(Rat):
         
         destroy(self.mesh)
         
-        global global_boss_hud
-        if global_boss_hud is None:
-            global_boss_hud = BossHUD()
+        self.boss_hud = BossHUD()
 
         self.health_bar.enabled = False 
         self.hp_text.enabled = False
+        
+        if hasattr(self, 'name_text'):
+            self.name_text.enabled = False
+        if hasattr(self, 'name_bg'):
+            self.name_bg.enabled = False
         
         self.entity.scale = (0.8, 0.8, 0.8) 
         self.mesh = Entity(parent=self.entity)
@@ -615,17 +611,15 @@ class Wolf(Rat):
     def take_damage(self, amount):
         self.hp -= amount
         
-        global global_boss_hud
-        if global_boss_hud is not None and global_boss_hud.enabled:
-            global_boss_hud.update_bar("WEREWOLF", self.hp, self.max_hp)
+        if self.boss_hud.enabled:
+            self.boss_hud.update_bar("WEREWOLF", self.hp, self.max_hp, color.red)
 
         if self.hp <= 0:
             self.die()
 
     def die(self):
-        global global_boss_hud
-        if global_boss_hud is not None:
-            global_boss_hud.enabled = False
+        if hasattr(self, 'boss_hud'):
+            self.boss_hud.destroy_hud()
             
         super().die()
 
@@ -635,7 +629,7 @@ class Wolf(Rat):
         import world
         import inventory
 
-        if self.hp <= 0:
+        if self.hp <= 0 or getattr(self, 'state', '') == 'DEAD':
             return
 
         self.velocity_y -= 9.81 * time.dt
@@ -648,14 +642,11 @@ class Wolf(Rat):
         dist = (self.entity.position - player_pos).length()
         direction = (player_pos - self.entity.position)
 
-        global global_boss_hud
         if dist < 20: 
-            global_boss_hud.update_bar("WEREWOLF", self.hp, self.max_hp)
-            global_boss_hud.bar.color = color.red # Màu đỏ máu cho Sói
-            global_boss_hud.enabled = True
+            self.boss_hud.update_bar("WEREWOLF", self.hp, self.max_hp, color.red)
         else:
-            if global_boss_hud.enabled and global_boss_hud.name_text.text == "WEREWOLF":
-                global_boss_hud.enabled = False
+            if self.boss_hud.enabled:
+                self.boss_hud.hide()
 
         if direction.length() > 0:
             self.face_direction(direction)
@@ -827,7 +818,7 @@ def spawn_dog_thief(position):
     enemies.append(dt)
     return dt
 
-#boss nam doc
+# Boss nấm độc
 try:
     mushroom_texture = load_texture('model/monsterMushroom/GribUV_lambert3_BaseColor.png')
 except Exception as e:
@@ -839,14 +830,14 @@ class MushroomMonster(Rat):
         
         destroy(self.mesh)
 
-        global global_boss_hud
-        if global_boss_hud is None:
-            global_boss_hud = BossHUD()
+        self.boss_hud = BossHUD()
 
         self.health_bar.enabled = False 
         self.hp_text.enabled = False
         if hasattr(self, 'name_text'):
-            self.name_text.color = color.magenta 
+            self.name_text.enabled = False
+        if hasattr(self, 'name_bg'):
+            self.name_bg.enabled = False
         
         self.entity.scale = (0.5, 0.8, 0.5) 
         self.mesh = Entity(parent=self.entity)
@@ -873,17 +864,15 @@ class MushroomMonster(Rat):
     def take_damage(self, amount):
         self.hp -= amount
         
-        global global_boss_hud
-        if global_boss_hud is not None and global_boss_hud.enabled:
-            global_boss_hud.update_bar("QUÁI VẬT NẤM", self.hp, self.max_hp)
+        if self.boss_hud.enabled:
+            self.boss_hud.update_bar("QUÁI VẬT NẤM", self.hp, self.max_hp, color.magenta)
 
         if self.hp <= 0:
             self.die()
 
     def die(self):
-        global global_boss_hud
-        if global_boss_hud is not None:
-            global_boss_hud.enabled = False
+        if hasattr(self, 'boss_hud'):
+            self.boss_hud.destroy_hud()
             
         super().die() 
 
@@ -893,7 +882,7 @@ class MushroomMonster(Rat):
         import world
         import inventory
         
-        if self.hp <= 0:
+        if self.hp <= 0 or getattr(self, 'state', '') == 'DEAD':
             return
             
         self.velocity_y -= 18.0 * time.dt 
@@ -905,14 +894,11 @@ class MushroomMonster(Rat):
         player_pos = world.player.position
         dist = (self.entity.position - player_pos).length()
         
-        global global_boss_hud
         if dist < 20:
-            global_boss_hud.update_bar("QUÁI VẬT NẤM", self.hp, self.max_hp)
-            global_boss_hud.bar.color = color.magenta 
-            global_boss_hud.enabled = True
+            self.boss_hud.update_bar("QUÁI VẬT NẤM", self.hp, self.max_hp, color.magenta)
         else:
-            if global_boss_hud.enabled and global_boss_hud.name_text.text == "QUÁI VẬT NẤM":
-                global_boss_hud.enabled = False
+            if self.boss_hud.enabled:
+                self.boss_hud.hide()
 
         if dist > 2.0:
             direction = (player_pos - self.entity.position).normalized()
@@ -931,21 +917,19 @@ def spawn_mushroom(position):
     enemies.append(m)
     return m
 
+# Boss khung long t rex
 try:
     dino_texture = load_texture('model/dinosaur/T Rex - Battling.png')
 except Exception as e:
     dino_texture = color.rgb(50, 100, 40)
 
-# Boss khung long t rex
 class Dinosaur(Rat):
     def __init__(self, position):
         super().__init__(position, name="Khủng Long T-Rex", max_hp=200, ui_height=0.2, speed=2.5, attack_damage=25) 
         
         destroy(self.mesh)
 
-        global global_boss_hud
-        if global_boss_hud is None:
-            global_boss_hud = BossHUD()
+        self.boss_hud = BossHUD()
 
         self.health_bar.enabled = False 
         self.hp_text.enabled = False
@@ -981,17 +965,15 @@ class Dinosaur(Rat):
     def take_damage(self, amount):
         self.hp -= amount
         
-        global global_boss_hud
-        if global_boss_hud is not None and global_boss_hud.enabled:
-            global_boss_hud.update_bar("KHỦNG LONG T-REX", self.hp, self.max_hp)
+        if self.boss_hud.enabled:
+            self.boss_hud.update_bar("KHỦNG LONG T-REX", self.hp, self.max_hp, color.orange)
 
         if self.hp <= 0:
             self.die()
 
     def die(self):
-        global global_boss_hud
-        if global_boss_hud is not None:
-            global_boss_hud.enabled = False
+        if hasattr(self, 'boss_hud'):
+            self.boss_hud.destroy_hud()
             
         super().die() 
 
@@ -1013,14 +995,11 @@ class Dinosaur(Rat):
         player_pos = world.player.position
         dist = (self.entity.position - player_pos).length()
         
-        global global_boss_hud
         if dist < 30: 
-            global_boss_hud.update_bar("KHỦNG LONG T-REX", self.hp, self.max_hp)
-            global_boss_hud.bar.color = color.orange 
-            global_boss_hud.enabled = True
+            self.boss_hud.update_bar("KHỦNG LONG T-REX", self.hp, self.max_hp, color.orange)
         else:
-            if global_boss_hud.enabled and global_boss_hud.name_text.text == "KHỦNG LONG T-REX":
-                global_boss_hud.enabled = False
+            if self.boss_hud.enabled:
+                self.boss_hud.hide()
 
         if dist > 4.0: 
             direction = (player_pos - self.entity.position).normalized()
