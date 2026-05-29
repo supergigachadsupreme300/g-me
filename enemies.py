@@ -131,23 +131,19 @@ def find_enemy_by_entity(entity):
 
 
 class Rat:
-    # Thêm các tham số mặc định để khi các con khác kế thừa dễ dàng đổi tên và máu
     def __init__(self, position, name="Chuột", max_hp=15, ui_height=2.0, speed=2.2, attack_damage=4):
         load_rat_assets()
         position = Vec3(position.x, 0.0, position.z)
         
-        # CHỈNH SỬA: Tách riêng phần Entity gốc để chứa mô hình
-        # Đây là khối hộp tàng hình dùng để va chạm (hitbox)
         self.entity = Entity(model='cube', color=color.clear, position=position, scale=(0.8, 0.8, 0.8), collider='box')
         self.entity.y = self.entity.scale_y / 2 + 0.05
         
-        # Phần hiển thị mô hình con chuột
         self.mesh = Entity(parent=self.entity, double_sided=True)
         texture_choice = random.choice(rat_texture)
         
         if rat_model not in (None, 'cube'):
             self.mesh.model = rat_model
-            self.mesh.scale = (0.1, 0.1, 0.1) # Tỷ lệ mô hình chuột
+            self.mesh.scale = (0.1, 0.1, 0.1) 
             self.mesh.rotation_y = 180
             if hasattr(texture_choice, 'width'):
                 self.mesh.texture = texture_choice
@@ -164,37 +160,25 @@ class Rat:
 
         self.velocity_y = 0
         
-        # Các chỉ số sinh tồn và chiến đấu (lấy từ tham số truyền vào)
         self.hp = max_hp
         self.max_hp = max_hp
         self.speed = speed
         self.attack_damage = attack_damage
         self.attack_cooldown = 1.0
         self.last_attack_time = 0
-        
-        # ==========================================
-        # GIAO DIỆN CHUNG CHO MỌI QUÁI VẬT (UI)
-        # ==========================================
-        
-        # 1. Thanh máu xanh lá
+
         self.health_bar = Entity(parent=self.entity, model='cube', color=color.green, 
                                  y=ui_height, z=1.5, scale=(3, 0.2, 1))
         
-        # 2. Số lượng máu
         self.hp_text = Text(parent=self.entity, text=f"{self.hp}/{self.max_hp}",
                             y=ui_height, z=1.4, scale=10, billboard=True, origin=(0, 0), color=color.red)
         
-        # 3. Nền đen cho Tên
         self.name_bg = Entity(parent=self.entity, model='cube', color=color.black, 
                               y=ui_height + 0.5, z=1.5, scale=(4.0, 0.3, 1))
         
-        # 4. Chữ hiển thị tên
         self.name_text = Text(parent=self.entity, text=name, 
                               y=ui_height + 0.5, z=1.4, scale=20, billboard=True, origin=(0, 0), color=color.yellow)
         
-        # ==========================================
-        # LOGIC AI (Giữ nguyên của bạn)
-        # ==========================================
         self.state = SEARCH_WHEAT
         self.target_field = None
         self.target_building = None
@@ -451,7 +435,7 @@ def spawn_grasshopper(position):
     enemies.append(g)
     return g
 
-#quai vat tung tung sahur
+#Boss tung tung sahur
 tex_sahur_path = 'model/tungtungsahur/shaded.png'
 sahur_texture = load_texture(tex_sahur_path)
 
@@ -947,13 +931,12 @@ def spawn_mushroom(position):
     enemies.append(m)
     return m
 
-#boss khung long
 try:
     dino_texture = load_texture('model/dinosaur/T Rex - Battling.png')
 except Exception as e:
     dino_texture = color.rgb(50, 100, 40)
 
-# Boss khủng long
+# Boss khung long t rex
 class Dinosaur(Rat):
     def __init__(self, position):
         super().__init__(position, name="Khủng Long T-Rex", max_hp=200, ui_height=0.2, speed=2.5, attack_damage=25) 
@@ -1056,7 +1039,7 @@ def spawn_dinosaur(position):
     enemies.append(d)
     return d
 
-# Quái vật lúa kiêu ngạo
+#quai vat luas
 try:
     arrogant_wheat_texture = load_texture('model/wheat/WheatTEX.png')
 except Exception as e:
@@ -1064,7 +1047,7 @@ except Exception as e:
 
 class ArrogantWheat(Rat):
     def __init__(self, position):
-        super().__init__(position, name="Lúa Kiêu Ngạo", max_hp=40, ui_height=2.5, speed=4.0, attack_damage=8) 
+        super().__init__(position, name="Lúa Kiêu Ngạo", max_hp=40, ui_height=0.5, speed=4.0, attack_damage=8) 
         
 
         self.entity.scale = (0.6, 2.0, 0.6) 
