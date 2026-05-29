@@ -640,13 +640,23 @@ except Exception as e:
 
 class Wolf(Rat):
     def __init__(self, position):
-        super().__init__(position)
+        # 1. GỌI CLASS GỐC (Rat)
+        super().__init__(position, name="Werewolf", max_hp=20, ui_height=4.0, speed=3.5, attack_damage=5)
         
-        self.entity.model = 'cube'
-        self.entity.color = color.clear
-        self.entity.texture = None
-        self.entity.scale = (0.8, 0.8, 0.8) 
+        # 2. XÓA MÔ HÌNH CHUỘT MẶC ĐỊNH
+        destroy(self.mesh)
+        
+        # 3. GỌI BOSS HUD TRÊN CÙNG MÀN HÌNH
+        global global_boss_hud
+        if global_boss_hud is None:
+            global_boss_hud = BossHUD()
 
+        # 4. TẮT THANH MÁU LƠ LỬNG (Chỉ giữ Tên và Nền đen trên đầu)
+        self.health_bar.enabled = False 
+        self.hp_text.enabled = False
+        
+        # --- NẠP MÔ HÌNH 3D RIÊNG CHO SÓI ---
+        self.entity.scale = (0.8, 0.8, 0.8) 
         self.mesh = Entity(parent=self.entity)
         try:
             self.mesh.model = load_model('model/werewolf/Animation_Werewolf_Idle_Beta_02.fbx')
@@ -664,61 +674,27 @@ class Wolf(Rat):
         self.mesh.scale = (0.02, 0.02, 0.02) 
         self.mesh.y = -0.5
         
-        self.hp = 20
-        self.max_hp = 20
-        self.speed = 3.5
-        self.attack_damage = 5
-        
+        # Sói đánh nhanh hơn chuột một chút
         self.attack_cooldown = 1.5 
-        self.last_attack_time = 0
-
-        self.health_bar.color = color.green
-        self.health_bar.z = 1.5
-        self.health_bar.y = 3.5  
-        self.health_bar.scale = (3, 0.2, 1) 
-
-        self.hp_text = Text(
-            text=f"{self.hp}/{self.max_hp}",
-            parent=self.entity,
-            y=3.5,        
-            z=1.4,        
-            scale=10,
-            billboard=True,
-            origin=(0, 0),
-            color=color.red
-        )
-        
-        self.name_bg = Entity(
-            parent=self.entity,
-            model='cube',
-            color=color.black,
-            y=4.0,        
-            z=1.5,                
-            scale=(4.0, 0.3, 1) 
-        )
-        
-        self.name_text.text = "Werewolf" 
-        self.name_text.y = 4.0      
-        self.name_text.z = 1.4      
-        self.name_text.scale = 16    
-        self.name_text.color = color.yellow
 
     def take_damage(self, amount):
         self.hp -= amount
         
-        self.health_bar.scale_x = max(0, self.hp / self.max_hp) * 3
-        
-        if hasattr(self, 'hp_text'):
-            self.hp_text.text = f"{int(self.hp)}/{self.max_hp}"
+        # CẬP NHẬT BOSS HUD KHI BỊ ĐÁNH
+        global global_boss_hud
+        if global_boss_hud is not None and global_boss_hud.enabled:
+            global_boss_hud.update_bar("WEREWOLF", self.hp, self.max_hp)
 
         if self.hp <= 0:
             self.die()
 
     def die(self):
-        if hasattr(self, 'hp_text'):
-            destroy(self.hp_text)
-        if hasattr(self, 'name_bg'):
-            destroy(self.name_bg)
+        # TẮT BOSS HUD KHI SÓI CHẾT
+        global global_boss_hud
+        if global_boss_hud is not None:
+            global_boss_hud.enabled = False
+            
+        # Gọi hàm die() của Rat để rơi đồ, dọn dẹp UI lơ lửng và xóa entity
         super().die()
 
     def update(self):
@@ -739,6 +715,18 @@ class Wolf(Rat):
         player_pos = world.player.position
         dist = (self.entity.position - player_pos).length()
         direction = (player_pos - self.entity.position)
+
+        # ==========================================
+        # LOGIC BẬT/TẮT BOSS HUD DỰA VÀO KHOẢNG CÁCH
+        # ==========================================
+        global global_boss_hud
+        if dist < 20: 
+            global_boss_hud.update_bar("WEREWOLF", self.hp, self.max_hp)
+            global_boss_hud.bar.color = color.red # Màu đỏ máu cho Sói
+            global_boss_hud.enabled = True
+        else:
+            if global_boss_hud.enabled and global_boss_hud.name_text.text == "WEREWOLF":
+                global_boss_hud.enabled = False
 
         if direction.length() > 0:
             self.face_direction(direction)
@@ -770,7 +758,7 @@ except Exception as e:
 class Thief(Rat):
     def __init__(self, position):
   
-        super().__init__(position, name="Ăn Trộm", max_hp=30, ui_height=1.9, speed=3.5, attack_damage=5)
+        super().__init__(position, name="Ăn Trộm", max_hp=30, ui_height=2.2, speed=3.5, attack_damage=5)
         
         self.entity.scale = (0.8, 1.3, 0.8)
         
