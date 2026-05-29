@@ -589,6 +589,7 @@ try:
     wolf_texture = load_texture('model/werewolf/lambert1_albedo.jpg')
 except Exception as e:
     wolf_texture = color.gray
+
 class Wolf(Rat):
     def __init__(self, position):
         super().__init__(position)
@@ -611,6 +612,7 @@ class Wolf(Rat):
         else:
             self.mesh.texture = None
             self.mesh.color = wolf_texture
+            
         self.mesh.scale = (0.02, 0.02, 0.02) 
         self.mesh.y = -0.5
         
@@ -619,14 +621,94 @@ class Wolf(Rat):
         self.speed = 3.5
         self.attack_damage = 5
         
-        self.health_bar.y = 1.2
-        self.health_bar.color = color.blue
+        self.attack_cooldown = 1.5 
+        self.last_attack_time = 0
+
+        self.health_bar.color = color.green
+        self.health_bar.z = 1.5
+        self.health_bar.y = 3.5  
+        self.health_bar.scale = (3, 0.2, 1) 
+
+        self.hp_text = Text(
+            text=f"{self.hp}/{self.max_hp}",
+            parent=self.entity,
+            y=3.5,        
+            z=1.4,        
+            scale=10,
+            billboard=True,
+            origin=(0, 0),
+            color=color.red
+        )
+        
+        self.name_bg = Entity(
+            parent=self.entity,
+            model='cube',
+            color=color.black,
+            y=4.0,        
+            z=1.5,                
+            scale=(4.0, 0.3, 1) 
+        )
+        
+        self.name_text.text = "Werewolf" 
+        self.name_text.y = 4.0      
+        self.name_text.z = 1.4      
+        self.name_text.scale = 16    
+        self.name_text.color = color.yellow
+
+    def take_damage(self, amount):
+        self.hp -= amount
+        
+        self.health_bar.scale_x = max(0, self.hp / self.max_hp) * 3
+        
+        if hasattr(self, 'hp_text'):
+            self.hp_text.text = f"{int(self.hp)}/{self.max_hp}"
+
+        if self.hp <= 0:
+            self.die()
+
+    def die(self):
+        if hasattr(self, 'hp_text'):
+            destroy(self.hp_text)
+        if hasattr(self, 'name_bg'):
+            destroy(self.name_bg)
+        super().die()
+
+    def update(self):
+        import time as pytime_mod
+        from ursina import time
+        import world
+        import inventory
+
+        if self.hp <= 0:
+            return
+
+        self.velocity_y -= 9.81 * time.dt
+        self.entity.y += self.velocity_y * time.dt
+        if self.entity.y < self.entity.scale_y / 2:
+            self.entity.y = self.entity.scale_y / 2
+            self.velocity_y = 0
+
+        player_pos = world.player.position
+        dist = (self.entity.position - player_pos).length()
+        direction = (player_pos - self.entity.position)
+
+        if direction.length() > 0:
+            self.face_direction(direction)
+
+        if dist > 2.0:
+            self.entity.position += direction.normalized() * self.speed * time.dt
+        else:
+            if pytime_mod.time() - self.last_attack_time > self.attack_cooldown:
+                self.last_attack_time = pytime_mod.time()
+                world.player.hp -= self.attack_damage
+                inventory.show_message(f"Bạn đã bị người sói cắn! HP: {world.player.hp}/100", 2)
 
 def spawn_wolf(position):
     w = Wolf(position)
     enemies.append(w)
     return w
 
+#an trom
 try:
     thief_texture = load_texture('model/thief/tenant texture.png')
 except Exception as e:
@@ -655,37 +737,93 @@ class Thief:
             self.mesh.color = thief_texture
             
         self.mesh.scale = (0.02, 0.02, 0.01)
-        self.mesh.y = -0.6
+        self.mesh.y = -0.5
         
         self.hp = 30
         self.max_hp = 30
         self.speed = 3.5
         self.attack_damage = 5 
         self.last_attack_time = 0
-        self.health_bar = Entity(parent=self.entity, y=1.2, model='cube', color=color.red, scale=(1, 0.1, 0.1))
+
+        self.health_bar = Entity(parent=self.entity, model='cube', color=color.green)
+        self.health_bar.y = 1.5   
+        self.health_bar.z = 1.5
+        self.health_bar.scale = (3, 0.2, 1)
+
+        from ursina import Text
+        self.hp_text = Text(
+            text=f"{self.hp}/{self.max_hp}",
+            parent=self.entity,
+            y=1.5,
+            z=1.4,        
+            scale=10,
+            billboard=True,
+            origin=(0, 0),
+            color=color.red
+        )
+        
+        self.name_bg = Entity(
+            parent=self.entity,
+            model='cube',
+            color=color.black,
+            y=1.9,            
+            z=1.5,                
+            scale=(4.0, 0.3, 1) 
+        )
+        
+        self.name_text = Text(
+            text="Ăn Trộm",       
+            parent=self.entity,
+            y=1.9,      
+            z=1.4,      
+            scale=16,    
+            billboard=True,
+            origin=(0, 0),
+            color=color.gray
+        )
 
     def take_damage(self, amount):
         self.hp -= amount
-        self.health_bar.scale_x = max(0, self.hp / self.max_hp)
+        
+        self.health_bar.scale_x = max(0, self.hp / self.max_hp) * 3
+        
+        if hasattr(self, 'hp_text'):
+            self.hp_text.text = f"{int(self.hp)}/{self.max_hp}"
+
         if self.hp <= 0:
             self.die()
 
     def die(self):
+        if hasattr(self, 'hp_text'):
+            destroy(self.hp_text)
+        if hasattr(self, 'name_text'):
+            destroy(self.name_text)
+        if hasattr(self, 'name_bg'):
+            destroy(self.name_bg)
+            
         if self in enemies:
             enemies.remove(self)
         destroy(self.entity)
 
     def update(self):
+        import time as pytime_mod
+        from ursina import time
+        import world
+        
         player_pos = world.player.position
         dist = (self.entity.position - player_pos).length()
         
         if dist > 2.5:
             direction = (player_pos - self.entity.position).normalized()
             self.entity.position += direction * self.speed * time.dt
-            self.entity.look_at(player_pos)
+            
+            from ursina import Vec3 
+            target_pos = Vec3(player_pos.x, self.entity.y, player_pos.z)
+            
+            self.entity.look_at(target_pos)
         else:
-            if pytime.time() - self.last_attack_time > 1.5:
-                self.last_attack_time = pytime.time()
+            if pytime_mod.time() - self.last_attack_time > 1.5:
+                self.last_attack_time = pytime_mod.time()
                 import inventory
                 if world.player is not None and world.player.money >= self.attack_damage:
                     world.player.money -= self.attack_damage
@@ -699,7 +837,7 @@ def spawn_thief(position):
     enemies.append(t)
     return t
 
-
+#cau tac
 class DogThief(Thief):
     def __init__(self, position):
         super().__init__(position) 
