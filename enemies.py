@@ -1,5 +1,5 @@
 import importlib.util
-from ursina import Entity, Text, color, Vec3, raycast, destroy, load_model, load_texture, time
+from ursina import Entity, Text, color, Vec3, raycast, destroy, load_model, load_texture, time, camera
 from math import atan2, degrees
 from direct.actor.Actor import Actor
 import time as pytime
@@ -11,6 +11,56 @@ import building_system
 import items
 import sound_manager
 import stats
+
+class BossHUD(Entity):
+    def __init__(self):
+        # Gắn vào camera.ui để nó không di chuyển theo camera
+        super().__init__(parent=camera.ui, enabled=False)
+        
+        # Nền đen cho thanh máu
+        self.bg = Entity(parent=self, model='quad', color=color.black66, 
+                         scale=(0.8, 0.04), position=(0, 0.45))
+        
+        # Thanh máu chính (Màu tím/hồng giống Minecraft)
+        self.bar = Entity(parent=self, model='quad', color=color.magenta, 
+                          scale=(0.78, 0.03), position=(0, 0.45), z=-0.01)
+        
+        # Tên Boss hiện phía trên thanh máu
+        self.name_text = Text(parent=self, text="BOSS", origin=(0,0), 
+                              y=0.48, scale=1.5, color=color.white)
+
+    def update_bar(self, name, hp, max_hp):
+        self.name_text.text = name
+        # Cập nhật độ dài thanh máu (scale_x nhân với độ dài gốc 0.78)
+        self.bar.scale_x = max(0, (hp / max_hp) * 0.78)
+        self.enabled = True
+
+# Khởi tạo một cái dùng chung cho cả game
+global_boss_hud = None
+
+def update(self):
+        # ... (các logic trọng lực cũ) ...
+
+        player_pos = world.player.position
+        dist = (self.entity.position - player_pos).length()
+
+        # HIỂN THỊ BOSS BAR KHI Ở GẦN (Ví dụ trong vòng 15 mét)
+        if dist < 15 and self.hp > 0:
+            global_boss_hud.update_bar(self.__class__.__name__, self.hp, self.max_hp)
+            # Bạn có thể đổi màu tùy quái vật
+            if isinstance(self, Wolf):
+                global_boss_hud.bar.color = color.red
+            else:
+                global_boss_hud.bar.color = color.magenta
+        elif dist >= 15:
+            # Nếu người chơi chạy xa, tắt thanh boss đi
+            global_boss_hud.enabled = False
+
+        # ... (logic rượt đuổi/tấn công cũ) ...
+
+def die(self):
+        global_boss_hud.enabled = False # Tắt thanh máu khi boss chết
+        super().die()
 
 rat_texture = []
 rat_model = None
@@ -81,45 +131,70 @@ def find_enemy_by_entity(entity):
 
 
 class Rat:
-    def __init__(self, position):
+    # Thêm các tham số mặc định để khi các con khác kế thừa dễ dàng đổi tên và máu
+    def __init__(self, position, name="Chuột", max_hp=15, ui_height=2.0, speed=2.2, attack_damage=4):
         load_rat_assets()
         position = Vec3(position.x, 0.0, position.z)
-        texture_choice = random.choice(rat_texture)
-
-        if rat_model not in (None, 'cube'):
-            entity_kwargs = {
-                'model': rat_model,
-                'position': position,
-                'scale': (0.08, 0.08, 0.08),
-                'rotation_y': 180,
-                'collider': 'box',
-                'double_sided': True,
-            }
-            if hasattr(texture_choice, 'width'):
-                entity_kwargs['texture'] = texture_choice
-                entity_kwargs['color'] = color.white
-            else:
-                entity_kwargs['color'] = texture_choice
-        else:
-            entity_kwargs = {
-                'model': 'cube',
-                'position': position,
-                'scale': (0.8, 0.8, 0.8),
-                'collider': 'box',
-            }
-            if hasattr(texture_choice, 'width'):
-                entity_kwargs['texture'] = texture_choice
-                entity_kwargs['color'] = color.white
-            else:
-                entity_kwargs['color'] = texture_choice
-
-        self.entity = Entity(**entity_kwargs)
+        
+        # CHỈNH SỬA: Tách riêng phần Entity gốc để chứa mô hình
+        # Đây là khối hộp tàng hình dùng để va chạm (hitbox)
+        self.entity = Entity(model='cube', color=color.clear, position=position, scale=(0.8, 0.8, 0.8), collider='box')
         self.entity.y = self.entity.scale_y / 2 + 0.05
-        self.entity.double_sided = True  # Fix texture appearing inside
+        
+        # Phần hiển thị mô hình con chuột
+        self.mesh = Entity(parent=self.entity, double_sided=True)
+        texture_choice = random.choice(rat_texture)
+        
+        if rat_model not in (None, 'cube'):
+            self.mesh.model = rat_model
+            self.mesh.scale = (0.1, 0.1, 0.1) # Tỷ lệ mô hình chuột
+            self.mesh.rotation_y = 180
+            if hasattr(texture_choice, 'width'):
+                self.mesh.texture = texture_choice
+                self.mesh.color = color.white
+            else:
+                self.mesh.color = texture_choice
+        else:
+            self.mesh.model = 'cube'
+            if hasattr(texture_choice, 'width'):
+                self.mesh.texture = texture_choice
+                self.mesh.color = color.white
+            else:
+                self.mesh.color = texture_choice
 
         self.velocity_y = 0
-        self.health_bar = Entity(model='cube', color=color.red, scale=(0.5, 0.05, 0.05), parent=self.entity, position=(0, 0.8, 0), origin=(0, 0))
-        self.name_text = Text(text=self.__class__.__name__, parent=self.entity, position=(0, 1.1, 0), origin=(0, 0), scale=1, color=color.white, billboard=True, always_on_top=True)
+        
+        # Các chỉ số sinh tồn và chiến đấu (lấy từ tham số truyền vào)
+        self.hp = max_hp
+        self.max_hp = max_hp
+        self.speed = speed
+        self.attack_damage = attack_damage
+        self.attack_cooldown = 1.0
+        self.last_attack_time = 0
+        
+        # ==========================================
+        # GIAO DIỆN CHUNG CHO MỌI QUÁI VẬT (UI)
+        # ==========================================
+        
+        # 1. Thanh máu xanh lá
+        self.health_bar = Entity(parent=self.entity, model='cube', color=color.green, 
+                                 y=ui_height, z=1.5, scale=(3, 0.2, 1))
+        
+        # 2. Số lượng máu
+        self.hp_text = Text(parent=self.entity, text=f"{self.hp}/{self.max_hp}",
+                            y=ui_height, z=1.4, scale=10, billboard=True, origin=(0, 0), color=color.red)
+        
+        # 3. Nền đen cho Tên
+        self.name_bg = Entity(parent=self.entity, model='cube', color=color.black, 
+                              y=ui_height + 0.5, z=1.5, scale=(4.0, 0.3, 1))
+        
+        # 4. Chữ hiển thị tên
+        self.name_text = Text(parent=self.entity, text=name, 
+                              y=ui_height + 0.5, z=1.4, scale=20, billboard=True, origin=(0, 0), color=color.yellow)
+        
+        # ==========================================
+        # LOGIC AI (Giữ nguyên của bạn)
+        # ==========================================
         self.state = SEARCH_WHEAT
         self.target_field = None
         self.target_building = None
@@ -127,14 +202,7 @@ class Rat:
         self.wander_timer = pytime.time()
         self.flee_target = None
         self.flee_timer = 0
-        self.hp = 15
-        self.max_hp = 15
-        self.speed = 2.2
-        self.attack_damage = 4
-        self.attack_cooldown = 1.0
-        self.last_attack_time = 0
-        self.sub_entities = [self.entity]
-
+        self.sub_entities = [self.entity, self.mesh]
     def pick_wander_target(self):
         edge = world.GROUND_HALF - 2
         if random.random() < 0.5:
@@ -248,10 +316,16 @@ class Rat:
 
     def take_damage(self, amount):
         self.hp -= amount
-        self.health_bar.scale_x = max(0, self.hp / self.max_hp) * 0.5
+        
+        self.health_bar.scale_x = max(0, self.hp / self.max_hp) * 3
+        
+        if hasattr(self, 'hp_text'):
+            self.hp_text.text = f"{int(self.hp)}/{self.max_hp}"
+
         if self.hp <= 0:
             self.die()
             return
+            
         self.state = FLEE_PLAYER
         player_pos = world.player.position
         away = (self.entity.position - player_pos)
@@ -262,6 +336,11 @@ class Rat:
 
     def die(self):
         self.state = DEAD
+        
+        if hasattr(self, 'hp_text'): destroy(self.hp_text)
+        if hasattr(self, 'name_text'): destroy(self.name_text)
+        if hasattr(self, 'name_bg'): destroy(self.name_bg)
+        
         try:
             loot_choices = ["seed", "peashooter seed", "fertilizer", "ammo"]
             dropped = random.choice(loot_choices)
@@ -279,10 +358,10 @@ class Rat:
             stats.record_enemy_kill(self.__class__.__name__)
         except Exception:
             pass
+            
         destroy(self.entity)
         if self in enemies:
             enemies.remove(self)
-
 
 def spawn_rat(position):
     load_rat_assets()
@@ -434,16 +513,19 @@ def _sahur_apply_tex(actor):
 
 class Sahur(Rat):
     def __init__(self, position):
-        super().__init__(position)
-
-        # 1. HITBOX VẬT LÝ
-        self.entity.model = 'cube'
-        self.entity.color = color.clear 
-        self.entity.texture = None
-        self.entity.scale = (1.2, 1.2, 1.2)
+        super().__init__(position, name="Tung Tung Sahur", max_hp=35, ui_height=3.2, speed=1.5, attack_damage=8)
         
-        self.visual = Entity(scale=(1, 1, 1))
+        destroy(self.mesh)
+        
+        global global_boss_hud
+        if global_boss_hud is None:
+            global_boss_hud = BossHUD()
 
+        self.health_bar.enabled = False 
+        self.hp_text.enabled = False
+        
+        self.entity.scale = (1.2, 1.2, 1.2)
+        self.visual = Entity(scale=(1, 1, 1))
         self.actor = None
         try:
             self.actor = Actor(
@@ -455,59 +537,16 @@ class Sahur(Rat):
             )
             self.actor.reparent_to(self.visual)
             self.actor.setHpr(180, 0, 0)
-
             self.actor.setScale(0.3, 0.3, 0.3)
-            
             self.actor.loop('run')
             self._anim = 'run'
             
         except Exception as e:
             print(f"[LỖI LOAD GLB] {e}")
-            print("GỢI Ý: Bạn đã mở Terminal và gõ 'pip install panda3d-gltf' chưa?")
             self.visual.model = 'cube'
             self.visual.color = color.red
             self.visual.scale = (2, 2, 2) 
             self._anim = None
-
-        self.hp = 35
-        self.max_hp = 35
-        self.speed = 1.5
-        self.attack_damage = 8
-        self.attack_cooldown = 2.0
-        self.last_attack_time = 0
-        self.health_bar.y = 1.2
-        self.velocity_y = 0
-
-        self.health_bar.color = color.green
-        self.health_bar.z = 1.5
-        self.health_bar.y = 2.5 
-        self.health_bar.scale = (3, 0.2, 1) 
-
-        self.hp_text = Text(
-            text=f"{self.hp}/{self.max_hp}",
-            parent=self.entity,
-            y=2.5,
-            z=1.4,        
-            scale=10,
-            billboard=True,
-            origin=(0, 0),
-            color=color.red
-        )
-        
-        self.name_bg = Entity(
-            parent=self.entity,
-            model='cube',
-            color=color.black,
-            y=3.0,            
-            z=1.5,                
-            scale=(3.0, 0.3, 1) 
-        )
-        
-        self.name_text.text = "Tung Tung Sahur" 
-        self.name_text.y = 3.0      
-        self.name_text.z = 1.4     
-        self.name_text.scale = 16    
-        self.name_text.color = color.brown
 
     def _switch(self, state):
         if self._anim == state or self.actor is None:
@@ -516,26 +555,25 @@ class Sahur(Rat):
         self.actor.loop(state) 
         if state == 'attack':
             try:
-              sound_manager.play('bonk')
+                sound_manager.play('bonk')
             except Exception:
                 pass
+
     def take_damage(self, amount):
         self.hp -= amount
         
-        # Tỷ lệ scale X = 3 giống với thiết lập ban đầu
-        self.health_bar.scale_x = max(0, self.hp / self.max_hp) * 3
-        
-        if hasattr(self, 'hp_text'):
-            self.hp_text.text = f"{int(self.hp)}/{self.max_hp}"
+        global global_boss_hud
+        if global_boss_hud is not None and global_boss_hud.enabled:
+            global_boss_hud.update_bar("TUNG TUNG SAHUR", self.hp, self.max_hp)
 
         if self.hp <= 0:
             self.die()
 
     def die(self):
-        if hasattr(self, 'hp_text'):
-            destroy(self.hp_text)
-        if hasattr(self, 'name_bg'):
-            destroy(self.name_bg)
+        global global_boss_hud
+        if global_boss_hud is not None:
+            global_boss_hud.enabled = False
+            
         destroy(self.visual)
         if self.actor:
             try:
@@ -543,6 +581,7 @@ class Sahur(Rat):
                 self.actor.removeNode()
             except Exception:
                 pass
+                
         super().die()
 
     def update(self):
@@ -563,6 +602,15 @@ class Sahur(Rat):
         player_pos = world.player.position
         dist = (self.entity.position - player_pos).length()
         direction = (player_pos - self.entity.position).normalized()
+
+        global global_boss_hud
+        if dist < 20: 
+            global_boss_hud.update_bar("TUNG TUNG SAHUR", self.hp, self.max_hp)
+            global_boss_hud.bar.color = color.magenta 
+            global_boss_hud.enabled = True
+        else:
+            if global_boss_hud.enabled and global_boss_hud.name_text.text == "TUNG TUNG SAHUR":
+                global_boss_hud.enabled = False
 
         if dist > 2.0:
             self._switch('run')
@@ -719,14 +767,16 @@ try:
 except Exception as e:
     dogthief_texture = color.rgb(50, 50, 50)
 
-class Thief:
+class Thief(Rat):
     def __init__(self, position):
-        self.entity = Entity(model='cube', color=color.clear, scale=(0.8, 1.8, 0.8), position=position, collider='box')
+  
+        super().__init__(position, name="Ăn Trộm", max_hp=30, ui_height=1.9, speed=3.5, attack_damage=5)
         
-        self.mesh = Entity(parent=self.entity)
+        self.entity.scale = (0.8, 1.3, 0.8)
+        
         try:
             self.mesh.model = load_model('model/thief/Ready Tower Tenant walk.fbx')
-        except Exception as e:
+        except Exception:
             self.mesh.model = 'cube'
             
         if hasattr(thief_texture, 'width'):
@@ -737,89 +787,31 @@ class Thief:
             self.mesh.color = thief_texture
             
         self.mesh.scale = (0.02, 0.02, 0.01)
-        self.mesh.y = -0.5
-        
-        self.hp = 30
-        self.max_hp = 30
-        self.speed = 3.5
-        self.attack_damage = 5 
-        self.last_attack_time = 0
-
-        self.health_bar = Entity(parent=self.entity, model='cube', color=color.green)
-        self.health_bar.y = 1.5   
-        self.health_bar.z = 1.5
-        self.health_bar.scale = (3, 0.2, 1)
-
-        from ursina import Text
-        self.hp_text = Text(
-            text=f"{self.hp}/{self.max_hp}",
-            parent=self.entity,
-            y=1.5,
-            z=1.4,        
-            scale=10,
-            billboard=True,
-            origin=(0, 0),
-            color=color.red
-        )
-        
-        self.name_bg = Entity(
-            parent=self.entity,
-            model='cube',
-            color=color.black,
-            y=1.9,            
-            z=1.5,                
-            scale=(4.0, 0.3, 1) 
-        )
-        
-        self.name_text = Text(
-            text="Ăn Trộm",       
-            parent=self.entity,
-            y=1.9,      
-            z=1.4,      
-            scale=16,    
-            billboard=True,
-            origin=(0, 0),
-            color=color.gray
-        )
-
-    def take_damage(self, amount):
-        self.hp -= amount
-        
-        self.health_bar.scale_x = max(0, self.hp / self.max_hp) * 3
-        
-        if hasattr(self, 'hp_text'):
-            self.hp_text.text = f"{int(self.hp)}/{self.max_hp}"
-
-        if self.hp <= 0:
-            self.die()
-
-    def die(self):
-        if hasattr(self, 'hp_text'):
-            destroy(self.hp_text)
-        if hasattr(self, 'name_text'):
-            destroy(self.name_text)
-        if hasattr(self, 'name_bg'):
-            destroy(self.name_bg)
-            
-        if self in enemies:
-            enemies.remove(self)
-        destroy(self.entity)
-
+        self.mesh.y = -0.6
+        self.mesh.rotation_y = 0 
+    
     def update(self):
         import time as pytime_mod
-        from ursina import time
+        from ursina import time, Vec3
         import world
         
+        if self.hp <= 0 or self.state == DEAD:
+            return
+            
+        self.velocity_y -= 9.81 * time.dt
+        self.entity.y += self.velocity_y * time.dt
+        if self.entity.y < self.entity.scale_y / 2:
+            self.entity.y = self.entity.scale_y / 2
+            self.velocity_y = 0
+
         player_pos = world.player.position
         dist = (self.entity.position - player_pos).length()
         
         if dist > 2.5:
             direction = (player_pos - self.entity.position).normalized()
             self.entity.position += direction * self.speed * time.dt
-            
-            from ursina import Vec3 
+
             target_pos = Vec3(player_pos.x, self.entity.y, player_pos.z)
-            
             self.entity.look_at(target_pos)
         else:
             if pytime_mod.time() - self.last_attack_time > 1.5:
@@ -831,7 +823,6 @@ class Thief:
                 elif world.player is not None:
                     world.player.money = 0
                     inventory.show_message("Ăn trộm: Ngươi cạn tiền rồi!", 2)
-
 def spawn_thief(position):
     t = Thief(position)
     enemies.append(t)
