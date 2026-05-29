@@ -966,7 +966,7 @@ class Dinosaur(Rat):
 
         self.health_bar.enabled = False 
         self.hp_text.enabled = False
-        
+
         if hasattr(self, 'name_text'):
             self.name_text.enabled = False
         if hasattr(self, 'name_bg'):
@@ -1152,15 +1152,14 @@ try:
 except Exception as e:
     zombie_texture = color.green 
 
+#zombie
 class Zombie(Rat):
     def __init__(self, position):
-        super().__init__(position) 
+        super().__init__(position, name="Zombie", max_hp=50, ui_height=1.8, speed=1.8, attack_damage=12) 
         
-        self.entity.model = 'cube'
-        self.entity.color = color.clear
         self.entity.scale = (0.8, 1.8, 0.8) 
-        
-        self.mesh = Entity(parent=self.entity)
+        self.health_bar.color = color.dark_gray 
+ 
         try:
             self.mesh.model = load_model('model/zombie/Disco.fbx')
         except Exception as e:
@@ -1179,25 +1178,28 @@ class Zombie(Rat):
         
         self.mesh.scale = (0.5, 0.5, 0.5) 
         self.mesh.y = -0.2
+        self.mesh.rotation_y = 360
         
-        self.hp = 50
-        self.max_hp = 50
-        self.speed = 1.8 
-        self.attack_damage = 12
         self.attack_cooldown = 2.0 
-        self.last_attack_time = 0
-        
-        self.health_bar.y = 1.2
-        self.health_bar.color = color.dark_gray 
-        self.velocity_y = 0 
 
+    def take_damage(self, amount):
+        self.hp -= amount
+        
+        self.health_bar.scale_x = max(0, self.hp / self.max_hp) * 3
+        
+        if hasattr(self, 'hp_text'):
+            self.hp_text.text = f"{int(self.hp)}/{self.max_hp}"
+
+        if self.hp <= 0:
+            self.die()
+            
     def update(self):
-        import time as pytime
+        import time as pytime_mod
         from ursina import time
         import world
         import inventory
         
-        if self.hp <= 0:
+        if self.hp <= 0 or getattr(self, 'state', '') == 'DEAD':
             return
             
         self.velocity_y -= 18.0 * time.dt 
@@ -1214,14 +1216,13 @@ class Zombie(Rat):
             self.entity.position += direction * self.speed * time.dt
             self.face_direction(direction)
         else:
-            if pytime.time() - self.last_attack_time > self.attack_cooldown:
-                self.last_attack_time = pytime.time()
+            direction = (player_pos - self.entity.position).normalized()
+            self.face_direction(direction)
+            if pytime_mod.time() - self.last_attack_time > self.attack_cooldown:
+                self.last_attack_time = pytime_mod.time()
                 
                 world.player.hp -= self.attack_damage
                 inventory.show_message(f"Bị ZOMBIE cắn! HP: {world.player.hp}/100", 2)
-                
-                direction = (player_pos - self.entity.position).normalized()
-                self.face_direction(direction)
 
 def spawn_zombie(position):
     z = Zombie(position)
