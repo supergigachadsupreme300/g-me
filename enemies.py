@@ -1047,7 +1047,7 @@ except Exception as e:
 
 class ArrogantWheat(Rat):
     def __init__(self, position):
-        super().__init__(position, name="Lúa Kiêu Ngạo", max_hp=40, ui_height=0.5, speed=4.0, attack_damage=8) 
+        super().__init__(position, name="Lúa Kiêu Ngạo", max_hp=40, ui_height=1.2, speed=4.0, attack_damage=8) 
         
 
         self.entity.scale = (0.6, 2.0, 0.6) 
