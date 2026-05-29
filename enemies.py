@@ -384,13 +384,9 @@ except Exception as e:
 
 class Grasshopper(Rat):
     def __init__(self, position):
-        super().__init__(position)
+        super().__init__(position, name="Châu Chấu", max_hp=8, ui_height=6.5, speed=4.0, attack_damage=2)
 
-        self.entity.model = 'cube'
-        self.entity.color = color.clear 
         self.entity.scale = (0.4, 0.4, 0.4) 
-        
-        self.mesh = Entity(parent=self.entity)
         
         try:
             self.mesh.model = load_model('model/grasshopper/source/grasshopper.obj')
@@ -407,41 +403,7 @@ class Grasshopper(Rat):
             
         self.mesh.scale = (0.1, 0.1, 0.1) 
         self.mesh.y = 3
-        
-        self.hp = 8
-        self.max_hp = 8
-        self.speed = 4.0 
-        self.attack_damage = 2
-        
-        self.health_bar.color = color.green
-        self.health_bar.z = 1.5
-        self.health_bar.y = 6.5
-        self.health_bar.scale = (3, 0.2, 1) 
-
         self.mesh.rotation_y = 90
-        
-        self.hp_text = Text(
-            text=f"{self.hp}/{self.max_hp}",
-            parent=self.entity,
-            y=6.5,
-            z=1.4,        
-            scale=10,
-            billboard=True,
-            origin=(0, 0),
-            color=color.red
-        )
-        self.name_bg = Entity(
-            parent=self.entity,
-            model='cube',
-            color=color.black,
-            y=7,               
-            z=1.5,                
-            scale=(4.0, 0.3, 1) 
-        )
-        self.name_text.y = 7      
-        self.name_text.z = 1.5        
-        self.name_text.scale = 20    
-        self.name_text.color = color.yellow
 
     def take_damage(self, amount):
         self.hp -= amount
@@ -460,14 +422,14 @@ class Grasshopper(Rat):
         import world
         import inventory
 
+        if self.hp <= 0 or self.state == 'DEAD': # Biến 'DEAD' kế thừa từ Rat
+            return
+
         self.velocity_y -= 9.81 * time.dt
         self.entity.y += self.velocity_y * time.dt
         if self.entity.y < self.entity.scale_y / 2:
             self.entity.y = self.entity.scale_y / 2
             self.velocity_y = 0
-        
-        if self.state == DEAD or self.hp <= 0:
-            return
 
         player_pos = world.player.position
         dist = (self.entity.position - player_pos).length()
@@ -483,11 +445,6 @@ class Grasshopper(Rat):
                 self.last_attack_time = pytime_mod.time()
                 world.player.hp -= self.attack_damage
                 inventory.show_message(f"Bị Châu chấu cắn! HP: {world.player.hp}/100", 2)
-                
-    def die(self):
-        if hasattr(self, 'hp_text'):
-            destroy(self.hp_text)
-        super().die()
 
 def spawn_grasshopper(position):
     g = Grasshopper(position)
@@ -640,22 +597,17 @@ except Exception as e:
 
 class Wolf(Rat):
     def __init__(self, position):
-        # 1. GỌI CLASS GỐC (Rat)
         super().__init__(position, name="Werewolf", max_hp=20, ui_height=4.0, speed=3.5, attack_damage=5)
         
-        # 2. XÓA MÔ HÌNH CHUỘT MẶC ĐỊNH
         destroy(self.mesh)
         
-        # 3. GỌI BOSS HUD TRÊN CÙNG MÀN HÌNH
         global global_boss_hud
         if global_boss_hud is None:
             global_boss_hud = BossHUD()
 
-        # 4. TẮT THANH MÁU LƠ LỬNG (Chỉ giữ Tên và Nền đen trên đầu)
         self.health_bar.enabled = False 
         self.hp_text.enabled = False
         
-        # --- NẠP MÔ HÌNH 3D RIÊNG CHO SÓI ---
         self.entity.scale = (0.8, 0.8, 0.8) 
         self.mesh = Entity(parent=self.entity)
         try:
@@ -674,13 +626,11 @@ class Wolf(Rat):
         self.mesh.scale = (0.02, 0.02, 0.02) 
         self.mesh.y = -0.5
         
-        # Sói đánh nhanh hơn chuột một chút
         self.attack_cooldown = 1.5 
 
     def take_damage(self, amount):
         self.hp -= amount
         
-        # CẬP NHẬT BOSS HUD KHI BỊ ĐÁNH
         global global_boss_hud
         if global_boss_hud is not None and global_boss_hud.enabled:
             global_boss_hud.update_bar("WEREWOLF", self.hp, self.max_hp)
@@ -689,12 +639,10 @@ class Wolf(Rat):
             self.die()
 
     def die(self):
-        # TẮT BOSS HUD KHI SÓI CHẾT
         global global_boss_hud
         if global_boss_hud is not None:
             global_boss_hud.enabled = False
             
-        # Gọi hàm die() của Rat để rơi đồ, dọn dẹp UI lơ lửng và xóa entity
         super().die()
 
     def update(self):
@@ -716,9 +664,6 @@ class Wolf(Rat):
         dist = (self.entity.position - player_pos).length()
         direction = (player_pos - self.entity.position)
 
-        # ==========================================
-        # LOGIC BẬT/TẮT BOSS HUD DỰA VÀO KHOẢNG CÁCH
-        # ==========================================
         global global_boss_hud
         if dist < 20: 
             global_boss_hud.update_bar("WEREWOLF", self.hp, self.max_hp)
@@ -820,7 +765,12 @@ def spawn_thief(position):
 class DogThief(Thief):
     def __init__(self, position):
         super().__init__(position) 
+        
         self.speed = 4.0 
+        
+        if hasattr(self, 'name_text'):
+            self.name_text.text = "Cẩu Tặc"
+            self.name_text.color = color.red 
         
         if hasattr(dogthief_texture, 'width'):
             self.mesh.texture = dogthief_texture
@@ -829,14 +779,26 @@ class DogThief(Thief):
             self.mesh.texture = None
             self.mesh.color = dogthief_texture
             
-        
     def update(self):
+        import time as pytime_mod
+        from ursina import time, Vec3
+        import world
         import pet 
+
+        if self.hp <= 0 or getattr(self, 'state', '') == 'DEAD':
+            return
+
+        self.velocity_y -= 9.81 * time.dt
+        self.entity.y += self.velocity_y * time.dt
+        if self.entity.y < self.entity.scale_y / 2:
+            self.entity.y = self.entity.scale_y / 2
+            self.velocity_y = 0
+
         target_dog = None
         min_dist = float('inf')
         
         for p in pet.pets:
-            if p.__class__.__name__ == 'Dog':
+            if p.__class__.__name__ == 'Dog' and getattr(p, 'hp', 1) > 0:
                 dist = (self.entity.position - p.entity.position).length()
                 if dist < min_dist:
                     min_dist = dist
@@ -846,22 +808,42 @@ class DogThief(Thief):
             if min_dist > 2.5:
                 direction = (target_dog.entity.position - self.entity.position).normalized()
                 self.entity.position += direction * self.speed * time.dt
-                self.entity.look_at(target_dog.entity.position)
+                
+                target_pos = Vec3(target_dog.entity.position.x, self.entity.y, target_dog.entity.position.z)
+                self.entity.look_at(target_pos)
             else:
-                if pytime.time() - self.last_attack_time > 1.5:
-                    self.last_attack_time = pytime.time()
+                if pytime_mod.time() - self.last_attack_time > 1.5:
+                    self.last_attack_time = pytime_mod.time()
                     target_dog.take_damage(25) 
                     import inventory
-                    inventory.show_message("CẨU TẶC đang ăn trộm chó của bạn!", 1.5)
+                    inventory.show_message("CẨU TẶC đang bắt chó của bạn!", 1.5)
         else:
-            super().update()
+            player_pos = world.player.position
+            player_dist = (self.entity.position - player_pos).length()
+            
+            if player_dist > 2.5:
+                direction = (player_pos - self.entity.position).normalized()
+                self.entity.position += direction * self.speed * time.dt
+                
+                target_pos = Vec3(player_pos.x, self.entity.y, player_pos.z)
+                self.entity.look_at(target_pos)
+            else:
+                if pytime_mod.time() - self.last_attack_time > 1.5:
+                    self.last_attack_time = pytime_mod.time()
+                    import inventory
+                    if world.player is not None and world.player.money >= self.attack_damage:
+                        world.player.money -= self.attack_damage
+                        inventory.show_message(f"Bị CẨU TẶC giật mất {self.attack_damage} Gold!", 2)
+                    elif world.player is not None:
+                        world.player.money = 0
+                        inventory.show_message("Cẩu tặc: Không có chó, lại còn nghèo!", 2)
 
 def spawn_dog_thief(position):
     dt = DogThief(position)
     enemies.append(dt)
     return dt
 
-#quai vat nam doc
+#boss nam doc
 try:
     mushroom_texture = load_texture('model/monsterMushroom/GribUV_lambert3_BaseColor.png')
 except Exception as e:
@@ -869,12 +851,20 @@ except Exception as e:
 
 class MushroomMonster(Rat):
     def __init__(self, position):
-        super().__init__(position) 
+        super().__init__(position, name="Quái Vật Nấm", max_hp=30, ui_height=4.5, speed=1.5, attack_damage=10) 
         
-        self.entity.model = 'cube'
-        self.entity.color = color.clear
+        destroy(self.mesh)
+
+        global global_boss_hud
+        if global_boss_hud is None:
+            global_boss_hud = BossHUD()
+
+        self.health_bar.enabled = False 
+        self.hp_text.enabled = False
+        if hasattr(self, 'name_text'):
+            self.name_text.color = color.magenta 
+        
         self.entity.scale = (0.5, 0.8, 0.5) 
-        
         self.mesh = Entity(parent=self.entity)
         try:
             self.mesh.model = load_model('model/monsterMushroom/GribRiggedReady.fbx')
@@ -891,23 +881,30 @@ class MushroomMonster(Rat):
         self.mesh.setTransparency(0)   
         self.mesh.alpha = 1            
         self.mesh.double_sided = True  
-        
         self.mesh.scale = (0.6, 0.6, 0.6) 
         self.mesh.y = -0.4 
         
-        self.hp = 30
-        self.max_hp = 30
-        self.speed = 1.5 
-        self.attack_damage = 10
         self.attack_cooldown = 1.5 
-        self.last_attack_time = 0
+
+    def take_damage(self, amount):
+        self.hp -= amount
         
-        self.health_bar.y = 1.0
-        self.health_bar.color = color.magenta 
-        self.velocity_y = 0 
+        global global_boss_hud
+        if global_boss_hud is not None and global_boss_hud.enabled:
+            global_boss_hud.update_bar("QUÁI VẬT NẤM", self.hp, self.max_hp)
+
+        if self.hp <= 0:
+            self.die()
+
+    def die(self):
+        global global_boss_hud
+        if global_boss_hud is not None:
+            global_boss_hud.enabled = False
+            
+        super().die() 
 
     def update(self):
-        import time as pytime
+        import time as pytime_mod
         from ursina import time
         import world
         import inventory
@@ -924,19 +921,26 @@ class MushroomMonster(Rat):
         player_pos = world.player.position
         dist = (self.entity.position - player_pos).length()
         
+        global global_boss_hud
+        if dist < 20:
+            global_boss_hud.update_bar("QUÁI VẬT NẤM", self.hp, self.max_hp)
+            global_boss_hud.bar.color = color.magenta 
+            global_boss_hud.enabled = True
+        else:
+            if global_boss_hud.enabled and global_boss_hud.name_text.text == "QUÁI VẬT NẤM":
+                global_boss_hud.enabled = False
+
         if dist > 2.0:
             direction = (player_pos - self.entity.position).normalized()
             self.entity.position += direction * self.speed * time.dt
             self.face_direction(direction)
         else:
-            if pytime.time() - self.last_attack_time > self.attack_cooldown:
-                self.last_attack_time = pytime.time()
-                
+            direction = (player_pos - self.entity.position).normalized()
+            self.face_direction(direction)
+            if pytime_mod.time() - self.last_attack_time > self.attack_cooldown:
+                self.last_attack_time = pytime_mod.time()
                 world.player.hp -= self.attack_damage
                 inventory.show_message(f"Bị trúng BÀO TỬ ĐỘC của Nấm! HP: {world.player.hp}/100", 2)
-                
-                direction = (player_pos - self.entity.position).normalized()
-                self.face_direction(direction)
 
 def spawn_mushroom(position):
     m = MushroomMonster(position)
