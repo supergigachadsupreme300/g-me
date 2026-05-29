@@ -478,6 +478,37 @@ class Sahur(Rat):
         self.health_bar.y = 1.2
         self.velocity_y = 0
 
+        self.health_bar.color = color.green
+        self.health_bar.z = 1.5
+        self.health_bar.y = 2.5 
+        self.health_bar.scale = (3, 0.2, 1) 
+
+        self.hp_text = Text(
+            text=f"{self.hp}/{self.max_hp}",
+            parent=self.entity,
+            y=2.5,
+            z=1.4,        
+            scale=10,
+            billboard=True,
+            origin=(0, 0),
+            color=color.red
+        )
+        
+        self.name_bg = Entity(
+            parent=self.entity,
+            model='cube',
+            color=color.black,
+            y=3.0,            
+            z=1.5,                
+            scale=(3.0, 0.3, 1) 
+        )
+        
+        self.name_text.text = "Tung Tung Sahur" 
+        self.name_text.y = 3.0      
+        self.name_text.z = 1.4     
+        self.name_text.scale = 16    
+        self.name_text.color = color.brown
+
     def _switch(self, state):
         if self._anim == state or self.actor is None:
             return
@@ -488,8 +519,23 @@ class Sahur(Rat):
               sound_manager.play('bonk')
             except Exception:
                 pass
+    def take_damage(self, amount):
+        self.hp -= amount
+        
+        # Tỷ lệ scale X = 3 giống với thiết lập ban đầu
+        self.health_bar.scale_x = max(0, self.hp / self.max_hp) * 3
+        
+        if hasattr(self, 'hp_text'):
+            self.hp_text.text = f"{int(self.hp)}/{self.max_hp}"
+
+        if self.hp <= 0:
+            self.die()
 
     def die(self):
+        if hasattr(self, 'hp_text'):
+            destroy(self.hp_text)
+        if hasattr(self, 'name_bg'):
+            destroy(self.name_bg)
         destroy(self.visual)
         if self.actor:
             try:
@@ -538,7 +584,7 @@ def spawn_sahur(position):
     enemies.append(s)
     return s
 
-
+#quai vat soi
 try:
     wolf_texture = load_texture('model/werewolf/lambert1_albedo.jpg')
 except Exception as e:
