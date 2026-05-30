@@ -14,7 +14,7 @@ def create_player():
     player.stamina_regen_rate = 25.0
     player.stamina_sprint_cost = 35.0
     player.is_sprinting = False
-    player.money = 0
+    player.money = 1000
     try:
         model_asset = load_model('model/player/source/roblox_noob_r6.fbx')
         if model_asset is None:
