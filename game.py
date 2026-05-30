@@ -22,6 +22,10 @@ import stats
 
 MAX_PLACE_DISTANCE = 20
 
+AXE_STAMINA_COST = 15
+HOE_STAMINA_COST = 20
+FIELD_PLACE_STAMINA_COST = 50
+
 GUN_MAX_AMMO = 6
 
 gun_ammo = 0
@@ -1176,6 +1180,11 @@ def handle_input(key):
 
         if tools.axe.enabled:
 
+            if world.player is None or world.player.stamina < AXE_STAMINA_COST:
+                inventory.show_message("Not enough stamina to swing axe", 1.5)
+                return
+
+            world.player.stamina -= AXE_STAMINA_COST
             tools.swing_item(tools.axe)
             try:
                 sound_manager.play('axe')
@@ -1234,26 +1243,114 @@ def handle_input(key):
 
         if tools.hoe.enabled:
 
+            if world.player is None or world.player.stamina < HOE_STAMINA_COST:
+                inventory.show_message("Not enough stamina to use hoe (20 needed)", 1.5)
+                return
+
             tools.swing_item(tools.hoe)
             try:
                 sound_manager.play('hoe')
             except Exception:
                 pass
 
+            world.player.stamina -= HOE_STAMINA_COST
+
             if fields.field_preview.enabled:
 
                 pos = fields.field_preview.position
 
+                if world.player is None or world.player.stamina < FIELD_PLACE_STAMINA_COST:
+                    inventory.show_message("Not enough stamina to place field (50 needed)", 1.5)
+                    return
+
+                # Check existing field overlap
                 exists = any((abs(f["pos"].x - pos.x) < 0.5 and abs(f["pos"].z - pos.z) < 0.5) for f in fields.fields)
 
-                if not exists:
-                    fields.create_field(pos)
-
-                    inventory.show_message("Field created", 1.2)
-
-                else:
-
+                if exists:
                     inventory.show_message("Field already exists here", 1.2)
+                    return
+
+                # Prevent placement on road
+                try:
+                    if world.is_on_road(pos):
+                        inventory.show_message("Cannot place field on road", 1.5)
+                        return
+                except Exception:
+                    pass
+
+                # Prevent placement overlapping house area
+                if abs(pos.x) < 6.0 and abs(pos.z) < 6.0:
+                    inventory.show_message("Cannot place field on or inside the house area", 1.5)
+                    return
+
+                # Prevent placement overlapping trees, rocks, buildings, vendors
+                overlap = False
+                try:
+                    px = float(pos.x)
+                    pz = float(pos.z)
+
+                    def close2d(ax, az, bx, bz, thresh):
+                        dx = ax - bx
+                        dz = az - bz
+                        return (dx*dx + dz*dz) <= (thresh * thresh)
+
+                    # trees (use larger threshold to account for model footprint)
+                    for t in getattr(world, 'trees', []):
+                        try:
+                            tx = float(t['trunk'].position.x)
+                            tz = float(t['trunk'].position.z)
+                            if close2d(px, pz, tx, tz, 5.0):
+                                overlap = True
+                                break
+                        except Exception:
+                            continue
+
+                    # rocks
+                    if not overlap:
+                        for r in getattr(world, 'rocks', []):
+                            try:
+                                rx = float(r['rock'].position.x)
+                                rz = float(r['rock'].position.z)
+                                if close2d(px, pz, rx, rz, 2.5):
+                                    overlap = True
+                                    break
+                            except Exception:
+                                continue
+
+                    # buildings
+                    if not overlap:
+                        for b in getattr(building_system, 'buildings', []):
+                            try:
+                                ent = b.get('entity') if isinstance(b, dict) else getattr(b, 'entity', None)
+                                if ent is not None:
+                                    bx = float(ent.position.x)
+                                    bz = float(ent.position.z)
+                                    if close2d(px, pz, bx, bz, 4.0):
+                                        overlap = True
+                                        break
+                            except Exception:
+                                continue
+
+                    # vendors
+                    if not overlap and getattr(world, 'vendor_root', None) is not None:
+                        try:
+                            vx = float(world.vendor_root.position.x)
+                            vz = float(world.vendor_root.position.z)
+                            if close2d(px, pz, vx, vz, 4.5):
+                                overlap = True
+                        except Exception:
+                            pass
+                except Exception:
+                    overlap = False
+
+                if overlap:
+                    inventory.show_message("Cannot place field overlapping other objects", 1.5)
+                    return
+
+                # All checks passed: create field
+                world.player.stamina -= FIELD_PLACE_STAMINA_COST
+                fields.create_field(pos)
+                inventory.show_message("Field created", 1.2)
 
         elif tools.sword.enabled:
             tools.swing_item(tools.sword)
