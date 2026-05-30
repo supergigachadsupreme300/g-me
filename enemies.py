@@ -90,7 +90,7 @@ class Rat:
             entity_kwargs = {
                 'model': rat_model,
                 'position': position,
-                'scale': (0.08, 0.08, 0.08),
+                'scale': (1.0, 1.0, 1.0),
                 'rotation_y': 180,
                 'collider': 'box',
                 'double_sided': True,
@@ -104,7 +104,7 @@ class Rat:
             entity_kwargs = {
                 'model': 'cube',
                 'position': position,
-                'scale': (0.8, 0.8, 0.8),
+                'scale': (40.0, 40.0, 40.0),
                 'collider': 'box',
             }
             if hasattr(texture_choice, 'width'):
