@@ -9,6 +9,7 @@ player_hp_text = None
 player_stamina_text = None
 player_money_text = None
 quest_text = None
+mobspawner_text = None
 pause_menu = None
 bed_confirm_menu = None
 bed_confirm_yes = None
@@ -21,29 +22,38 @@ buffalo_leave = None
 
 def setup_ui():
     global time_text, ammo_text, player_hp_text, player_stamina_text, player_money_text
+    global mobspawner_text
     global pause_menu, bed_confirm_menu, bed_confirm_yes, bed_confirm_no
     global buffalo_dialog, buffalo_dialog_text, buffalo_sell, buffalo_leave
     global stats_panel, stats_lines, stats_button, quest_text
 
-    # moved time_text below player HUD (near player money) and ammo above inventory
+    # --- 1. GIAO DIỆN HUD NGƯỜI CHƠI (GIỮ NGUYÊN GỐC CỦA ÔNG) ---
     time_text = Text(parent=camera.ui, text='', position=(-0.8, 0.22), origin=(0, 0), scale=1.2, color=color.white, background=True)
     ammo_text = Text(parent=camera.ui, text='Ammo: 0/0', position=(0, -0.37), origin=(0, 0), scale=1.2, color=color.white, background=True)
     ammo_text.enabled = False
-    ammo_text.enabled = False
+    
     player_hp_text = Text(parent=camera.ui, text='HP: 100/100', position=(-0.8, 0.41), origin=(0, 0), scale=1.2, color=color.rgb(255/255, 80/255, 80/255), background=True)
     player_stamina_text = Text(parent=camera.ui, text='Stamina: 100/100', position=(-0.75, 0.345), origin=(0, 0), scale=1.2, color=color.rgb(100/255, 200/255, 255/255), background=True)
     player_money_text = Text(parent=camera.ui, text='Money: 0', position=(-0.8, 0.275), origin=(0, 0), scale=1.2, color=color.rgb(255/255, 220/255, 100/255), background=True)
     quest_text = Text(parent=camera.ui, text='Quest: Harvest wheat 0/100', position=(-0.7, 0.21), origin=(0, 0), scale=1.1, color=color.white, background=True)
+    mobspawner_text = Text(parent=camera.ui, text='', position=(0, -0.37), origin=(0, 0), scale=1.0, color=color.yellow, background=True, enabled=False)
 
+    # --- 2. GIAO DIỆN MENU SETTINGS CHUẨN ĐỒ ĐỒNG ĐỀU ---
     pause_menu = Entity(parent=camera.ui, enabled=False)
-    Entity(parent=pause_menu, model='quad', color=color.rgba(0, 0, 0, 180/255), scale=(1.6, 1.2), position=(0, 0, 0))
-    Text(text='Settings', parent=pause_menu, y=0.35, scale=2, color=color.white)
-    Button(parent=pause_menu, text='Continue', scale=(0.5, 0.13), y=0.08)
-    # Stats button (opens stats panel)
-    stats_button = Button(parent=pause_menu, text='Stats', scale=(0.45, 0.12), y=-0.02)
+    # Nền đen mờ tỷ lệ gọn gàng, thanh lịch
+    Entity(parent=pause_menu, model='quad', color=color.rgba(15, 15, 20, 230/255), scale=(0.6, 0.8), z=1)
+    # Tiêu đề canh giữa tuyệt đối
+    Text(text='SETTINGS', parent=pause_menu, y=0.3, origin=(0, 0), scale=2.5, color=color.orange)
+    
+    # Nút bấm đồng đều scale, có highlight_color đổi màu khi di chuột vào
+    Button(parent=pause_menu, text='Continue', scale=(0.4, 0.08), y=0.1, color=color.dark_gray, highlight_color=color.azure)
+    
+    stats_button = Button(parent=pause_menu, text='Stats', scale=(0.4, 0.08), y=-0.05, color=color.dark_gray, highlight_color=color.azure)
     stats_button.on_click = lambda: show_stats(True)
-    Button(parent=pause_menu, text='Exit', scale=(0.5, 0.13), y=-0.22)
+    
+    Button(parent=pause_menu, text='Exit', scale=(0.4, 0.08), y=-0.2, color=color.red, highlight_color=color.rgb(255, 100, 100))
 
+    # --- 3. GIAO DIỆN BẢNG GIƯỜNG NGỦ & HỘI THOẠI TRÂU (GIỮ NGUYÊN GỐC) ---
     bed_confirm_menu = Entity(parent=camera.ui, enabled=False)
     Entity(parent=bed_confirm_menu, model='quad', color=color.rgba(0, 0, 0, 180/255), scale=(1.4, 0.6), position=(0, 0, 0))
     Text(parent=bed_confirm_menu, text='Use the bed?\nSkip to next day/night cycle.', y=0.12, scale=1.2, color=color.white)
@@ -56,18 +66,26 @@ def setup_ui():
     buffalo_sell = Button(parent=buffalo_dialog, text='Sell wheat', scale=(0.4, 0.13), x=-0.2, y=-0.15)
     buffalo_leave = Button(parent=buffalo_dialog, text='Leave', scale=(0.4, 0.13), x=0.2, y=-0.15)
 
-    # Stats panel (hidden by default)
+    # --- 4. GIAO DIỆN BẢNG THỐNG KÊ (STATS PANEL) CANH LỀ SẠCH SẼ ---
     stats_panel = Entity(parent=camera.ui, enabled=False)
-    Entity(parent=stats_panel, model='quad', color=color.rgba(0,0,0,200/255), scale=(1.2, 0.7))
-    Text(parent=stats_panel, text='Player Stats', y=0.28, scale=1.4, color=color.white)
+    # Khung nền chứa danh sách text
+    Entity(parent=stats_panel, model='quad', color=color.rgba(15/255, 15/255, 20/255, 0.95), scale=(0.9, 0.9), z=1)
+    
+    # Tiêu đề bảng thống kê
+    Text(parent=stats_panel, text='PLAYER STATS', y=0.35, origin=(0, 0), scale=2.5, color=color.azure)
+    
+    # Toàn bộ danh sách text được ép chung một trục x, căn lề trái (origin=(-0.5, 0)) để thẳng hàng tăm tắp
+    text_x = -0.35
     stats_lines = {
-        'harvested': Text(parent=stats_panel, text='Harvested wheat: 0', y=0.12, scale=1.0, color=color.white),
-        'enemies': Text(parent=stats_panel, text='Enemies killed: 0', y=0.0, scale=1.0, color=color.white),
-        'earned': Text(parent=stats_panel, text='Money earned: 0', y=-0.12, scale=1.0, color=color.white),
-        'stolen': Text(parent=stats_panel, text='Money stolen: 0', y=-0.24, scale=1.0, color=color.white),
+        'harvested': Text(parent=stats_panel, text='Harvested wheat: 0', x=text_x, y=0.15, origin=(-0.5, 0), scale=1.3, color=color.white),
+        'enemies': Text(parent=stats_panel, text='Enemies killed: 0', x=text_x, y=0.05, origin=(-0.5, 0), scale=1.3, color=color.white),
+        
+        # Tiền kiếm được màu xanh, tiền bị mất trộm màu đỏ trực quan
+        'earned': Text(parent=stats_panel, text='Money earned: 0', x=text_x, y=-0.05, origin=(-0.5, 0), scale=1.3, color=color.rgb(100, 255, 100)),
+        'stolen': Text(parent=stats_panel, text='Money stolen: 0', x=text_x, y=-0.15, origin=(-0.5, 0), scale=1.3, color=color.rgb(255, 100, 100)),
     }
-    Button(parent=stats_panel, text='Close', y=-0.33, scale=(0.25, 0.12), on_click=lambda: show_stats(False))
-
+    # Nút quay trở lại Menu Settings
+    Button(parent=stats_panel, text='Back', y=-0.35, scale=(0.3, 0.08), color=color.dark_gray, highlight_color=color.azure, on_click=lambda: show_stats(False))
 
 def update_ammo_text(gun_ammo, gun_max_ammo):
     if ammo_text is not None and ammo_text.enabled:
@@ -99,14 +117,34 @@ def update_quest_text(name, progress, goal):
             time_text.y = quest_text.y - 0.06
 
 
+def update_mobspawner_text(target_name: str = None):
+    global mobspawner_text
+    if mobspawner_text is None:
+        return
+    mobspawner_text.text = f"Spawn target: {target_name}" if target_name else "Spawn target: Unknown"
+
+
+def show_mobspawner(enabled: bool):
+    global mobspawner_text
+    if mobspawner_text is None:
+        return
+    mobspawner_text.enabled = enabled
+
+
 def show_stats(enabled: bool):
-    global stats_panel
+    global stats_panel, pause_menu
     if stats_panel is None:
         return
+    
+    # Bật/tắt trang Stats
     stats_panel.enabled = enabled
+    
+    # Ẩn/hiện trang Menu chính (để không bị đè)
+    if pause_menu is not None:
+        pause_menu.enabled = not enabled
+        
     if enabled:
         update_stats_display()
-
 
 def update_stats_display():
     try:

@@ -4,9 +4,25 @@ from ursina import time as ursina_time
 import config
 from player import create_player
 import random
+import sound_manager
 
 GROUND_SIZE = 150
 GROUND_HALF = GROUND_SIZE / 2
+
+# Road bounds (set by build_road)
+ROAD_CX = None
+ROAD_HW = None
+ROAD_Z_START = None
+ROAD_Z_END = None
+
+def is_on_road(pos):
+    """Return True if world position `pos` lies on the road surface."""
+    try:
+        if ROAD_CX is None or ROAD_HW is None or ROAD_Z_START is None or ROAD_Z_END is None:
+            return False
+        return (abs(pos.x - ROAD_CX) <= (ROAD_HW + 0.5)) and (ROAD_Z_START <= pos.z <= ROAD_Z_END)
+    except Exception:
+        return False
 
 ground = None
 player = None
@@ -84,6 +100,10 @@ def spawn_trees(num_trees=60):
 
 
 def remove_tree(tree):
+    try:
+        sound_manager.play('tree')
+    except Exception:
+        pass
     destroy(tree["trunk"])
     destroy(tree["bar"])
     if tree in trees:
@@ -439,6 +459,13 @@ def build_road():
                scale=(0.18, 0.03, dash_len),
                position=(road_cx, 0.03, z_start + i * dash_step))
 
+    # Publish road bounds for placement checks
+    global ROAD_CX, ROAD_HW, ROAD_Z_START, ROAD_Z_END
+    ROAD_CX = road_cx
+    ROAD_HW = road_hw
+    ROAD_Z_START = road_zc - road_len / 2
+    ROAD_Z_END = road_zc + road_len / 2
+
 
 def spawn_vendor_cart():
     global vendor_root, vendor_entity, vendors
@@ -458,6 +485,11 @@ def spawn_vendor_cart():
     cart_color = color.rgb(random.randint(80, 255), random.randint(50, 220), random.randint(50, 220))
     # create new vendor root offscreen and register it
     new_root = Entity(position=offscreen_in)
+    # rotate cart 90 degrees so it faces sideways by default
+    try:
+        new_root.rotation_y = -90
+    except Exception:
+        pass
     # cart body
     Entity(parent=new_root, model='cube', color=cart_color, scale=(4, 1.4, 2), position=(0, 0.9, 0), collider='box')
     Entity(parent=new_root, model='cube', color=color.rgb(max(0, cart_color.r-20), max(0, cart_color.g-40), max(0, cart_color.b-20)), scale=(4.2, 0.4, 2.2), position=(0, 1.6, 0))
@@ -521,6 +553,10 @@ def spawn_vendor_cart():
     vendors.append(new_root)
     vendor_root = new_root
     vendor_entity = vendor
+    try:
+        sound_manager.play('mexican_truck')
+    except Exception:
+        pass
 
 
 def input(key):
@@ -600,7 +636,7 @@ def update():
         wheels = getattr(v, '_vendor_wheels', None)
         if wheels:
             for w in wheels:
-                w.rotation_x += 360 * ursina_time.dt
+                w.rotation_z += 360 * ursina_time.dt
         # bob vendor model if present
         m = getattr(v, '_vendor_model', None)
         if m is not None:
