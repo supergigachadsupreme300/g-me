@@ -11,12 +11,13 @@ scythe = None
 fertilizer = None
 seed = None
 peashooter_seed = None
+mi_hao_hao = None
 wheat = None
 damaged_wheat = None
 
 
 def setup_tools():
-    global arm, axe, pickaxe, hoe, hammer, sword, gun, scythe, fertilizer, seed, peashooter_seed, wheat, damaged_wheat
+    global arm, axe, pickaxe, hoe, hammer, sword, gun, scythe, fertilizer, seed, peashooter_seed, mi_hao_hao, wheat, damaged_wheat
     arm = Entity(model='cube', color=color.brown, scale=(0.3, 1, 0.3),
                  position=(0.7, -0.6, 1.5), rotation=(20, -30, 0), parent=None, enabled=True)
     axe = Entity(position=(0.7, -0.6, 1.5), rotation=(0, 0, 0), parent=None, enabled=False)
@@ -39,6 +40,8 @@ def setup_tools():
     _make_seed_on_parent(seed)
     peashooter_seed = Entity(position=(0.7, -0.6, 1.5), rotation=(0, 0, 0), parent=None, enabled=False)
     _make_peashooter_seed_on_parent(peashooter_seed)
+    mi_hao_hao = Entity(position=(0.7, -0.6, 1.5), rotation=(0, 0, 0), parent=None, enabled=False)
+    _make_mi_hao_hao_on_parent(mi_hao_hao)
     wheat = Entity(position=(0.7, -0.6, 1.5), rotation=(0, 0, 0), parent=None, enabled=False)
     _make_wheat_on_parent(wheat)
     damaged_wheat = Entity(position=(0.7, -0.6, 1.5), rotation=(0, 0, 0), parent=None, enabled=False)
@@ -116,16 +119,37 @@ def _make_peashooter_seed_on_parent(parent_entity):
     Entity(model='cube', color=color.rgb(255/255, 220/255, 80/255), scale=(0.25, 0.25, 0.1), parent=parent_entity, position=(0, 0.2, 0))
 
 
-def _make_wheat_on_parent(parent_entity):
-    # try to use hay model if available, otherwise fallback to a yellow cube
+def _make_mi_hao_hao_on_parent(parent_entity):
     try:
         from ursina import load_model
-        hay_model = load_model('model/hay/source/hay.fbx')
-        if hay_model:
-            parent_entity.model = hay_model
-            parent_entity.scale = (0.35, 0.35, 0.35)
+        noodle_model = load_model('model/haohao/source/Mitomhaohao.glb')
+        if noodle_model:
+            parent_entity.model = noodle_model
+            parent_entity.scale = (0.4, 0.4, 0.4)
             parent_entity.position = (0, -0.1, 0)
             parent_entity.rotation = (0, 180, 0)
+            return
+    except Exception:
+        pass
+    Entity(model='cube', color=color.red, scale=(0.3, 0.1, 0.3), parent=parent_entity, position=(0, 0.1, 0))
+
+
+def _make_wheat_on_parent(parent_entity):
+    # try to use wheat sack model if available, otherwise fallback to a yellow cube
+    try:
+        from ursina import load_model, load_texture
+        sack_model = load_model('model/wheat_sack/source/WheatSack.fbx')
+        sack_tex = None
+        try:
+            sack_tex = load_texture('model/wheat_sack/textures/WheatSack_albedo.jpg')
+        except Exception:
+            sack_tex = None
+        if sack_model:
+            # scale to ~1/100 of original hand size
+            if sack_tex:
+                Entity(model=sack_model, texture=sack_tex, parent=parent_entity, scale=(0.0035, 0.0035, 0.0035), position=(0, -0.1, 0), rotation=(0, 180, 0))
+            else:
+                Entity(model=sack_model, parent=parent_entity, scale=(0.0035, 0.0035, 0.0035), position=(0, -0.1, 0), rotation=(0, 180, 0))
             return
     except Exception:
         pass
@@ -154,6 +178,7 @@ def set_active_item(item_type):
     fertilizer.enabled = (item_type == "fertilizer")
     seed.enabled = (item_type == "seed")
     peashooter_seed.enabled = (item_type == "peashooter seed")
+    mi_hao_hao.enabled = (item_type == "mì hảo hảo")
     wheat.enabled = (item_type == "wheat")
     damaged_wheat.enabled = (item_type == "damaged wheat")
 

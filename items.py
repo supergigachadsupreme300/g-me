@@ -1,4 +1,4 @@
-from ursina import Entity, color, Vec3, load_texture
+from ursina import Entity, color, Vec3, load_texture, load_model
 import config
 
 
@@ -68,9 +68,35 @@ def spawn_ground_item(item_type, position):
             print(f"Failed to load peashooter seed texture: {e}")
             Entity(model='cube', color=color.rgb(255/255, 220/255, 80/255), scale=(0.3, 0.3, 0.1), parent=root, position=(0, 0.2, 0))
     elif item_type == "wheat":
-        Entity(model='cube', color=color.yellow, scale=(0.3, 0.3, 0.3), parent=root, position=(0, 0.2, 0))
+        try:
+            wheat_model = load_model('model/wheat_sack/source/WheatSack.fbx')
+            # load albedo texture if available
+            wheat_tex = None
+            try:
+                wheat_tex = load_texture('model/wheat_sack/textures/WheatSack_albedo.jpg')
+            except Exception:
+                wheat_tex = None
+            if wheat_model:
+                # scale to ~1/100 (0.35 * 0.01 = 0.0035)
+                if wheat_tex:
+                    Entity(model=wheat_model, texture=wheat_tex, scale=(0.0035, 0.0035, 0.0035), parent=root, position=(0, 0.0, 0), rotation=(0, 180, 0))
+                else:
+                    Entity(model=wheat_model, scale=(0.0035, 0.0035, 0.0035), parent=root, position=(0, 0.0, 0), rotation=(0, 180, 0))
+            else:
+                raise Exception('wheat_model returned None')
+        except Exception:
+            Entity(model='cube', color=color.yellow, scale=(0.3, 0.3, 0.3), parent=root, position=(0, 0.2, 0))
     elif item_type == "damaged wheat":
         Entity(model='cube', color=color.brown, scale=(0.3, 0.3, 0.3), parent=root, position=(0, 0.2, 0))
+    elif item_type == "mì hảo hảo":
+        try:
+            noodle_model = load_model('model/haohao/source/Mitomhaohao.glb')
+            if noodle_model:
+                Entity(model=noodle_model, scale=(0.4, 0.4, 0.4), parent=root, position=(0, 0.1, 0), rotation=(0, 180, 0))
+            else:
+                raise Exception('noodle_model returned None')
+        except Exception:
+            Entity(model='cube', color=color.red, scale=(0.3, 0.1, 0.3), parent=root, position=(0, 0.2, 0))
     elif item_type == "fertilizer":
         try:
             tex = load_texture('texture/fertilize')

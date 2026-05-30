@@ -130,8 +130,36 @@ class Rat:
     def __init__(self, position, name="Chuột", max_hp=15, ui_height=2.0, speed=2.2, attack_damage=4):
         load_rat_assets()
         position = Vec3(position.x, 0.0, position.z)
-        
-        self.entity = Entity(model='cube', color=color.clear, position=position, scale=(0.8, 0.8, 0.8), collider='box')
+        texture_choice = random.choice(rat_texture)
+
+        if rat_model not in (None, 'cube'):
+            entity_kwargs = {
+                'model': rat_model,
+                'position': position,
+                'scale': (1.0, 1.0, 1.0),
+                'rotation_y': 180,
+                'collider': 'box',
+                'double_sided': True,
+            }
+            if hasattr(texture_choice, 'width'):
+                entity_kwargs['texture'] = texture_choice
+                entity_kwargs['color'] = color.white
+            else:
+                entity_kwargs['color'] = texture_choice
+        else:
+            entity_kwargs = {
+                'model': 'cube',
+                'position': position,
+                'scale': (40.0, 40.0, 40.0),
+                'collider': 'box',
+            }
+            if hasattr(texture_choice, 'width'):
+                entity_kwargs['texture'] = texture_choice
+                entity_kwargs['color'] = color.white
+            else:
+                entity_kwargs['color'] = texture_choice
+
+        self.entity = Entity(**entity_kwargs)
         self.entity.y = self.entity.scale_y / 2 + 0.05
         
         self.mesh = Entity(parent=self.entity, double_sided=True)
