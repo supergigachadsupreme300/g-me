@@ -825,6 +825,16 @@ def handle_input(key):
 
     if key == 'e':
 
+        # Wife house door
+        if world.wife_door_pivot is not None:
+            _dp = Vec3(world.wife_door_pivot.x, 0, world.wife_door_pivot.z)
+            _pp = Vec3(world.player.x, 0, world.player.z)
+            if (_pp - _dp).length() < 5:
+                world.wife_door_open = not world.wife_door_open
+                world.wife_door_pivot.animate(
+                    'rotation_y', -90 if world.wife_door_open else 0, duration=0.35)
+                return
+
         if rendering.bed_confirm_menu is not None and rendering.bed_confirm_menu.enabled:
             return
 
