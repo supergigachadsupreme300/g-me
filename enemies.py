@@ -394,7 +394,8 @@ class Grasshopper(Rat):
     def __init__(self, position):
         super().__init__(position, name="Châu Chấu", max_hp=8, ui_height=6.5, speed=4.0, attack_damage=2)
 
-        self.entity.scale = (0.4, 0.4, 0.4) 
+        self.entity.scale = (0.4, 0.4, 0.4)
+        self.hitbox = Entity(parent=self.entity, model='cube', color=color.clear, collider='box', y=3, scale=(4, 4, 4))
         
         try:
             self.mesh.model = load_model('model/grasshopper/source/grasshopper.obj')
