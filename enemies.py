@@ -493,6 +493,7 @@ class Sahur(Rat):
             self.name_bg.enabled = False
         
         self.entity.scale = (1.2, 1.2, 1.2)
+        self.entity.collider = 'box'
         self.visual = Entity(scale=(1, 1, 1))
         self.actor = None
         try:
@@ -618,6 +619,7 @@ class Wolf(Rat):
             self.name_bg.enabled = False
         
         self.entity.scale = (0.8, 0.8, 0.8) 
+        self.hitbox = Entity(parent=self.entity, model='cube', color=color.clear, collider='box', y=2, scale=(4, 4, 4))
         self.mesh = Entity(parent=self.entity)
         try:
             self.mesh.model = load_model('model/werewolf/Animation_Werewolf_Idle_Beta_02.fbx')
