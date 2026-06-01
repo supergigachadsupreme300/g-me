@@ -18,6 +18,10 @@ buffalo_dialog = None
 buffalo_dialog_text = None
 buffalo_sell = None
 buffalo_leave = None
+quest_panel = None
+quest_panel_lines = []
+quest_panel_focus_buttons = []
+quest_panel_visible_rows = 6
 
 
 def setup_ui():
@@ -26,6 +30,7 @@ def setup_ui():
     global pause_menu, bed_confirm_menu, bed_confirm_yes, bed_confirm_no
     global buffalo_dialog, buffalo_dialog_text, buffalo_sell, buffalo_leave
     global stats_panel, stats_lines, stats_button, quest_text
+    global quest_panel, quest_panel_lines, quest_panel_focus_buttons
 
     # --- 1. GIAO DIỆN HUD NGƯỜI CHƠI (GIỮ NGUYÊN GỐC CỦA ÔNG) ---
     time_text = Text(parent=camera.ui, text='', position=(-0.8, 0.22), origin=(0, 0), scale=1.2, color=color.white, background=True)
@@ -87,6 +92,23 @@ def setup_ui():
     # Nút quay trở lại Menu Settings
     Button(parent=stats_panel, text='Back', y=-0.35, scale=(0.3, 0.08), color=color.dark_gray, highlight_color=color.azure, on_click=lambda: show_stats(False))
 
+    quest_panel = Entity(parent=camera.ui, enabled=False)
+    Entity(parent=quest_panel, model='quad', color=color.rgba(15/255, 15/255, 20/255, 0.95), scale=(0.9, 0.85), z=1)
+    Text(parent=quest_panel, text='QUESTS', y=0.33, origin=(0, 0), scale=2.5, color=color.azure)
+    Text(parent=quest_panel, text='Press J to close', y=0.24, origin=(0, 0), scale=1.0, color=color.light_gray)
+
+    quest_panel_lines.clear()
+    quest_panel_focus_buttons.clear()
+    row_y = 0.18
+    for i in range(quest_panel_visible_rows):
+        quest_line = Text(parent=quest_panel, text='', x=-0.4, y=row_y, origin=(-0.5, 0), scale=1.05, color=color.white)
+        quest_button = Button(parent=quest_panel, text='Focus', x=0.28, y=row_y, scale=(0.18, 0.06), color=color.dark_gray, highlight_color=color.azure)
+        quest_button.enabled = False
+        quest_panel_lines.append(quest_line)
+        quest_panel_focus_buttons.append(quest_button)
+        row_y -= 0.11
+
+
 def update_ammo_text(gun_ammo, gun_max_ammo):
     if ammo_text is not None and ammo_text.enabled:
         ammo_text.text = f"Ammo: {gun_ammo}/{gun_max_ammo}"
@@ -115,6 +137,53 @@ def update_quest_text(name, progress, goal):
         # also ensure time UI sits below quest UI
         if time_text is not None:
             time_text.y = quest_text.y - 0.06
+
+
+def show_quest_panel(enabled: bool):
+    global quest_panel
+    if quest_panel is None:
+        return
+    quest_panel.enabled = enabled
+    if enabled:
+        mouse.locked = False
+        mouse.visible = True
+    else:
+        mouse.locked = True
+        mouse.visible = False
+
+
+def refresh_quest_panel(quests, focused_index=0, scroll_index=0):
+    global quest_panel_lines, quest_panel_focus_buttons
+    if quest_panel is None:
+        return
+    scroll_index = max(0, min(scroll_index, max(0, len(quests) - len(quest_panel_lines))))
+    visible_quests = quests[scroll_index:scroll_index + len(quest_panel_lines)]
+    for i, line in enumerate(quest_panel_lines):
+        if i < len(visible_quests):
+            quest = visible_quests[i]
+            status = 'Completed' if quest.completed else f'{quest.progress}/{quest.goal}'
+            line.text = f"{scroll_index + i + 1}. {quest.name}: {status}"
+            line.color = color.yellow if (scroll_index + i) == focused_index else color.white
+            line.enabled = True
+            btn = quest_panel_focus_buttons[i]
+            btn.enabled = True
+            btn.text = 'Focused' if (scroll_index + i) == focused_index else 'Focus'
+            btn.color = color.rgb(80, 80, 80) if (scroll_index + i) == focused_index else color.dark_gray
+            btn.highlight_color = color.lime if (scroll_index + i) != focused_index else color.gray
+        else:
+            line.enabled = False
+            quest_panel_focus_buttons[i].enabled = False
+
+
+def set_quest_focus_callbacks(callbacks):
+    global quest_panel_focus_buttons
+    for i, button in enumerate(quest_panel_focus_buttons):
+        if i < len(callbacks):
+            button.on_click = callbacks[i]
+            button.enabled = True
+        else:
+            button.on_click = lambda: None
+            button.enabled = False
 
 
 def update_mobspawner_text(target_name: str = None):

@@ -110,6 +110,17 @@ def remove_tree(tree):
         trees.remove(tree)
 
 
+def remove_rock(rock):
+    try:
+        sound_manager.play('pickaxe')
+    except Exception:
+        pass
+    destroy(rock["rock"])
+    destroy(rock["bar"])
+    if rock in rocks:
+        rocks.remove(rock)
+
+
 def spawn_rocks(num_rocks=8):
     for _ in range(num_rocks):
         while True:

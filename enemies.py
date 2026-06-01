@@ -60,6 +60,7 @@ class BossHUD(Entity):
 
 rat_texture = []
 rat_model = None
+RAT_MODEL_PATH = 'model/rat/source/rat.fbx'
 
 
 def load_rat_assets():
@@ -80,10 +81,11 @@ def load_rat_assets():
         rat_texture = [color.rgb(120/255, 80/255, 40/255)]  
 
     try:
-        rat_model = load_model('model/rat/source/rat.fbx')
-        if not rat_model:
-            raise ValueError('rat.fbx loaded but returned no model')
-        print('Loaded rat model: model/rat/source/rat.fbx')
+        rat_test = load_model(RAT_MODEL_PATH)
+        if not rat_test:
+            raise ValueError('rat model returned no model')
+        rat_model = RAT_MODEL_PATH
+        print(f'Loaded rat model: {RAT_MODEL_PATH}')
     except Exception as e:
         print(f"Failed to load rat model: {e}. Using fallback cube.")
         rat_model = 'cube'
@@ -126,64 +128,16 @@ def find_enemy_by_entity(entity):
     return None
 
 
-class Rat:
-    def __init__(self, position, name="Chuột", max_hp=15, ui_height=2.0, speed=2.2, attack_damage=4):
-        load_rat_assets()
+class Enemy:
+    def __init__(self, position, name="Enemy", max_hp=10, ui_height=2.0, speed=2.0, attack_damage=1):
         position = Vec3(position.x, 0.0, position.z)
-        texture_choice = random.choice(rat_texture)
 
-        if rat_model not in (None, 'cube'):
-            entity_kwargs = {
-                'model': rat_model,
-                'position': position,
-                'scale': (1.0, 1.0, 1.0),
-                'rotation_y': 180,
-                'collider': 'box',
-                'double_sided': True,
-            }
-            if hasattr(texture_choice, 'width'):
-                entity_kwargs['texture'] = texture_choice
-                entity_kwargs['color'] = color.white
-            else:
-                entity_kwargs['color'] = texture_choice
-        else:
-            entity_kwargs = {
-                'model': 'cube',
-                'position': position,
-                'scale': (40.0, 40.0, 40.0),
-                'collider': 'box',
-            }
-            if hasattr(texture_choice, 'width'):
-                entity_kwargs['texture'] = texture_choice
-                entity_kwargs['color'] = color.white
-            else:
-                entity_kwargs['color'] = texture_choice
-
-        self.entity = Entity(**entity_kwargs)
+        self.entity = Entity(model='cube', color=color.clear, position=position, scale=(1.0, 1.0, 1.0), collider='box')
         self.entity.y = self.entity.scale_y / 2 + 0.05
-        
-        self.mesh = Entity(parent=self.entity, double_sided=True)
-        texture_choice = random.choice(rat_texture)
-        
-        if rat_model not in (None, 'cube'):
-            self.mesh.model = rat_model
-            self.mesh.scale = (0.1, 0.1, 0.1) 
-            self.mesh.rotation_y = 180
-            if hasattr(texture_choice, 'width'):
-                self.mesh.texture = texture_choice
-                self.mesh.color = color.white
-            else:
-                self.mesh.color = texture_choice
-        else:
-            self.mesh.model = 'cube'
-            if hasattr(texture_choice, 'width'):
-                self.mesh.texture = texture_choice
-                self.mesh.color = color.white
-            else:
-                self.mesh.color = texture_choice
 
+        self.mesh = Entity(parent=self.entity, model='cube', double_sided=True)
         self.velocity_y = 0
-        
+
         self.hp = max_hp
         self.max_hp = max_hp
         self.speed = speed
@@ -191,18 +145,18 @@ class Rat:
         self.attack_cooldown = 1.0
         self.last_attack_time = 0
 
-        self.health_bar = Entity(parent=self.entity, model='cube', color=color.green, 
+        self.health_bar = Entity(parent=self.entity, model='cube', color=color.green,
                                  y=ui_height, z=1.5, scale=(3, 0.2, 1))
-        
+
         self.hp_text = Text(parent=self.entity, text=f"{self.hp}/{self.max_hp}",
                             y=ui_height, z=1.4, scale=10, billboard=True, origin=(0, 0), color=color.red)
-        
-        self.name_bg = Entity(parent=self.entity, model='cube', color=color.black, 
+
+        self.name_bg = Entity(parent=self.entity, model='cube', color=color.black,
                               y=ui_height + 0.5, z=1.5, scale=(4.0, 0.3, 1))
-        
-        self.name_text = Text(parent=self.entity, text=name, 
+
+        self.name_text = Text(parent=self.entity, text=name,
                               y=ui_height + 0.5, z=1.4, scale=20, billboard=True, origin=(0, 0), color=color.yellow)
-        
+
         self.state = SEARCH_WHEAT
         self.target_field = None
         self.target_building = None
@@ -211,6 +165,14 @@ class Rat:
         self.flee_target = None
         self.flee_timer = 0
         self.sub_entities = [self.entity, self.mesh]
+
+    def set_mesh_texture(self, texture_choice):
+        if hasattr(texture_choice, 'width'):
+            self.mesh.texture = texture_choice
+            self.mesh.color = color.white
+        else:
+            self.mesh.texture = None
+            self.mesh.color = texture_choice
     def pick_wander_target(self):
         edge = world.GROUND_HALF - 2
         if random.random() < 0.5:
@@ -218,7 +180,7 @@ class Rat:
             z = random.uniform(-edge, edge)
         else:
             x = random.uniform(-edge, edge)
-            z = random.choice([-edge, edge])
+            z = random.uniform(-edge, edge)
         self.wander_target = Vec3(x, self.entity.y, z)
         self.wander_timer = pytime.time()
 
@@ -371,6 +333,33 @@ class Rat:
         if self in enemies:
             enemies.remove(self)
 
+
+class Rat(Enemy):
+    def __init__(self, position, name="Chuột", max_hp=15, ui_height=2.0, speed=2.2, attack_damage=4):
+        load_rat_assets()
+        super().__init__(position, name, max_hp, ui_height, speed, attack_damage)
+
+        if rat_model not in (None, 'cube'):
+            self.mesh.model = rat_model
+            self.mesh.scale = (0.1, 0.1, 0.1)
+            self.mesh.rotation_y = 180
+        else:
+            self.mesh.model = 'cube'
+            self.mesh.scale = (0.8, 0.8, 0.8)
+
+        self.set_mesh_texture(random.choice(rat_texture))
+
+        if rat_model not in (None, 'cube'):
+            self.mesh.model = rat_model
+            self.mesh.scale = (0.1, 0.1, 0.1)
+            self.mesh.rotation_y = 180
+        else:
+            self.mesh.model = 'cube'
+            self.mesh.scale = (0.8, 0.8, 0.8)
+
+        self.set_mesh_texture(random.choice(rat_texture))
+
+
 def spawn_rat(position):
     load_rat_assets()
     rat = Rat(position)
@@ -390,7 +379,7 @@ except Exception as e:
     print(f"Failed loading grasshopper texture: {e}")
     grasshopper_texture = color.green 
 
-class Grasshopper(Rat):
+class Grasshopper(Enemy):
     def __init__(self, position):
         super().__init__(position, name="Châu Chấu", max_hp=8, ui_height=6.5, speed=4.0, attack_damage=2)
 
@@ -476,7 +465,7 @@ def _sahur_apply_tex(actor):
     except Exception as e:
         print(f"[LỖI DÁN ẢNH] {e}")
 
-class Sahur(Rat):
+class Sahur(Enemy):
     def __init__(self, position):
         super().__init__(position, name="Tung Tung Sahur", max_hp=35, ui_height=3.2, speed=1.5, attack_damage=8)
         
@@ -600,7 +589,7 @@ try:
 except Exception as e:
     wolf_texture = color.gray
 
-class Wolf(Rat):
+class Wolf(Enemy):
     def __init__(self, position):
         super().__init__(position, name="Werewolf", max_hp=20, ui_height=4.0, speed=3.5, attack_damage=5)
         
@@ -703,7 +692,7 @@ try:
 except Exception as e:
     dogthief_texture = color.rgb(50, 50, 50)
 
-class Thief(Rat):
+class Thief(Enemy):
     def __init__(self, position):
   
         super().__init__(position, name="Ăn Trộm", max_hp=30, ui_height=2.2, speed=3.5, attack_damage=5)
@@ -852,7 +841,7 @@ try:
 except Exception as e:
     mushroom_texture = color.purple
 
-class MushroomMonster(Rat):
+class MushroomMonster(Enemy):
     def __init__(self, position):
         super().__init__(position, name="Quái Vật Nấm", max_hp=30, ui_height=4.5, speed=1.5, attack_damage=10) 
         
@@ -951,7 +940,7 @@ try:
 except Exception as e:
     dino_texture = color.rgb(50, 100, 40)
 
-class Dinosaur(Rat):
+class Dinosaur(Enemy):
     def __init__(self, position):
         super().__init__(position, name="Khủng Long T-Rex", max_hp=200, ui_height=0.2, speed=2.5, attack_damage=25) 
         
@@ -1052,7 +1041,7 @@ try:
 except Exception as e:
     arrogant_wheat_texture = color.rgb(255, 200, 0) 
 
-class ArrogantWheat(Rat):
+class ArrogantWheat(Enemy):
     def __init__(self, position):
         super().__init__(position, name="Lúa Kiêu Ngạo", max_hp=40, ui_height=1.2, speed=4.0, attack_damage=8) 
         
@@ -1147,7 +1136,7 @@ try:
 except Exception as e:
     zombie_texture = color.green 
 
-class Zombie(Rat):
+class Zombie(Enemy):
     def __init__(self, position):
         super().__init__(position, name="Zombie", max_hp=50, ui_height=1.4, speed=1.8, attack_damage=12) 
         
