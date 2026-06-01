@@ -1063,7 +1063,8 @@ class ArrogantWheat(Rat):
         super().__init__(position, name="Lúa Kiêu Ngạo", max_hp=40, ui_height=1.2, speed=4.0, attack_damage=8) 
         
 
-        self.entity.scale = (0.6, 2.0, 0.6) 
+        self.entity.scale = (0.6, 2.0, 0.6)
+        self.hitbox = Entity(parent=self.entity, model='cube', color=color.clear, collider='box', scale=(2.5, 1.2, 2.5), y=0)
         self.health_bar.color = color.yellow
 
         try:
