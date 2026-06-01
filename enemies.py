@@ -1159,7 +1159,8 @@ class Zombie(Rat):
         super().__init__(position, name="Zombie", max_hp=50, ui_height=1.4, speed=1.8, attack_damage=12) 
         
         self.entity.scale = (0.8, 1.8, 0.8) 
-        self.health_bar.color = color.green 
+        self.health_bar.color = color.green
+        self.hitbox = Entity(parent=self.entity, model='cube', color=color.clear, collider='box', scale=(3, 1.5, 3), position=(1.5, 0, 2))
  
         try:
             self.mesh.model = load_model('model/zombie/Disco.fbx')
