@@ -38,6 +38,8 @@ vendors = []
 
 wife_door_pivot = None
 wife_door_open  = False
+wife_entity     = None
+wife_married    = False
 
 trees = []
 rocks = []
@@ -400,26 +402,29 @@ def build_wife_house():
     t_stone = _tex('stone_wall.png')
     t_door  = _tex('door.png')
     t_rocky = _tex('rocky_terrain.jpg')
-    # reuse project-level textures already loaded by config
     t_wood  = config.WOOD_TEXTURE  if config.is_texture(config.WOOD_TEXTURE)  else None
     t_grass = config.GRASS_TEXTURE if config.is_texture(config.GRASS_TEXTURE) else None
 
-    wall_c  = color.white if t_wall  else color.rgb(235, 220, 195)
-    floor_c = color.white if t_floor else color.rgb(158, 118,  72)
-    roof_c  = color.white if t_roof  else color.rgb(112,  46,  26)
-    stone_c = color.white if t_stone else color.rgb(110, 102,  92)
-    rocky_c = color.white if t_rocky else color.rgb(130, 118, 100)
-    wood_c  = color.white if t_wood  else color.rgb(110, 72, 30)
-    grass_c = color.white if t_grass else yard_c
+    # color.rgb() in this Ursina version does NOT divide by 255.
+    # All integer 0-255 values must be divided manually before passing.
+    def _rgb(r, g, b): return color.rgb(r/255, g/255, b/255)
 
-    ridge_c  = color.rgb(55,  20,  8)
-    eave_c   = color.rgb(80,  48, 20)
-    frame_c  = color.rgb(60,  32, 10)
-    win_c    = color.rgb(160, 215, 235)
-    shutt_c  = color.rgb(55,  90, 42)
-    door_c   = color.rgb(95,  55, 18)
-    yard_c   = color.rgb(75, 120, 50)
-    rail_c   = color.rgb(220, 200, 170)
+    wall_c  = color.white if t_wall  else _rgb(235, 220, 195)
+    floor_c = color.white if t_floor else _rgb(158, 118,  72)
+    roof_c  = color.white if t_roof  else _rgb(112,  46,  26)
+    stone_c = color.white if t_stone else _rgb(110, 102,  92)
+    rocky_c = color.white if t_rocky else _rgb(130, 118, 100)
+    wood_c  = color.white if t_wood  else _rgb(110,  72,  30)
+    grass_c = color.white if t_grass else _rgb( 75, 120,  50)
+
+    ridge_c  = _rgb( 55,  20,   8)
+    eave_c   = _rgb( 80,  48,  20)
+    frame_c  = _rgb( 60,  32,  10)
+    win_c    = _rgb(160, 215, 235)
+    shutt_c  = _rgb( 55,  90,  42)
+    door_c   = _rgb( 95,  55,  18)
+    yard_c   = _rgb( 75, 120,  50)
+    rail_c   = _rgb(220, 200, 170)
 
     def blk(scale, pos, col, coll=False, tex=None, ts=None):
         e = Entity(model='cube', color=col, scale=scale, position=pos, unlit=True)
@@ -527,7 +532,7 @@ def build_wife_house():
     chx = cx+hw-2.2;  chz = cz-hd+2.2
     cb  = total_h-1.5;  ct = total_h+r_rise+0.9
     stone((1.5, ct-cb, 1.5), (chx, (cb+ct)/2, chz), ts=(1, 2))
-    blk((1.9, 0.5, 1.9), (chx, ct+0.25, chz), color.rgb(60, 50, 42))
+    blk((1.9, 0.5, 1.9), (chx, ct+0.25, chz), _rgb(60, 50, 42))
 
     # ── windows (south + north, both floors) ──────────────────────────
     for floor_y, ws in ((2.4, 1.5), (h1+2.2, 1.4)):
@@ -567,17 +572,10 @@ def build_wife_house():
     _dp.name = 'wife_house_door'
     # door knob
     blk((0.18, 0.18, 0.18), (fx-0.08, door_h*0.46, hinge_z+(door_w-0.3)*0.82),
-        color.rgb(210, 172, 50))
+        _rgb(210, 172, 50))
     for dy in (door_h*0.26, door_h*0.65):
         blk((0.15, door_h*0.30, 0.08),
-            (fx-0.06, dy, hinge_z+(door_w-0.3)*0.5), color.rgb(75, 42, 12))
-
-    # ── entrance steps ────────────────────────────────────────────────
-    for i in range(3):
-        h  = (i+1)*0.28
-        xc = ent_x - (2.8-i)*0.9
-        zw = door_w + 2.6 - i*0.5
-        rstone((0.9, h, zw), (xc, h/2, cz), ts=(1, 1), coll=True)
+            (fx-0.06, dy, hinge_z+(door_w-0.3)*0.5), _rgb(75, 42, 12))
 
     # ── front yard ────────────────────────────────────────────────────
     blk((8.0, 0.06, hd*2+4.0), (ent_x-4.0, 0.03, cz), grass_c,
@@ -588,40 +586,40 @@ def build_wife_house():
 
     # ── ground-floor furniture ────────────────────────────────────────
     # main sofa (centre of living room)
-    blk((3.2, 0.58, 1.2),  (cx-1.5, 0.59, cz+0.4), color.rgb(180, 140, 100), coll=True)
-    blk((3.2, 0.85, 0.22), (cx-1.5, 0.82, cz+1.0), color.rgb(160, 120, 85),  coll=True)
+    blk((3.2, 0.58, 1.2),  (cx-1.5, 0.59, cz+0.4), _rgb(180, 140, 100), coll=True)
+    blk((3.2, 0.85, 0.22), (cx-1.5, 0.82, cz+1.0), _rgb(160, 120,  85), coll=True)
     # left-side sofa against -Z wall (wife sits here)
-    blk((2.6, 0.55, 1.1),  (cx-1.0, 0.57, cz-hd+0.8), color.rgb(160, 125, 90), coll=True)
-    blk((2.6, 0.80, 0.22), (cx-1.0, 0.80, cz-hd+0.18), color.rgb(140, 105, 75), coll=True)
+    blk((2.6, 0.55, 1.1),  (cx-1.0, 0.57, cz-hd+0.8),  _rgb(160, 125,  90), coll=True)
+    blk((2.6, 0.80, 0.22), (cx-1.0, 0.80, cz-hd+0.18), _rgb(140, 105,  75), coll=True)
     # coffee table
-    blk((1.5, 0.08, 0.85), (cx-1.5, 0.68, cz-0.65), color.rgb(120, 80, 40))
+    blk((1.5, 0.08, 0.85), (cx-1.5, 0.68, cz-0.65), _rgb(120, 80, 40))
     for tx, tz in ((-2.2,-0.95),(-0.8,-0.95),(-2.2,-0.35),(-0.8,-0.35)):
-        blk((0.10, 0.62, 0.10), (cx+tx, 0.31, cz+tz), color.rgb(100, 65, 30))
+        blk((0.10, 0.62, 0.10), (cx+tx, 0.31, cz+tz), _rgb(100, 65, 30))
     # kitchen counter along +X wall
-    blk((0.7, 1.0, hd-1.8), (cx+hw-0.4, 0.5, cz+hd/2+0.9), color.rgb(95, 72, 50), coll=True)
-    blk((0.9, 0.08, hd-1.6),(cx+hw-0.4, 1.05, cz+hd/2+0.9), color.rgb(220, 210, 195), coll=True)
-    blk((0.65, 0.12, 0.65), (cx+hw-0.42, 1.07, cz+hd-1.8), color.rgb(190, 200, 210))
+    blk((0.7, 1.0, hd-1.8), (cx+hw-0.4, 0.5, cz+hd/2+0.9),  _rgb( 95,  72,  50), coll=True)
+    blk((0.9, 0.08, hd-1.6),(cx+hw-0.4, 1.05, cz+hd/2+0.9), _rgb(220, 210, 195), coll=True)
+    blk((0.65, 0.12, 0.65), (cx+hw-0.42, 1.07, cz+hd-1.8),   _rgb(190, 200, 210))
     # dining table
-    blk((1.8, 0.08, 1.0), (cx+1.5, 0.78, cz+2.8), color.rgb(130, 90, 45))
+    blk((1.8, 0.08, 1.0), (cx+1.5, 0.78, cz+2.8), _rgb(130, 90, 45))
     for tx, tz in ((-0.7,-0.4),(0.7,-0.4),(-0.7,0.4),(0.7,0.4)):
-        blk((0.08, 0.75, 0.08), (cx+1.5+tx, 0.37, cz+2.8+tz), color.rgb(110, 75, 35))
+        blk((0.08, 0.75, 0.08), (cx+1.5+tx, 0.37, cz+2.8+tz), _rgb(110, 75, 35))
     for dz2 in (-0.85, 0.85):
-        blk((0.8, 0.36, 0.8), (cx+1.5, 0.36, cz+2.8+dz2), color.rgb(160, 120, 80), coll=True)
+        blk((0.8, 0.36, 0.8), (cx+1.5, 0.36, cz+2.8+dz2), _rgb(160, 120, 80), coll=True)
 
     # ── 2F bedroom furniture ──────────────────────────────────────────
     bed_x = cx+hw-2.2;  bed_z = cz-hd+2.0
-    blk((3.2, 0.50, 2.0), (bed_x, h1+0.50, bed_z), color.rgb(120, 85, 50), coll=True)
-    blk((3.0, 0.22, 1.8), (bed_x, h1+0.82, bed_z), color.rgb(240, 230, 215))
-    blk((0.7, 0.18, 0.55),(bed_x-0.95, h1+1.04, bed_z-0.56), color.rgb(255, 245, 235))
-    blk((0.7, 0.18, 0.55),(bed_x+0.95, h1+1.04, bed_z-0.56), color.rgb(255, 245, 235))
-    blk((3.3, 1.10, 0.22),(bed_x, h1+1.05, bed_z-0.92), color.rgb(95, 62, 28))
+    blk((3.2, 0.50, 2.0), (bed_x, h1+0.50, bed_z), _rgb(120,  85,  50), coll=True)
+    blk((3.0, 0.22, 1.8), (bed_x, h1+0.82, bed_z), _rgb(240, 230, 215))
+    blk((0.7, 0.18, 0.55),(bed_x-0.95, h1+1.04, bed_z-0.56), _rgb(255, 245, 235))
+    blk((0.7, 0.18, 0.55),(bed_x+0.95, h1+1.04, bed_z-0.56), _rgb(255, 245, 235))
+    blk((3.3, 1.10, 0.22),(bed_x, h1+1.05, bed_z-0.92), _rgb(95, 62, 28))
     # wardrobe
-    blk((1.8, 2.2, 0.6),  (cx-hw+1.0, h1+1.1, cz-hd+1.2), color.rgb(110, 78, 42), coll=True)
-    blk((1.85,2.25,0.08), (cx-hw+1.0, h1+1.12,cz-hd+0.88), color.rgb(140, 100, 58))
+    blk((1.8, 2.2, 0.6),  (cx-hw+1.0, h1+1.1,  cz-hd+1.2),  _rgb(110,  78, 42), coll=True)
+    blk((1.85,2.25,0.08), (cx-hw+1.0, h1+1.12, cz-hd+0.88), _rgb(140, 100, 58))
     # bedside lamp
-    blk((0.7, 0.65, 0.6), (cx+hw-0.6, h1+0.62, cz-hd+2.0), color.rgb(125, 88, 48), coll=True)
-    blk((0.14, 0.48, 0.14),(cx+hw-0.6, h1+1.1,  cz-hd+2.0), color.rgb(185, 155, 100))
-    blk((0.44, 0.34, 0.44),(cx+hw-0.6, h1+1.45, cz-hd+2.0), color.rgb(255, 240, 200))
+    blk((0.7,  0.65, 0.6),  (cx+hw-0.6, h1+0.62, cz-hd+2.0), _rgb(125,  88,  48), coll=True)
+    blk((0.14, 0.48, 0.14), (cx+hw-0.6, h1+1.1,  cz-hd+2.0), _rgb(185, 155, 100))
+    blk((0.44, 0.34, 0.44), (cx+hw-0.6, h1+1.45, cz-hd+2.0), _rgb(255, 240, 200))
 
     # ── wife character — seated on left-side sofa ─────────────────────
     # Left sofa seat top ≈ y 0.57+0.275 = 0.845; place wife just above it.
@@ -631,40 +629,43 @@ def build_wife_house():
     _ws = 0.05           # adjust if still too large/small
 
     try:
-        # Load model first so we can inspect what Ursina returns.
         _wife_model_obj = load_model('model/wife/source/wife.glb')
-        try:
-            print(f"[Wife] model object type: {type(_wife_model_obj)}")
-            # attempt to show repr for quick inspection
-            print(f"[Wife] model repr: {_wife_model_obj!r}")
-        except Exception:
-            pass
-
-        _wife_tex = None
-        try:
-            _tcoll = _wife_model_obj.find_all_textures()
-            if _tcoll.get_num_textures() > 0:
-                _wife_tex = _tcoll.get_texture(0)
-                print(f'[Wife] embedded texture: {_wife_tex.get_name()}')
-        except Exception as _te:
-            print(f'[Wife] texture search: {_te}')
 
         wife = Entity(
             model=_wife_model_obj,
             position=(_wx, _wy, _wz),
-            rotation_y=0,       # facing into the room (+Z direction)
+            rotation_y=0,
             scale=_ws,
             double_sided=True,
             unlit=True,
         )
-        if _wife_tex:
-            wife.texture = _wife_tex
-            wife.color = color.white
-            print('[Wife] assigned embedded texture')
-        print('[Wife] loaded OK (entity created)')
+
+        wife.color = color.white
+
+        texs = wife.model.find_all_textures()
+
+        if texs.get_num_textures() > 0:
+            tex = texs.get_texture(0)
+
+            # remove problematic GLTF material/shader state
+            for node in wife.model.find_all_matches('**/+GeomNode'):
+                node.clear_material()
+                node.clear_shader()
+                node.clear_texture()
+
+                # force texture back
+                node.set_texture(tex, 1)
+                node.set_color(1, 1, 1, 1)
+
+            print('[wife] material stripped, texture forced')
+
+        global wife_entity
+        wife_entity = wife
+        print('[wife] loaded OK')
+
     except Exception as e:
         print(f'[Wife] load error: {e}')
-        blk((0.4, 1.4, 0.25), (_wx, _wy + 0.7, _wz), color.rgb(220, 180, 140))
+        blk((0.4, 1.4, 0.25), (_wx, _wy + 0.7, _wz), _rgb(220, 180, 140))
 
 
 def spawn_buffalo():

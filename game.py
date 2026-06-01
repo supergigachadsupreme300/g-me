@@ -808,6 +808,21 @@ def setup_game():
     update_quest_ui()
 
 
+def _marry_yes():
+    rendering.show_marriage_menu(False)
+    if world.player.money >= 10_000_000:
+        world.player.money -= 10_000_000
+        world.wife_married = True
+        inventory.show_message('You are now married! Congratulations!', 5)
+    else:
+        needed = 10_000_000 - int(world.player.money)
+        inventory.show_message(f'Not enough coins! You need {needed:,} more.', 3)
+
+
+def _marry_no():
+    rendering.show_marriage_menu(False)
+    inventory.show_message('Maybe another time...', 2)
+
 
 def handle_input(key):
     # (Summon keys removed: t,p,m,k,l,n)
@@ -824,6 +839,15 @@ def handle_input(key):
 
 
     if key == 'e':
+
+        # Wife marriage interaction (check before door so it takes priority when near)
+        if world.wife_entity is not None and not world.wife_married:
+            _wp = Vec3(world.wife_entity.x, 0, world.wife_entity.z)
+            _pp = Vec3(world.player.x,      0, world.player.z)
+            if (_pp - _wp).length() < 5:
+                rendering.show_marriage_menu(True)
+                rendering.set_marriage_callbacks(_marry_yes, _marry_no)
+                return
 
         # Wife house door
         if world.wife_door_pivot is not None:
