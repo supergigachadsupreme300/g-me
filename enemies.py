@@ -871,7 +871,8 @@ class MushroomMonster(Rat):
         if hasattr(self, 'name_bg'):
             self.name_bg.enabled = False
         
-        self.entity.scale = (0.5, 0.8, 0.5) 
+        self.entity.scale = (0.5, 0.8, 0.5)
+        self.hitbox = Entity(parent=self.entity, model='cube', color=color.clear, collider='box', y=1.5, scale=(4, 4, 4))
         self.mesh = Entity(parent=self.entity)
         try:
             self.mesh.model = load_model('model/monsterMushroom/GribRiggedReady.fbx')
