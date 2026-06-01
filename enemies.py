@@ -973,6 +973,7 @@ class Dinosaur(Rat):
             self.name_bg.enabled = False
         
         self.entity.scale = (2.5, 4.0, 5.0) 
+        self.hitbox = Entity(parent=self.entity, model='cube', color=color.clear, collider='box', scale=(1, 1, 1), y=0)
         self.mesh = Entity(parent=self.entity)
         try:
             self.mesh.model = load_model('model/dinosaur/TrexHigh.fbx')
