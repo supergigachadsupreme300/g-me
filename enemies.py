@@ -431,7 +431,7 @@ class Grasshopper(Rat):
         import world
         import inventory
 
-        if self.hp <= 0 or self.state == 'DEAD': # Biến 'DEAD' kế thừa từ Rat
+        if self.hp <= 0 or self.state == 'DEAD': 
             return
 
         self.velocity_y -= 9.81 * time.dt
@@ -712,6 +712,7 @@ class Thief(Rat):
         super().__init__(position, name="Ăn Trộm", max_hp=30, ui_height=2.2, speed=3.5, attack_damage=5)
         
         self.entity.scale = (0.8, 1.3, 0.8)
+        self.hitbox = Entity(parent=self.entity, model='cube', color=color.clear, collider='box', scale=(2, 1.2, 2), y=0)
         
         try:
             self.mesh.model = load_model('model/thief/Ready Tower Tenant walk.fbx')
