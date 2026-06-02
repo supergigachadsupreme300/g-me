@@ -34,8 +34,9 @@ def spawn_ground_item(item_type, position):
         Entity(model='cube', color=color.dark_gray, scale=(0.35, 0.1, 0.1), parent=root, position=(0, 0.3, 0))
     elif item_type == "scythe":
         Entity(model='cube', color=color.brown, scale=(0.1, 0.8, 0.1), parent=root, position=(0, 0, 0))
-        Entity(model='cube', color=color.gray, scale=(0.05, 0.35, 0.05), parent=root, position=(0, 0.4, 0.15), rotation=(0, 0, 45))
-        Entity(model='cube', color=color.gray, scale=(0.05, 0.35, 0.05), parent=root, position=(0, 0.6, 0.3), rotation=(0, 0, 25))
+        Entity(model='cube', color=color.gray, scale=(0.05, 0.35, 0.05), parent=root, position=(0.1, 0.5, 0), rotation=(0, 0, 45))
+        Entity(model='cube', color=color.gray, scale=(0.05, 0.2, 0.05), parent=root, position=(0.2, 0.7, 0), rotation=(0, 0, 0))
+        Entity(model='cube', color=color.gray, scale=(0.05, 0.35, 0.05), parent=root, position=(0.1, 0.9, 0), rotation=(0, 0, -45))
     elif item_type == "mobspawner":
         Entity(model='cube', color=color.dark_gray, scale=(0.4, 0.4, 0.4), parent=root, position=(0, 0.2, 0))
         Entity(model='sphere', color=color.red, scale=(0.22, 0.22, 0.22), parent=root, position=(0, 0.65, 0))

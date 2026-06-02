@@ -161,9 +161,10 @@ def _make_damaged_wheat_on_parent(parent_entity):
 
 
 def _make_scythe_on_parent(parent_entity):
-    Entity(model='cube', color=color.brown, scale=(0.12, 0.8, 0.12), parent=parent_entity, position=(0, 0, 0))
-    Entity(model='cube', color=color.gray, scale=(0.05, 0.35, 0.05), parent=parent_entity, position=(0, 0.4, 0), rotation=(0, 0, 45))
-    Entity(model='cube', color=color.gray, scale=(0.05, 0.35, 0.05), parent=parent_entity, position=(0, 0.6, 0), rotation=(0, 0, 25))
+    Entity(model='cube', color=color.brown, scale=(0.1, 0.8, 0.1), parent=parent_entity, position=(0, 0, 0))
+    Entity(model='cube', color=color.gray, scale=(0.05, 0.35, 0.05), parent=parent_entity, position=(0.1, 0.5, 0), rotation=(0, 0, 45))
+    Entity(model='cube', color=color.gray, scale=(0.05, 0.2, 0.05), parent=parent_entity, position=(0.2, 0.7, 0), rotation=(0, 0, 0))
+    Entity(model='cube', color=color.gray, scale=(0.05, 0.35, 0.05), parent=parent_entity, position=(0.1, 0.9, 0), rotation=(0, 0, -45))
 
 
 def set_active_item(item_type):
