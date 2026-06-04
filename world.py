@@ -117,6 +117,17 @@ def remove_tree(tree):
         trees.remove(tree)
 
 
+def remove_rock(rock):
+    try:
+        sound_manager.play('pickaxe')
+    except Exception:
+        pass
+    destroy(rock["rock"])
+    destroy(rock["bar"])
+    if rock in rocks:
+        rocks.remove(rock)
+
+
 def spawn_rocks(num_rocks=8):
     for _ in range(num_rocks):
         while True:
@@ -238,15 +249,11 @@ def build_house():
     # ── Bed ──────────────────────────────────────────────────────────────
     global bed
     bed = Entity(model='cube', color=color.rgb(155/255, 55/255, 55/255),
-                 scale=(2.8, 0.5, 1.8), position=(1.2, 0.72, -1.8), collider='box')
+                 scale=(2.8, 0.5, 1.8), position=(1.2, 0.5, -1.8), collider='box')
     bed.is_bed = True
-    Entity(model='cube', color=color.white, scale=(0.2, 0.5, 0.4),
-           position=(-0.4, 0.7, 0), parent=bed)
+    Entity(model='cube', color=color.white, scale=(0.2, 0.5, 0.4), position=(-0.4, 0.7, 0), parent=bed)
     # Headboard
-    detail((2.85, 1.2, 0.22), (1.2, 1.1, -2.65), color.rgb(88/255, 50/255, 18/255))
-    # Legs
-    for lx, lz in [(-1.3, -2.65), (1.3, -2.65), (-1.3, -0.95), (1.3, -0.95)]:
-        detail((0.16, 0.45, 0.16), (lx, 0.22, lz), color.rgb(78/255, 44/255, 14/255))
+    Entity(model='cube', color=color.rgb(88/255, 50/255, 18/255), scale=(0.1, 2.2, 1), position=(-0.55, 0.5, 0), parent=bed)
 
 
 def build_shop():
@@ -790,15 +797,15 @@ def spawn_vendor_cart():
     # cart body
     Entity(parent=new_root, model='cube', color=cart_color, scale=(4, 1.4, 2), position=(0, 0.9, 0), collider='box')
     Entity(parent=new_root, model='cube', color=color.rgb(max(0, cart_color.r-20), max(0, cart_color.g-40), max(0, cart_color.b-20)), scale=(4.2, 0.4, 2.2), position=(0, 1.6, 0))
-    Entity(parent=new_root, model='cube', color=color.gray, scale=(0.2, 0.8, 0.2), position=(1.9, 1.1, -0.8))
-    Entity(parent=new_root, model='cube', color=color.white, scale=(2, 0.2, 1), position=(0, 2.1, 0.9))
+    Entity(parent=new_root, model='cube', color=color.gray, scale=(0.2, 0.5, 1.8), position=(2, 1.1, 0))
+    Entity(parent=new_root, model='cube', color=color.white, scale=(0.5, 0.7, 2), position=(2, 0.5, 0))
 
     # wheels (keep references for rotation animation)
     wheel_positions = [(-1.4, -0.35, -1), (1.4, -0.35, -1), (-1.4, -0.35, 1), (1.4, -0.35, 1)]
     wheels = []
     for pos in wheel_positions:
         w = Entity(parent=new_root, model='cube', color=color.black,
-                   scale=(0.5, 0.5, 0.2), position=pos, rotation=(0, 0, 0))
+                   scale=(0.8, 0.8, 0.2), position=pos)
         # subtle rim color to match cart
         Entity(parent=w, model='cube', color=cart_color, scale=(0.4, 0.4, 0.06), position=(0, 0, 0.08))
         wheels.append(w)
@@ -816,7 +823,7 @@ def spawn_vendor_cart():
 
     if vm:
         # reduce model size to half
-        vendor = Entity(parent=new_root, model=vm, position=(0, 0, 1.8), scale=0.4, collider='box', double_sided=True)
+        vendor = Entity(parent=new_root, model=vm, position=(0, 0, 1.8), scale=0.2, collider='box', double_sided=True)
         if vt is not None and hasattr(vt, 'width'):
             vendor.texture = vt
     else:

@@ -48,6 +48,8 @@ MOB_SPAWNER_TYPES = [
 mob_spawner_index = 0
 
 game_paused = False
+quest_menu_open = False
+quest_panel_scroll = 0
 
 stamina_regen_rate = 25.0  # per second
 
@@ -156,6 +158,28 @@ def update_quest_ui():
 
     rendering.update_quest_text(quest_name, quest_progress, quest_goal)
 
+
+def update_quest_panel():
+    global quest_panel_scroll
+    quests = tasks.get_quests()
+    max_scroll = max(0, len(quests) - len(rendering.quest_panel_lines))
+    quest_panel_scroll = max(0, min(quest_panel_scroll, max_scroll))
+    rendering.refresh_quest_panel(quests, tasks.get_focused_index(), quest_panel_scroll)
+    rendering.set_quest_focus_callbacks([lambda i=i: set_quest_focus(i + quest_panel_scroll) for i in range(len(rendering.quest_panel_lines))])
+
+
+def set_quest_focus(index: int):
+    tasks.set_focused_quest(index)
+    update_quest_ui()
+    update_quest_panel()
+
+def scroll_quest_panel(delta: int):
+    global quest_panel_scroll
+    quests = tasks.get_quests()
+    max_scroll = max(0, len(quests) - len(rendering.quest_panel_lines))
+    quest_panel_scroll = max(0, min(quest_panel_scroll + delta, max_scroll))
+    if quest_menu_open:
+        update_quest_panel()
 
 
 def should_spawn_night_enemies():
@@ -793,6 +817,7 @@ def setup_game():
         except Exception:
             pass
 
+    tasks.initialize_quests()
     if tasks.get_active_quest() is None:
 
         tasks.set_active_quest(tasks.create_harvest_wheat_quest())
@@ -924,12 +949,23 @@ def handle_input(key):
             else:
 
                 inventory.inventory[inventory.selected_slot] = None
+        return
 
-                select_slot(inventory.selected_slot)
 
-            inventory.update_inventory_ui()
+    if key == 'j':
+        global quest_menu_open
+        quest_menu_open = not quest_menu_open
+        if quest_menu_open:
+            update_quest_panel()
+        rendering.show_quest_panel(quest_menu_open)
+        return
 
-            inventory.show_message(f"Dropped {item_type}", 1.2)
+    if quest_menu_open and key in ('wheel down', 'scroll down', 'wheel_down'):
+        scroll_quest_panel(1)
+        return
+
+    if quest_menu_open and key in ('wheel up', 'scroll up', 'wheel_up'):
+        scroll_quest_panel(-1)
         return
 
 
@@ -953,6 +989,8 @@ def handle_input(key):
             if world.player is not None:
                 world.player.hp = min(world.player.max_hp, world.player.hp + 30)
             inventory.remove_item(inventory.selected_slot)
+            if inventory.get_item(inventory.inventory[inventory.selected_slot]) is None:
+                select_slot(inventory.selected_slot)
             inventory.update_inventory_ui()
             inventory.show_message("Ăn mì hảo hảo, hồi 30 HP", 2)
             return
@@ -1507,6 +1545,8 @@ def setup_game():
     items.spawn_ground_item("pickaxe", Vec3(2, 1, 0))
 
     items.spawn_ground_item("hoe", Vec3(-2, 1, 0))
+
+    items.spawn_ground_item("hammer", Vec3(-3, 1, 0))
 
     items.spawn_ground_item("seed", Vec3(4, 1, 0))
 
