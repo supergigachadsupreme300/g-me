@@ -139,53 +139,75 @@ def spawn_thrown_item(item_type, position, velocity):
     The projectile is updated by `update_thrown_items` until it hits the ground,
     at which point a regular ground item is spawned and the projectile destroyed.
     """
-    proj = Entity(position=position, collider=None)
-    proj.item_type = item_type
-    proj.velocity = Vec3(velocity)
+    # Spawn the actual ground-item entity but disable its collider while
+    # it's flying. Use the same entity as the projectile (no wrapper).
+    visual = spawn_ground_item(item_type, position)
+    # keep collider enabled so the item can collide/picked while flying
+    visual.velocity = Vec3(velocity)
+    # flight tracking to avoid immediate landing
+    visual.flying_time = 0.0
+    visual.start_pos = Vec3(position)
+    # ensure item_type attribute exists on the entity root
+    visual.item_type = item_type
 
-    # Create a lightweight visual copy for the flying item by spawning a
-    # temporary ground item and moving its children under a new visual parent.
-    try:
-        temp = spawn_ground_item(item_type, position)
-        visual = Entity(parent=proj, position=Vec3(0, 0, 0))
-        # reparent children from temp into visual
-        for child in list(temp.children):
-            child.parent = visual
-            # keep child's local transform (positions are preserved on reparent)
-        try:
-            destroy(temp)
-        except Exception:
-            pass
-        proj.visual = visual
-    except Exception:
-        proj.visual = None
-
-    thrown_items.append(proj)
-    return proj
+    thrown_items.append(visual)
+    return visual
 
 
 def update_thrown_items(dt):
     # iterate a copy since we may remove while iterating
     for proj in list(thrown_items):
-        # integrate motion
-        proj.position += proj.velocity * dt
-        proj.velocity.y -= GRAVITY * dt
+        try:
+            # integrate motion
+            proj.position += proj.velocity * dt
+            proj.velocity.y -= GRAVITY * dt
 
-        # when hitting (or below) ground level, convert visual into ground item and remove projectile
-        ground_y = 0.0
-        if proj.y <= ground_y + 0.15:
-            spawn_pos = Vec3(proj.x, ground_y + 0.15, proj.z)
-            # spawn a fresh ground item at the landing position
+            # flight time and distance tracking
+            proj.flying_time = getattr(proj, 'flying_time', 0.0) + dt
+            start_pos = getattr(proj, 'start_pos', proj.position)
+            dist = (proj.position - start_pos).length()
+
+            ground_y = 0.0
+            # allow a small grace period / distance to avoid immediate landing
+            MIN_FLIGHT_TIME = 0.08
+            MIN_FLIGHT_DIST = 0.3
+
+            # stuck detection: if velocity nearly zero while above ground
+            speed = getattr(proj, 'velocity', Vec3(0, 0, 0)).length()
+            if speed < 0.01 and proj.y > ground_y + 0.2:
+                proj.stuck_time = getattr(proj, 'stuck_time', 0.0) + dt
+            else:
+                proj.stuck_time = 0.0
+
+            # normal landing condition (after minimal flight time/distance)
+            if proj.y <= ground_y + 0.15 and (proj.flying_time >= MIN_FLIGHT_TIME or dist >= MIN_FLIGHT_DIST):
+                proj.position = Vec3(proj.x, ground_y + 0.15, proj.z)
+                try:
+                    proj.collider = 'box'
+                except Exception:
+                    pass
+                proj.velocity = Vec3(0, 0, 0)
+                if proj in thrown_items:
+                    thrown_items.remove(proj)
+                continue
+
+            # if stuck in mid-air for too long, force it to land to avoid blocking future throws
+            STUCK_TIMEOUT = 0.6
+            if getattr(proj, 'stuck_time', 0.0) > STUCK_TIMEOUT:
+                proj.position = Vec3(proj.x, ground_y + 0.15, proj.z)
+                try:
+                    proj.collider = 'box'
+                except Exception:
+                    pass
+                proj.velocity = Vec3(0, 0, 0)
+                if proj in thrown_items:
+                    thrown_items.remove(proj)
+                continue
+        except Exception:
+            # if any per-projectile error occurs, remove it so it won't break future throws
             try:
-                spawn_ground_item(proj.item_type, spawn_pos)
+                if proj in thrown_items:
+                    thrown_items.remove(proj)
             except Exception:
                 pass
-
-            # destroy the flying projectile (and its visual)
-            try:
-                destroy(proj)
-            except Exception:
-                pass
-            if proj in thrown_items:
-                thrown_items.remove(proj)
 
