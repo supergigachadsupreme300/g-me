@@ -1,5 +1,10 @@
 from ursina import Entity, color, Vec3, load_texture, load_model
 import config
+from ursina import time as ursina_time, destroy
+
+# list of active thrown item entities (projectiles)
+thrown_items = []
+GRAVITY = 9.81
 
 
 def spawn_ground_item(item_type, position):
@@ -127,3 +132,60 @@ def find_ground_item_root(entity):
             return e
         e = e.parent
     return None
+
+
+def spawn_thrown_item(item_type, position, velocity):
+    """Spawn a lightweight projectile representing a thrown item.
+    The projectile is updated by `update_thrown_items` until it hits the ground,
+    at which point a regular ground item is spawned and the projectile destroyed.
+    """
+    proj = Entity(position=position, collider=None)
+    proj.item_type = item_type
+    proj.velocity = Vec3(velocity)
+
+    # Create a lightweight visual copy for the flying item by spawning a
+    # temporary ground item and moving its children under a new visual parent.
+    try:
+        temp = spawn_ground_item(item_type, position)
+        visual = Entity(parent=proj, position=Vec3(0, 0, 0))
+        # reparent children from temp into visual
+        for child in list(temp.children):
+            child.parent = visual
+            # keep child's local transform (positions are preserved on reparent)
+        try:
+            destroy(temp)
+        except Exception:
+            pass
+        proj.visual = visual
+    except Exception:
+        proj.visual = None
+
+    thrown_items.append(proj)
+    return proj
+
+
+def update_thrown_items(dt):
+    # iterate a copy since we may remove while iterating
+    for proj in list(thrown_items):
+        # integrate motion
+        proj.position += proj.velocity * dt
+        proj.velocity.y -= GRAVITY * dt
+
+        # when hitting (or below) ground level, convert visual into ground item and remove projectile
+        ground_y = 0.0
+        if proj.y <= ground_y + 0.15:
+            spawn_pos = Vec3(proj.x, ground_y + 0.15, proj.z)
+            # spawn a fresh ground item at the landing position
+            try:
+                spawn_ground_item(proj.item_type, spawn_pos)
+            except Exception:
+                pass
+
+            # destroy the flying projectile (and its visual)
+            try:
+                destroy(proj)
+            except Exception:
+                pass
+            if proj in thrown_items:
+                thrown_items.remove(proj)
+
