@@ -383,7 +383,8 @@ class Grasshopper(Enemy):
     def __init__(self, position):
         super().__init__(position, name="Châu Chấu", max_hp=8, ui_height=6.5, speed=4.0, attack_damage=2)
 
-        self.entity.scale = (0.4, 0.4, 0.4) 
+        self.entity.scale = (0.4, 0.4, 0.4)
+        self.hitbox = Entity(parent=self.entity, model='cube', color=color.clear, collider='box', y=3, scale=(4, 4, 4))
         
         try:
             self.mesh.model = load_model('model/grasshopper/source/grasshopper.obj')
@@ -419,7 +420,7 @@ class Grasshopper(Enemy):
         import world
         import inventory
 
-        if self.hp <= 0 or self.state == 'DEAD': # Biến 'DEAD' kế thừa từ Rat
+        if self.hp <= 0 or self.state == 'DEAD': 
             return
 
         self.velocity_y -= 9.81 * time.dt
@@ -481,6 +482,7 @@ class Sahur(Enemy):
             self.name_bg.enabled = False
         
         self.entity.scale = (1.2, 1.2, 1.2)
+        self.entity.collider = 'box'
         self.visual = Entity(scale=(1, 1, 1))
         self.actor = None
         try:
@@ -606,6 +608,7 @@ class Wolf(Enemy):
             self.name_bg.enabled = False
         
         self.entity.scale = (0.8, 0.8, 0.8) 
+        self.hitbox = Entity(parent=self.entity, model='cube', color=color.clear, collider='box', y=2, scale=(4, 4, 4))
         self.mesh = Entity(parent=self.entity)
         try:
             self.mesh.model = load_model('model/werewolf/Animation_Werewolf_Idle_Beta_02.fbx')
@@ -698,6 +701,7 @@ class Thief(Enemy):
         super().__init__(position, name="Ăn Trộm", max_hp=30, ui_height=2.2, speed=3.5, attack_damage=5)
         
         self.entity.scale = (0.8, 1.3, 0.8)
+        self.hitbox = Entity(parent=self.entity, model='cube', color=color.clear, collider='box', scale=(2, 1.2, 2), y=0)
         
         try:
             self.mesh.model = load_model('model/thief/Ready Tower Tenant walk.fbx')
@@ -856,7 +860,8 @@ class MushroomMonster(Enemy):
         if hasattr(self, 'name_bg'):
             self.name_bg.enabled = False
         
-        self.entity.scale = (0.5, 0.8, 0.5) 
+        self.entity.scale = (0.5, 0.8, 0.5)
+        self.hitbox = Entity(parent=self.entity, model='cube', color=color.clear, collider='box', y=1.5, scale=(4, 4, 4))
         self.mesh = Entity(parent=self.entity)
         try:
             self.mesh.model = load_model('model/monsterMushroom/GribRiggedReady.fbx')
@@ -957,6 +962,7 @@ class Dinosaur(Enemy):
             self.name_bg.enabled = False
         
         self.entity.scale = (2.5, 4.0, 5.0) 
+        self.hitbox = Entity(parent=self.entity, model='cube', color=color.clear, collider='box', scale=(1, 1, 1), y=0)
         self.mesh = Entity(parent=self.entity)
         try:
             self.mesh.model = load_model('model/dinosaur/TrexHigh.fbx')
@@ -1046,7 +1052,8 @@ class ArrogantWheat(Enemy):
         super().__init__(position, name="Lúa Kiêu Ngạo", max_hp=40, ui_height=1.2, speed=4.0, attack_damage=8) 
         
 
-        self.entity.scale = (0.6, 2.0, 0.6) 
+        self.entity.scale = (0.6, 2.0, 0.6)
+        self.hitbox = Entity(parent=self.entity, model='cube', color=color.clear, collider='box', scale=(2.5, 1.2, 2.5), y=0)
         self.health_bar.color = color.yellow
 
         try:
@@ -1141,7 +1148,8 @@ class Zombie(Enemy):
         super().__init__(position, name="Zombie", max_hp=50, ui_height=1.4, speed=1.8, attack_damage=12) 
         
         self.entity.scale = (0.8, 1.8, 0.8) 
-        self.health_bar.color = color.green 
+        self.health_bar.color = color.green
+        self.hitbox = Entity(parent=self.entity, model='cube', color=color.clear, collider='box', scale=(3, 1.5, 3), position=(1.5, 0, 2))
  
         try:
             self.mesh.model = load_model('model/zombie/Disco.fbx')
