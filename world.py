@@ -2,7 +2,7 @@ from ursina import *
 import math
 from ursina import time as ursina_time
 import config
-from player import create_player
+from player import create_player, create_player_display
 import random
 import sound_manager
 
@@ -247,6 +247,9 @@ def build_house():
     Entity(model='cube', color=color.white, scale=(0.2, 0.5, 0.4), position=(-0.4, 0.7, 0), parent=bed)
     # Headboard
     Entity(model='cube', color=color.rgb(88/255, 50/255, 18/255), scale=(0.1, 2.2, 1), position=(-0.55, 0.5, 0), parent=bed)
+
+    # Block player mannequin — face the entrance (door on +X wall)
+    create_player_display(world_position=(-2.0, 1, 1.5), rotation_y=90)
 
 
 def build_shop():

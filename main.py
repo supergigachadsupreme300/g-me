@@ -150,8 +150,9 @@ def setup_tools_for_camera():
 
 def run_game():
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    app = Ursina()
+    app = Ursina(development_mode=False)
     application.development_mode = False
+    window.render_mode = 'default'
     mouse.locked = True
     mouse.visible = False
     window.exit_button.visible = False

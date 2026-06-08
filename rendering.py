@@ -245,33 +245,93 @@ def update_time_ui(current_day, time_of_day):
     time_text.text = f"Day {current_day} - {hours:02d}:{minutes:02d}"
 
 
+DAY_START = 6.0
+DUSK_START = 17.0
+NIGHT_START = 19.0
+
+DAY_SKY = (135 / 255, 206 / 255, 235 / 255)
+DUSK_SKY = (255 / 255, 145 / 255, 75 / 255)
+NIGHT_SKY = (15 / 255, 20 / 255, 55 / 255)
+DAY_SUN = (255 / 255, 255 / 255, 235 / 255)
+DUSK_SUN = (255 / 255, 125 / 255, 45 / 255)
+NIGHT_SUN = (120 / 255, 140 / 255, 255 / 255)
+
+
+def get_time_stage(time_of_day: float) -> str:
+    if DAY_START <= time_of_day < DUSK_START:
+        return 'day'
+    if DUSK_START <= time_of_day < NIGHT_START:
+        return 'dusk'
+    return 'night'
+
+
+def _blend_rgb(a, b, t):
+    t = max(0.0, min(1.0, t))
+    return color.rgb(
+        a[0] + (b[0] - a[0]) * t,
+        a[1] + (b[1] - a[1]) * t,
+        a[2] + (b[2] - a[2]) * t,
+    )
+
+
+def _apply_sky_colors(sky_rgb, sun_rgb, star_blend=0.0):
+    if world.sun is not None:
+        world.sun.color = sun_rgb
+    window.color = sky_rgb
+    scene.fog_color = sky_rgb
+    if world.sky is None:
+        return
+    global starry_texture
+    if star_blend > 0.0:
+        if starry_texture is None:
+            try:
+                starry_texture = load_texture('texture/starry.png')
+            except Exception:
+                starry_texture = None
+        if starry_texture is not None:
+            world.sky.texture = starry_texture
+            world.sky.color = _blend_rgb((1.0, 1.0, 1.0), sky_rgb, 1.0 - star_blend)
+        else:
+            world.sky.texture = None
+            world.sky.color = sky_rgb
+    else:
+        world.sky.texture = None
+        world.sky.color = sky_rgb
+
+
 def set_day_night(time_of_day):
     if world.sun is None:
         return
-    if 6 <= time_of_day < 18:
-        world.sun.color = color.rgb(255/255, 255/255, 235/255)
-        window.color = color.rgb(135/255, 206/255, 235/255)
-        scene.fog_color = color.rgb(135/255, 206/255, 235/255)
-        if world.sky is not None:
-            world.sky.texture = None
-            world.sky.color = color.rgb(135/255, 206/255, 235/255)
-    else:
-        world.sun.color = color.rgb(120/255, 140/255, 255/255)
-        window.color = color.rgb(15/255, 20/255, 55/255)
-        scene.fog_color = color.rgb(15/255, 20/255, 55/255)
-        if world.sky is not None:
-            global starry_texture
-            if starry_texture is None:
-                try:
-                    starry_texture = load_texture('texture/starry.png')
-                except Exception as e:
-                    starry_texture = None
-            if starry_texture is not None:
-                world.sky.texture = starry_texture
-                world.sky.color = color.white
-            else:
-                world.sky.texture = None
-                world.sky.color = color.rgb(15/255, 20/255, 55/255)
+
+    stage = get_time_stage(time_of_day)
+    if stage == 'day':
+        _apply_sky_colors(
+            color.rgb(*DAY_SKY),
+            color.rgb(*DAY_SUN),
+            star_blend=0.0,
+        )
+        return
+
+    if stage == 'dusk':
+        dusk_progress = (time_of_day - DUSK_START) / (NIGHT_START - DUSK_START)
+        if dusk_progress < 0.5:
+            blend = dusk_progress * 2.0
+            sky_rgb = _blend_rgb(DAY_SKY, DUSK_SKY, blend)
+            sun_rgb = _blend_rgb(DAY_SUN, DUSK_SUN, blend)
+            star_blend = 0.0
+        else:
+            blend = (dusk_progress - 0.5) * 2.0
+            sky_rgb = _blend_rgb(DUSK_SKY, NIGHT_SKY, blend)
+            sun_rgb = _blend_rgb(DUSK_SUN, NIGHT_SUN, blend)
+            star_blend = blend * 0.65
+        _apply_sky_colors(sky_rgb, sun_rgb, star_blend=star_blend)
+        return
+
+    _apply_sky_colors(
+        color.rgb(*NIGHT_SKY),
+        color.rgb(*NIGHT_SUN),
+        star_blend=1.0,
+    )
 
 
 def set_pause_button_callbacks(continue_callback, exit_callback):
