@@ -1,10 +1,17 @@
-from ursina import Entity, Text, Button, color, camera, Vec2
+from ursina import Entity, Text, Button, color, camera, Vec3, Vec2
 import inventory
 import rendering
 import world
+import pet
 
 SHOP_PANEL = None
+SHOP_ITEM_BUTTONS = []
+SHOP_PAGE_LABEL = None
+SHOP_PAGE = 1
+SHOP_PREV_BUTTON = None
+SHOP_NEXT_BUTTON = None
 ORIGINAL_SENSITIVITY = None  # Biến mới để sửa lỗi camera
+ITEMS_PER_PAGE = 9
 
 ITEMS = [
     {'type': 'wheat', 'price': 5},
@@ -17,56 +24,131 @@ ITEMS = [
     {'type': 'hoe', 'price': 20},
     {'type': 'gun', 'price': 60},
     {'type': 'ammo', 'price': 5},
+    {'type': 'mì hảo hảo', 'price':10},
+    {'type': 'dog', 'price': 100, 'pet_type': 'dog'},
+    {'type': 'toad', 'price': 80, 'pet_type': 'toad'},
 ]
 
 
 def setup_shop_ui():
-    global SHOP_PANEL
-    # scale=0.66 giúp thu nhỏ UI lại bằng 2/3
+    global SHOP_PANEL, SHOP_ITEM_BUTTONS, SHOP_PAGE_LABEL, SHOP_PREV_BUTTON, SHOP_NEXT_BUTTON
     SHOP_PANEL = Entity(parent=camera.ui, enabled=False, scale=0.66)
-    
-    # z=0.1 đẩy nền ra sau chống nháy
     Entity(parent=SHOP_PANEL, model='quad', color=color.hex('#2E3440'), scale=(1.2, 0.95), position=(0, 0, 0.1))
     Text(parent=SHOP_PANEL, text='Shop', y=0.38, z=-0.1, scale=2, color=color.hex('#ECEFF4'), origin=(0, 0))
 
-    cols = 3
-    spacing_x = 0.35
-    spacing_y = 0.16
-    start_x = -0.35
-    start_y = 0.22
-
-    for i, it in enumerate(ITEMS):
-        x = start_x + (i % cols) * spacing_x
-        y = start_y - (i // cols) * spacing_y
-        
-        # z=-0.1 kéo nút bấm lên trước chống nháy
-        b = Button(
-            parent=SHOP_PANEL, 
-            text=f"{it['type']}\n{it['price']}g", 
-            position=(x, y, -0.1), 
-            scale=(0.3, 0.12),
-            color=color.hex('#434C5E'),
-            text_color=color.hex('#ECEFF4')
-        )
-        b.highlight_color = color.hex('#4C566A')
-        b.on_click = (lambda item=it: buy_item(item))
-
     b_close = Button(
-        parent=SHOP_PANEL, 
-        text='Close', 
-        position=(0, -0.38, -0.1), 
-        scale=(0.25, 0.1), 
-        on_click=close_shop, 
-        color=color.hex('#BF616A'), 
-        text_color=color.hex('#ECEFF4')
+        parent=SHOP_PANEL,
+        text='X',
+        position=(0.52, 0.39, -0.1),
+        scale=(0.08, 0.08),
+        color=color.hex('#BF616A'),
+        text_color=color.hex('#ECEFF4'),
+        on_click=close_shop
     )
     b_close.highlight_color = color.hex('#D08770')
 
+    cols = 3
+    rows = 3
+    spacing_x = 0.35
+    spacing_y = 0.16
+    start_x = -0.35
+    start_y = 0.18
+
+    SHOP_ITEM_BUTTONS = []
+    for slot in range(ITEMS_PER_PAGE):
+        x = start_x + (slot % cols) * spacing_x
+        y = start_y - (slot // cols) * spacing_y
+        b = Button(
+            parent=SHOP_PANEL,
+            text='',
+            position=(x, y, -0.1),
+            scale=(0.3, 0.12),
+            color=color.hex('#434C5E'),
+            text_color=color.hex('#ECEFF4'),
+            enabled=False
+        )
+        b.highlight_color = color.hex('#4C566A')
+        SHOP_ITEM_BUTTONS.append(b)
+
+    SHOP_PREV_BUTTON = Button(
+        parent=SHOP_PANEL,
+        text='< Trang trước',
+        position=(-0.35, -0.35, -0.1),
+        scale=(0.28, 0.1),
+        color=color.hex('#4C566A'),
+        text_color=color.hex('#ECEFF4'),
+        on_click=lambda _=None: change_shop_page(SHOP_PAGE - 1)
+    )
+    SHOP_PREV_BUTTON.highlight_color = color.hex('#81A1C1')
+
+    SHOP_NEXT_BUTTON = Button(
+        parent=SHOP_PANEL,
+        text='Trang sau >',
+        position=(0.35, -0.35, -0.1),
+        scale=(0.28, 0.1),
+        color=color.hex('#4C566A'),
+        text_color=color.hex('#ECEFF4'),
+        on_click=lambda _=None: change_shop_page(SHOP_PAGE + 1)
+    )
+    SHOP_NEXT_BUTTON.highlight_color = color.hex('#81A1C1')
+
+    SHOP_PAGE_LABEL = Text(
+        parent=SHOP_PANEL,
+        text='',
+        y=-0.35,
+        z=-0.1,
+        scale=1.2,
+        color=color.hex('#ECEFF4'),
+        origin=(0, 0)
+    )
+
+    update_shop_page()
+
+
+def get_total_shop_pages():
+    return max(1, (len(ITEMS) + ITEMS_PER_PAGE - 1) // ITEMS_PER_PAGE)
+
+
+def update_shop_page():
+    global SHOP_PAGE
+    total_pages = get_total_shop_pages()
+    SHOP_PAGE = max(1, min(SHOP_PAGE, total_pages))
+    start_index = (SHOP_PAGE - 1) * ITEMS_PER_PAGE
+
+    for slot, button in enumerate(SHOP_ITEM_BUTTONS):
+        item_index = start_index + slot
+        if item_index < len(ITEMS):
+            item = ITEMS[item_index]
+            button.text = f"{item['type']}\n{item['price']}g"
+            button.enabled = True
+            button.on_click = (lambda _=None, current=item: buy_item(current))
+        else:
+            button.text = ''
+            button.enabled = False
+            button.on_click = lambda _=None: None
+
+    if SHOP_PAGE_LABEL is not None:
+        SHOP_PAGE_LABEL.text = f"Trang {SHOP_PAGE}/{total_pages}"
+
+    if SHOP_PREV_BUTTON is not None:
+        SHOP_PREV_BUTTON.enabled = SHOP_PAGE > 1
+    if SHOP_NEXT_BUTTON is not None:
+        SHOP_NEXT_BUTTON.enabled = SHOP_PAGE < total_pages
+
+
+def change_shop_page(new_page):
+    global SHOP_PAGE
+    total_pages = get_total_shop_pages()
+    SHOP_PAGE = max(1, min(new_page, total_pages))
+    update_shop_page()
+
 
 def open_shop():
-    global ORIGINAL_SENSITIVITY
+    global ORIGINAL_SENSITIVITY, SHOP_PAGE
     if SHOP_PANEL is None:
         setup_shop_ui()
+    SHOP_PAGE = 1
+    update_shop_page()
     SHOP_PANEL.enabled = True
     
     from ursina import mouse
@@ -105,7 +187,21 @@ def buy_item(item):
     if world.player.money < price:
         inventory.show_message('Not enough money', 1.5)
         return
-    
+
+    pet_type = item.get('pet_type')
+    if pet_type is not None:
+        world.player.money -= price
+        rendering.update_player_hud(world.player.hp, world.player.max_hp, world.player.stamina, world.player.max_stamina, world.player.money)
+        try:
+            if pet_type == 'dog':
+                pet.spawn_dog(world.player.position + Vec3(2, 0, 0))
+            elif pet_type == 'toad':
+                pet.spawn_toad(world.player.position + Vec3(-2, 0, 0))
+        except Exception as e:
+            print(f'Failed to spawn pet: {e}')
+        inventory.show_message(f'Bought {item["type"]}', 1.5)
+        return
+
     slot = inventory.first_empty_slot()
     if slot is None:
         inventory.show_message('Inventory full', 1.5)

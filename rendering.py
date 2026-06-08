@@ -21,10 +21,6 @@ buffalo_dialog = None
 buffalo_dialog_text = None
 buffalo_sell = None
 buffalo_leave = None
-quest_panel = None
-quest_panel_lines = []
-quest_panel_focus_buttons = []
-quest_panel_visible_rows = 6
 
 
 def setup_ui():
@@ -34,9 +30,10 @@ def setup_ui():
     global marriage_menu, marriage_yes, marriage_no
     global buffalo_dialog, buffalo_dialog_text, buffalo_sell, buffalo_leave
     global stats_panel, stats_lines, stats_button, quest_text
-    global quest_panel, quest_panel_lines, quest_panel_focus_buttons
+    global instructions_panel, instructions_button
+    global instructions_content, btn_prev_page, btn_next_page
 
-    # --- 1. GIAO DIỆN HUD NGƯỜI CHƠI (GIỮ NGUYÊN GỐC CỦA ÔNG) ---
+    # --- 1. GIAO DIỆN HUD NGƯỜI CHƠI ---
     time_text = Text(parent=camera.ui, text='', position=(-0.8, 0.22), origin=(0, 0), scale=1.2, color=color.white, background=True)
     ammo_text = Text(parent=camera.ui, text='Ammo: 0/0', position=(0, -0.37), origin=(0, 0), scale=1.2, color=color.white, background=True)
     ammo_text.enabled = False
@@ -47,22 +44,23 @@ def setup_ui():
     quest_text = Text(parent=camera.ui, text='Quest: Harvest wheat 0/100', position=(-0.7, 0.21), origin=(0, 0), scale=1.1, color=color.white, background=True)
     mobspawner_text = Text(parent=camera.ui, text='', position=(0, -0.37), origin=(0, 0), scale=1.0, color=color.yellow, background=True, enabled=False)
 
-    # --- 2. GIAO DIỆN MENU SETTINGS CHUẨN ĐỒ ĐỒNG ĐỀU ---
+    # --- 2. GIAO DIỆN MENU SETTINGS ---
     pause_menu = Entity(parent=camera.ui, enabled=False)
-    # Nền đen mờ tỷ lệ gọn gàng, thanh lịch
-    Entity(parent=pause_menu, model='quad', color=color.rgba(15, 15, 20, 230/255), scale=(0.6, 0.8), z=1)
-    # Tiêu đề canh giữa tuyệt đối
-    Text(text='SETTINGS', parent=pause_menu, y=0.3, origin=(0, 0), scale=2.5, color=color.orange)
+    Entity(parent=pause_menu, model='quad', color=color.rgba(15, 15, 20, 230/255), scale=(0.6, 0.9), z=1)
     
-    # Nút bấm đồng đều scale, có highlight_color đổi màu khi di chuột vào
-    Button(parent=pause_menu, text='Continue', scale=(0.4, 0.08), y=0.1, color=color.dark_gray, highlight_color=color.azure)
+    Text(text='SETTINGS', parent=pause_menu, y=0.35, origin=(0, 0), scale=2.5, color=color.orange)
     
-    stats_button = Button(parent=pause_menu, text='Stats', scale=(0.4, 0.08), y=-0.05, color=color.dark_gray, highlight_color=color.azure)
+    Button(parent=pause_menu, text='Continue', scale=(0.4, 0.08), y=0.17, color=color.dark_gray, highlight_color=color.azure)
+    
+    stats_button = Button(parent=pause_menu, text='Stats', scale=(0.4, 0.08), y=0.04, color=color.dark_gray, highlight_color=color.azure)
     stats_button.on_click = lambda: show_stats(True)
-    
-    Button(parent=pause_menu, text='Exit', scale=(0.4, 0.08), y=-0.2, color=color.red, highlight_color=color.rgb(255, 100, 100))
 
-    # --- 3. GIAO DIỆN BẢNG GIƯỜNG NGỦ & HỘI THOẠI TRÂU (GIỮ NGUYÊN GỐC) ---
+    instructions_button = Button(parent=pause_menu, text='Instructions', scale=(0.4, 0.08), y=-0.09, color=color.dark_gray, highlight_color=color.azure)
+    instructions_button.on_click = lambda: show_instructions(True)
+    
+    Button(parent=pause_menu, text='Exit', scale=(0.4, 0.08), y=-0.22, color=color.red, highlight_color=color.rgb(255, 100, 100))
+
+    # --- 3. GIAO DIỆN BẢNG GIƯỜNG NGỦ & HỘI THOẠI TRÂU ---
     bed_confirm_menu = Entity(parent=camera.ui, enabled=False)
     Entity(parent=bed_confirm_menu, model='quad', color=color.rgba(0, 0, 0, 180/255), scale=(1.4, 0.6), position=(0, 0, 0))
     Text(parent=bed_confirm_menu, text='Use the bed?\nSkip to next day/night cycle.', y=0.12, scale=1.2, color=color.white)
@@ -89,42 +87,102 @@ def setup_ui():
     buffalo_sell = Button(parent=buffalo_dialog, text='Sell wheat', scale=(0.4, 0.13), x=-0.2, y=-0.15)
     buffalo_leave = Button(parent=buffalo_dialog, text='Leave', scale=(0.4, 0.13), x=0.2, y=-0.15)
 
-    # --- 4. GIAO DIỆN BẢNG THỐNG KÊ (STATS PANEL) CANH LỀ SẠCH SẼ ---
+    # --- 4. GIAO DIỆN BẢNG THỐNG KÊ (STATS PANEL) ---
     stats_panel = Entity(parent=camera.ui, enabled=False)
-    # Khung nền chứa danh sách text
     Entity(parent=stats_panel, model='quad', color=color.rgba(15/255, 15/255, 20/255, 0.95), scale=(0.9, 0.9), z=1)
     
-    # Tiêu đề bảng thống kê
     Text(parent=stats_panel, text='PLAYER STATS', y=0.35, origin=(0, 0), scale=2.5, color=color.azure)
     
-    # Toàn bộ danh sách text được ép chung một trục x, căn lề trái (origin=(-0.5, 0)) để thẳng hàng tăm tắp
     text_x = -0.35
     stats_lines = {
         'harvested': Text(parent=stats_panel, text='Harvested wheat: 0', x=text_x, y=0.15, origin=(-0.5, 0), scale=1.3, color=color.white),
         'enemies': Text(parent=stats_panel, text='Enemies killed: 0', x=text_x, y=0.05, origin=(-0.5, 0), scale=1.3, color=color.white),
-        
-        # Tiền kiếm được màu xanh, tiền bị mất trộm màu đỏ trực quan
         'earned': Text(parent=stats_panel, text='Money earned: 0', x=text_x, y=-0.05, origin=(-0.5, 0), scale=1.3, color=color.rgb(100, 255, 100)),
         'stolen': Text(parent=stats_panel, text='Money stolen: 0', x=text_x, y=-0.15, origin=(-0.5, 0), scale=1.3, color=color.rgb(255, 100, 100)),
     }
-    # Nút quay trở lại Menu Settings
+    
     Button(parent=stats_panel, text='Back', y=-0.35, scale=(0.3, 0.08), color=color.dark_gray, highlight_color=color.azure, on_click=lambda: show_stats(False))
 
-    quest_panel = Entity(parent=camera.ui, enabled=False)
-    Entity(parent=quest_panel, model='quad', color=color.rgba(15/255, 15/255, 20/255, 0.95), scale=(0.9, 0.85), z=1)
-    Text(parent=quest_panel, text='QUESTS', y=0.33, origin=(0, 0), scale=2.5, color=color.azure)
-    Text(parent=quest_panel, text='Press J to close', y=0.24, origin=(0, 0), scale=1.0, color=color.light_gray)
+    # --- 5. GIAO DIỆN HƯỚNG DẪN (INSTRUCTIONS PANEL) LẬT TRANG ---
+    instructions_panel = Entity(parent=camera.ui, enabled=False)
+    Entity(parent=instructions_panel, model='quad', color=color.rgba(15/255, 15/255, 20/255, 0.95), scale=(0.9, 0.9), z=1)
+    
+    Text(parent=instructions_panel, text='HƯỚNG DẪN', y=0.35, origin=(0, 0), scale=2.5, color=color.azure)
+    
+    instructions_content = Text(parent=instructions_panel, text='', x=0, y=0, origin=(0, 0), color=color.white)
+    
+    Button(parent=instructions_panel, text='Back', y=-0.38, scale=(0.2, 0.08), color=color.dark_gray, highlight_color=color.azure, on_click=lambda: show_instructions(False))
+    
+    btn_prev_page = Button(parent=instructions_panel, text='< Trang trước', x=-0.28, y=-0.38, scale=(0.25, 0.08), color=color.dark_gray, highlight_color=color.azure, on_click=lambda: change_inst_page(1))
+    btn_next_page = Button(parent=instructions_panel, text='Trang sau >', x=0.28, y=-0.38, scale=(0.25, 0.08), color=color.dark_gray, highlight_color=color.azure, on_click=lambda: change_inst_page(2))
+    
+    change_inst_page(1)
 
-    quest_panel_lines.clear()
-    quest_panel_focus_buttons.clear()
-    row_y = 0.18
-    for i in range(quest_panel_visible_rows):
-        quest_line = Text(parent=quest_panel, text='', x=-0.4, y=row_y, origin=(-0.5, 0), scale=1.05, color=color.white)
-        quest_button = Button(parent=quest_panel, text='Focus', x=0.28, y=row_y, scale=(0.18, 0.06), color=color.dark_gray, highlight_color=color.azure)
-        quest_button.enabled = False
-        quest_panel_lines.append(quest_line)
-        quest_panel_focus_buttons.append(quest_button)
-        row_y -= 0.11
+
+# =========================================================================
+# CÁC HÀM XỬ LÝ (HELPER FUNCTIONS)
+# =========================================================================
+
+def change_inst_page(page_num):
+    global instructions_content, btn_prev_page, btn_next_page
+    
+    # Khoảng cách được tạo ra bởi \n\n
+    page_1_text = (
+        "Phím di chuyển: A, W, S, D\n\n"
+        "Nhảy: Space\n\n"
+        "Nhặt đồ: E\n\n"
+        "Quăng đồ: Q\n\n"
+        "Thay đạn: R\n\n"
+        "Setting: Esc"
+    )
+    
+    page_2_text = (
+        "• Cuốc (hoe): dùng xới đất, trồng cây\n\n"
+        "• Rìu (axe): dùng chặt gỗ\n\n"
+        "• Cuốc chim (pickaxe): dùng đào đá\n\n"
+        "• Hạt giống (seed): trồng trên đất đã xới\n\n"
+        "• Sword: dùng chiến đấu với quái vật/kẻ trộm\n\n"
+        "• Súng (gun): chiến đấu xa, cần có đạn\n\n"
+        "• Đạn (ammo): dùng để nạp vào súng\n\n"
+        "• Lưỡi hái (scythe): dùng để thu hoạch lúa\n\n"
+        "• Búa (hammer): dùng để xây dựng\n\n"
+        "• Mì hảo hảo: có thể hồi máu"
+    )
+    
+    if page_num == 1:
+        instructions_content.text = page_1_text
+        # origin=(-0.5, 0.5) ép toàn bộ chữ về lề trái
+        instructions_content.origin = (-0.5, 0.5) 
+        instructions_content.x = -0.25
+        instructions_content.y = 0.2
+        instructions_content.scale = 1.3
+        
+        if btn_prev_page: btn_prev_page.enabled = False
+        if btn_next_page: btn_next_page.enabled = True
+        
+    elif page_num == 2:
+        instructions_content.text = page_2_text
+        instructions_content.origin = (-0.5, 0.5) 
+        instructions_content.x = -0.42
+        instructions_content.y = 0.28  # Đẩy lên một xíu để các dòng giãn ra mà không tràn đáy
+        instructions_content.scale = 0.95 # Chỉnh nhỏ xíu để vừa 10 món đồ
+        
+        if btn_prev_page: btn_prev_page.enabled = True
+        if btn_next_page: btn_next_page.enabled = False
+
+
+def show_instructions(enabled: bool):
+    global instructions_panel, pause_menu
+    if instructions_panel is None:
+        return
+    
+    instructions_panel.enabled = enabled
+    
+    if enabled:
+        change_inst_page(1)
+        
+    if pause_menu is not None:
+        pause_menu.enabled = not enabled
 
 
 def update_ammo_text(gun_ammo, gun_max_ammo):
@@ -152,56 +210,8 @@ def update_quest_text(name, progress, goal):
         status = 'Completed' if progress >= goal else f'{progress}/{goal}'
         quest_text.text = f"Quest: {name} {status}"
         quest_text.enabled = True
-        # also ensure time UI sits below quest UI
         if time_text is not None:
             time_text.y = quest_text.y - 0.06
-
-
-def show_quest_panel(enabled: bool):
-    global quest_panel
-    if quest_panel is None:
-        return
-    quest_panel.enabled = enabled
-    if enabled:
-        mouse.locked = False
-        mouse.visible = True
-    else:
-        mouse.locked = True
-        mouse.visible = False
-
-
-def refresh_quest_panel(quests, focused_index=0, scroll_index=0):
-    global quest_panel_lines, quest_panel_focus_buttons
-    if quest_panel is None:
-        return
-    scroll_index = max(0, min(scroll_index, max(0, len(quests) - len(quest_panel_lines))))
-    visible_quests = quests[scroll_index:scroll_index + len(quest_panel_lines)]
-    for i, line in enumerate(quest_panel_lines):
-        if i < len(visible_quests):
-            quest = visible_quests[i]
-            status = 'Completed' if quest.completed else f'{quest.progress}/{quest.goal}'
-            line.text = f"{scroll_index + i + 1}. {quest.name}: {status}"
-            line.color = color.yellow if (scroll_index + i) == focused_index else color.white
-            line.enabled = True
-            btn = quest_panel_focus_buttons[i]
-            btn.enabled = True
-            btn.text = 'Focused' if (scroll_index + i) == focused_index else 'Focus'
-            btn.color = color.rgb(80, 80, 80) if (scroll_index + i) == focused_index else color.dark_gray
-            btn.highlight_color = color.lime if (scroll_index + i) != focused_index else color.gray
-        else:
-            line.enabled = False
-            quest_panel_focus_buttons[i].enabled = False
-
-
-def set_quest_focus_callbacks(callbacks):
-    global quest_panel_focus_buttons
-    for i, button in enumerate(quest_panel_focus_buttons):
-        if i < len(callbacks):
-            button.on_click = callbacks[i]
-            button.enabled = True
-        else:
-            button.on_click = lambda: None
-            button.enabled = False
 
 
 def update_mobspawner_text(target_name: str = None):
@@ -223,15 +233,13 @@ def show_stats(enabled: bool):
     if stats_panel is None:
         return
     
-    # Bật/tắt trang Stats
     stats_panel.enabled = enabled
-    
-    # Ẩn/hiện trang Menu chính (để không bị đè)
     if pause_menu is not None:
         pause_menu.enabled = not enabled
         
     if enabled:
         update_stats_display()
+
 
 def update_stats_display():
     try:
@@ -274,9 +282,7 @@ def set_day_night(time_of_day):
             if starry_texture is None:
                 try:
                     starry_texture = load_texture('texture/starry.png')
-                    print('Loaded night sky texture: texture/starry.png')
                 except Exception as e:
-                    print(f'Failed to load night sky texture: {e}')
                     starry_texture = None
             if starry_texture is not None:
                 world.sky.texture = starry_texture

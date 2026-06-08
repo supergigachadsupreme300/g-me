@@ -555,6 +555,11 @@ def update():
 
     except Exception:
         pass
+    # update thrown items (projectiles) so they move and become ground items on impact
+    try:
+        items.update_thrown_items(time.dt)
+    except Exception:
+        pass
 
     update_quest_ui()
 
@@ -937,18 +942,30 @@ def handle_input(key):
             inventory.show_message("No item in selected slot", 1.5)
 
         else:
+            # spawn a thrown projectile from player's position with forward velocity
+            start_pos = world.player.position + Vec3(0, 1.2, 0) + world.player.forward * 1.2
+            throw_speed = 10.0
+            upward_speed = 5.0
+            velocity = world.player.forward * throw_speed + Vec3(0, upward_speed, 0)
+            items.spawn_thrown_item(item_type, start_pos, velocity)
 
-            pos = world.player.position + world.player.forward * 2
-
-            items.spawn_ground_item(item_type, pos)
-
+            # remove item from inventory immediately and refresh UI
             if inventory.is_stackable(item_type) and inventory.get_count(slot) > 1:
-
                 inventory.remove_item(inventory.selected_slot)
-
             else:
-
                 inventory.inventory[inventory.selected_slot] = None
+
+            # if selected slot became empty, try to auto-select next non-empty slot
+            if inventory.get_item(inventory.inventory[inventory.selected_slot]) is None:
+                non_empty_slot = next((i for i, s in enumerate(inventory.inventory) if inventory.get_item(s) is not None), None)
+                if non_empty_slot is not None:
+                    select_slot(non_empty_slot)
+                else:
+                    # no other items — clear held-item visuals by re-selecting the same slot
+                    select_slot(inventory.selected_slot)
+                    inventory.update_inventory_ui()
+            else:
+                inventory.update_inventory_ui()
         return
 
 
