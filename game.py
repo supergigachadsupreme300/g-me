@@ -18,6 +18,9 @@ import rendering
 
 import tasks
 import stats
+import cutscene_manager
+
+_sad_ending_fired = False
 
 
 MAX_PLACE_DISTANCE = 20
@@ -456,7 +459,19 @@ def snap_to_grid(position):
 
 def update():
 
-    global time_of_day, current_day, last_time_stage, next_enemy_spawn_absolute
+    global time_of_day, current_day, last_time_stage, next_enemy_spawn_absolute, _sad_ending_fired, game_paused
+
+    cutscene_manager.manager.update()
+
+    # Sad ending trigger: day 11+ and player never married the wife
+    if (not _sad_ending_fired
+            and current_day >= 11
+            and not world.wife_married
+            and not cutscene_manager.manager.is_active):
+        _sad_ending_fired = True
+        game_paused = True
+        cutscene_manager.play_sad_ending()
+        return
 
     if game_paused:
         return
@@ -857,8 +872,18 @@ def _marry_no():
 def handle_input(key):
     # (Summon keys removed: t,p,m,k,l,n)
     # Input for summoning debug monsters was intentionally removed.
-    
-    global gun_ammo, game_paused
+
+    global gun_ammo, game_paused, _sad_ending_fired
+
+    if key == 'f12':
+        if not cutscene_manager.manager.is_active:
+            _sad_ending_fired = True
+            game_paused = True
+            cutscene_manager.play_sad_ending()
+        return
+
+    if cutscene_manager.manager.is_active:
+        return
 
     if key in [str(i) for i in range(1, 10)] + ['0']:
 

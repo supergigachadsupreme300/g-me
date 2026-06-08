@@ -633,7 +633,7 @@ def build_wife_house():
     _wx = cx - 1.0
     _wy = 0.85           # on sofa seat
     _wz = cz - hd + 0.7  # near -Z wall
-    _ws = 0.05           # adjust if still too large/small
+    _ws = 0.75           # adjust if still too large/small
 
     try:
         _wife_model_obj = load_model('model/wife/source/wife.glb')
