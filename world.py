@@ -7,7 +7,7 @@ import cutscene_manager as cutscene
 import random
 import sound_manager
 
-GROUND_SIZE = 150
+GROUND_SIZE = 300
 GROUND_HALF = GROUND_SIZE / 2
 
 # Road bounds (set by build_road)
@@ -701,7 +701,7 @@ def build_road():
     # Road runs north-south (along Z) at x=14, covering z=-50 to z=70
     road_cx  = 14.0
     road_hw  = 3.8
-    road_len = 150.0
+    road_len = 300.0
     road_zc  = 17.0
 
     curb_c   = color.rgb(118, 115, 108)
