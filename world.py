@@ -3,6 +3,7 @@ import math
 from ursina import time as ursina_time
 import config
 from player import create_player, create_player_display
+import cutscene
 import random
 import sound_manager
 
@@ -639,42 +640,32 @@ def build_wife_house():
     _ws = 0.75           # adjust if still too large/small
 
     try:
-        _wife_model_obj = load_model('model/wife/source/wife.glb')
+        # Use Teto model instead of the old wife model
+        _wife_model_obj = load_model(cutscene.TETO_MODEL_PATH)
 
         wife = Entity(
             model=_wife_model_obj,
             position=(_wx, _wy, _wz),
             rotation_y=0,
-            scale=_ws,
+            scale=cutscene.TETO_SCALE,
             double_sided=True,
             unlit=True,
         )
 
         wife.color = color.white
 
-        texs = wife.model.find_all_textures()
-
-        if texs.get_num_textures() > 0:
-            tex = texs.get_texture(0)
-
-            # remove problematic GLTF material/shader state
-            for node in wife.model.find_all_matches('**/+GeomNode'):
-                node.clear_material()
-                node.clear_shader()
-                node.clear_texture()
-
-                # force texture back
-                node.set_texture(tex, 1)
-                node.set_color(1, 1, 1, 1)
-
-            print('[wife] material stripped, texture forced')
+        # Apply Teto texture if available using the helper from cutscene
+        try:
+            cutscene._apply_texture_to_model(wife, _wife_model_obj, cutscene.TETO_TEXTURE_PATH)
+        except Exception:
+            pass
 
         global wife_entity
         wife_entity = wife
-        print('[wife] loaded OK')
+        print('[wife-as-teto] loaded OK')
 
     except Exception as e:
-        print(f'[Wife] load error: {e}')
+        print(f'[Wife->Teto] load error: {e}')
         blk((0.4, 1.4, 0.25), (_wx, _wy + 0.7, _wz), _rgb(220, 180, 140))
 
 
