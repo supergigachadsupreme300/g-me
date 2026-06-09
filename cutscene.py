@@ -9,8 +9,8 @@ import tools
 import world
 from rendering import DUSK_START, NIGHT_START
 
-TETO_MODEL_PATH = 'model/teto/source/fatass teto2.fbx'
-TETO_TEXTURE_PATH = 'model/teto/textures/s-l1600.png'
+TETO_MODEL_PATH = 'model/teto/source/VOICEPEAKTetoPlush.fbx'
+TETO_TEXTURE_PATH = 'model/teto/textures/tetoplush_voicepeak-textured.png'
 
 WALK_SPEED = 4.5
 LATERAL_SWING = 1.6
@@ -30,10 +30,97 @@ _saved_camera_rotation = None
 _saved_mouse_locked = True
 _hidden_tools = []
 _saved_time_of_day = None
+_saved_player_collider = None
+_saved_player_gravity = None
+_saved_player_jump = None
 
-TETO_SCALE = 0.001
+TETO_SCALE = 10.0
 TETO_Y_OFFSET = 0
 SUNSET_HOUR = DUSK_START + (NIGHT_START - DUSK_START) * 0.45
+
+
+def _apply_texture_to_model(mesh, model, texture_path):
+    try:
+        texture = load_texture(texture_path)
+        if texture is None:
+            try:
+                import os
+                tex_folder = os.path.join('model', 'teto', 'textures')
+                files = [f for f in os.listdir(tex_folder) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+                if files:
+                    texture = load_texture(os.path.join(tex_folder, files[0]))
+            except Exception:
+                texture = None
+
+        if texture is None:
+            return
+
+        try:
+            mesh.texture = texture
+        except Exception:
+            pass
+        mesh.color = color.white
+
+        for container in (getattr(model, 'children', []) or []) + (getattr(mesh, 'children', []) or []):
+            try:
+                container.texture = texture
+            except Exception:
+                pass
+    except Exception as e:
+        print(f'Teto texture: {e}')
+
+
+def _save_and_disable_player_for_cutscene():
+    """Temporarily remove player's collider/gravity/jump but keep entity enabled/visible."""
+    global _saved_player_collider, _saved_player_gravity, _saved_player_jump
+    try:
+        _saved_player_collider = getattr(world.player, 'collider', None)
+        world.player.collider = None
+    except Exception:
+        _saved_player_collider = None
+    try:
+        _saved_player_gravity = getattr(world.player, 'gravity', None)
+        if hasattr(world.player, 'gravity'):
+            world.player.gravity = 0
+    except Exception:
+        _saved_player_gravity = None
+    try:
+        _saved_player_jump = getattr(world.player, 'jump_height', None)
+        if hasattr(world.player, 'jump_height'):
+            world.player.jump_height = 0
+    except Exception:
+        _saved_player_jump = None
+    world.player.ignore_input = True
+    world.player.speed = 0
+    try:
+        world.player.visible = True
+        if hasattr(world, 'player_model') and world.player_model is not None:
+            world.player_model.visible = True
+    except Exception:
+        pass
+
+
+def _restore_player_after_cutscene():
+    global _saved_player_collider, _saved_player_gravity, _saved_player_jump
+    try:
+        if _saved_player_collider is not None:
+            world.player.collider = _saved_player_collider
+            _saved_player_collider = None
+    except Exception:
+        pass
+    try:
+        if _saved_player_gravity is not None and hasattr(world.player, 'gravity'):
+            world.player.gravity = _saved_player_gravity
+            _saved_player_gravity = None
+    except Exception:
+        pass
+    try:
+        if _saved_player_jump is not None and hasattr(world.player, 'jump_height'):
+            world.player.jump_height = _saved_player_jump
+            _saved_player_jump = None
+    except Exception:
+        pass
+
 
 
 def is_active():
@@ -78,17 +165,12 @@ def _create_teto(position):
         if model is None:
             raise ValueError('teto model returned None')
         mesh.model = model
-        try:
-            texture = load_texture(TETO_TEXTURE_PATH)
-            if texture is not None:
-                mesh.texture = texture
-                mesh.color = color.white
-        except Exception as e:
-            print(f'Teto texture: {e}')
+        _apply_texture_to_model(mesh, model, TETO_TEXTURE_PATH)
         mesh.scale = (TETO_SCALE, TETO_SCALE, TETO_SCALE)
         mesh.y = TETO_Y_OFFSET
         mesh._base_y = TETO_Y_OFFSET
-        mesh.rotation_y = 180
+        # Simple default: face forward like the player.
+        mesh.rotation_y = 0
     except Exception as e:
         print(f'Failed to load Teto model: {e}')
         mesh.model = 'cube'
@@ -155,11 +237,8 @@ def start_happy_ending():
 
     world.player.position = Vec3(road_x - 0.8, player_y, start_z)
     world.player.rotation_y = 0
-    world.player.ignore_input = True
-    world.player.speed = 0
 
-    _teto, _teto_mesh = _create_teto(Vec3(road_x + 0.8, player_y, start_z - 1.5))
-
+    # Save and reparent camera to scene BEFORE altering player state so camera isn't affected.
     _saved_camera_parent = camera.parent
     _saved_camera_position = Vec3(camera.position)
     _saved_camera_rotation = Vec3(camera.rotation)
@@ -167,6 +246,11 @@ def start_happy_ending():
     _saved_mouse_locked = mouse.locked
     mouse.locked = False
     mouse.visible = False
+
+    # Tweak player for cutscene without disabling the entity (prevents hiding).
+    _save_and_disable_player_for_cutscene()
+
+    _teto, _teto_mesh = _create_teto(Vec3(road_x + 0.8, player_y, start_z - 1.5))
 
     _hide_tools()
     inventory.show_message('Happy Ending — đi cùng Teto tới cuối con đường!', 4)
@@ -228,6 +312,7 @@ def end_happy_ending(restore_control=True):
     if not restore_control or world.player is None:
         return
 
+    _restore_player_after_cutscene()
     player_mod.reset_walk_animation(world.player_model)
     world.player.ignore_input = False
     world.player.speed = world.player.base_speed
@@ -278,7 +363,8 @@ def update():
         teto_x = road_x + side * LATERAL_SWING
         teto_z = world.player.z - 1.2 + math.cos(_elapsed * SWING_SPEED) * 0.3
         _teto.position = Vec3(teto_x, world.player.y, teto_z)
-        _teto.rotation_y = 90 if side >= 0 else -90
+        # Keep Teto generally facing forward like the player; add a small sway.
+        _teto.rotation_y = 10 if side >= 0 else -10
 
         if _teto_mesh is not None:
             jump = max(0.0, math.sin(_elapsed * JUMP_SPEED)) ** 2 * JUMP_HEIGHT
