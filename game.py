@@ -18,14 +18,12 @@ import rendering
 
 import tasks
 import stats
-<<<<<<< HEAD
+
 import cutscene_manager
 import cutscene
 
 _sad_ending_fired = False
-=======
-import cutscene
->>>>>>> DEVELOP
+
 
 
 MAX_PLACE_DISTANCE = 20
@@ -489,7 +487,8 @@ def update():
         cutscene_manager.play_sad_ending()
         return
 
-    if cutscene.update():
+    # Happy ending cutscene (delegated through cutscene_manager)
+    if cutscene_manager.update():
         return
 
     if game_paused:
@@ -908,11 +907,12 @@ def handle_input(key):
     if cutscene_manager.manager.is_active:
         return
 
-    if cutscene.handle_input(key):
+    # Happy ending input handling delegated to cutscene_manager
+    if cutscene_manager.handle_input(key):
         return
 
     if key == 'f9':
-        cutscene.request_happy_ending()
+        cutscene_manager.request_happy_ending()
         return
 
     if key == 'f10':

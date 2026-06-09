@@ -243,7 +243,7 @@ def try_trigger_happy_ending() -> None:
     if not all_quests_completed():
         return
     try:
-        import cutscene
-        cutscene.request_happy_ending()
+        import cutscene_manager
+        cutscene_manager.request_happy_ending()
     except Exception as e:
         print(f'Happy ending trigger failed: {e}')

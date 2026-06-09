@@ -310,3 +310,44 @@ def _show_end_screen():
         mouse.visible = True
     except Exception:
         traceback.print_exc()
+
+
+# ---------------------------------------------------------------------------
+# Backwards-compatible wrappers for the "happy ending" cutscene that used to
+# live in `cutscene.py`. If `cutscene.py` is present we delegate to it so other
+# modules that call `cutscene.request_happy_ending()`, `cutscene.update()` and
+# `cutscene.handle_input()` continue to work while the happy-ending logic is
+# consolidated here over time.
+# ---------------------------------------------------------------------------
+try:
+    import cutscene as _cutscene_impl
+except Exception:
+    _cutscene_impl = None
+
+
+def request_happy_ending():
+    if _cutscene_impl:
+        try:
+            return _cutscene_impl.request_happy_ending()
+        except Exception:
+            traceback.print_exc()
+
+
+def update():
+    """Called from `game.update()` to advance any active happy-ending cutscene.
+    Returns True if the cutscene consumed the frame update."""
+    if _cutscene_impl:
+        try:
+            return _cutscene_impl.update()
+        except Exception:
+            traceback.print_exc()
+    return False
+
+
+def handle_input(key):
+    if _cutscene_impl:
+        try:
+            return _cutscene_impl.handle_input(key)
+        except Exception:
+            traceback.print_exc()
+    return False
