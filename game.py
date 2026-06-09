@@ -20,7 +20,6 @@ import tasks
 import stats
 
 import cutscene_manager
-import cutscene
 
 _sad_ending_fired = False
 
