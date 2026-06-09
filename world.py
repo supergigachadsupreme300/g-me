@@ -3,7 +3,7 @@ import math
 from ursina import time as ursina_time
 import config
 from player import create_player, create_player_display
-import cutscene
+import cutscene_manager as cutscene
 import random
 import sound_manager
 
