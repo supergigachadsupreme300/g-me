@@ -14,6 +14,9 @@ pause_menu = None
 bed_confirm_menu = None
 bed_confirm_yes = None
 bed_confirm_no = None
+marriage_menu = None
+marriage_yes  = None
+marriage_no   = None
 buffalo_dialog = None
 buffalo_dialog_text = None
 buffalo_sell = None
@@ -24,6 +27,7 @@ def setup_ui():
     global time_text, ammo_text, player_hp_text, player_stamina_text, player_money_text
     global mobspawner_text
     global pause_menu, bed_confirm_menu, bed_confirm_yes, bed_confirm_no
+    global marriage_menu, marriage_yes, marriage_no
     global buffalo_dialog, buffalo_dialog_text, buffalo_sell, buffalo_leave
     global stats_panel, stats_lines, stats_button, quest_text
     global instructions_panel, instructions_button
@@ -62,6 +66,20 @@ def setup_ui():
     Text(parent=bed_confirm_menu, text='Use the bed?\nSkip to next day/night cycle.', y=0.12, scale=1.2, color=color.white)
     bed_confirm_yes = Button(parent=bed_confirm_menu, text='Yes', scale=(0.3, 0.13), x=-0.18, y=-0.12)
     bed_confirm_no = Button(parent=bed_confirm_menu, text='No', scale=(0.3, 0.13), x=0.18, y=-0.12)
+
+    marriage_menu = Entity(parent=camera.ui, enabled=False)
+    Entity(parent=marriage_menu, model='quad',
+           color=color.rgba(30/255, 0, 10/255, 210/255), scale=(1.7, 0.58))
+    Text(parent=marriage_menu,
+         text='Will you marry me?\nPrice: 10,000,000 coins',
+         y=0.1, scale=1.4, color=color.rgb(255/255, 220/255, 120/255))
+    marriage_yes = Button(parent=marriage_menu, text='Yes!',
+                          scale=(0.35, 0.12), x=-0.2, y=-0.13,
+                          color=color.rgb(180/255, 40/255, 60/255),
+                          highlight_color=color.rgb(220/255, 80/255, 100/255))
+    marriage_no  = Button(parent=marriage_menu, text='Not now',
+                          scale=(0.35, 0.12), x=0.2, y=-0.13,
+                          color=color.dark_gray, highlight_color=color.gray)
 
     buffalo_dialog = Entity(parent=camera.ui, enabled=False)
     Entity(parent=buffalo_dialog, model='quad', color=color.rgba(0, 0, 0, 180/255), scale=(1.4, 0.7), position=(0, 0, 0))
@@ -295,6 +313,25 @@ def set_buffalo_dialog_callbacks(sell_callback, leave_callback):
         buffalo_sell.on_click = sell_callback
     if buffalo_leave is not None:
         buffalo_leave.on_click = leave_callback
+
+
+def set_marriage_callbacks(yes_cb, no_cb):
+    if marriage_yes is not None:
+        marriage_yes.on_click = yes_cb
+    if marriage_no is not None:
+        marriage_no.on_click = no_cb
+
+
+def show_marriage_menu(enabled: bool):
+    if marriage_menu is None:
+        return
+    marriage_menu.enabled = enabled
+    if enabled:
+        mouse.locked = False
+        mouse.visible = True
+    else:
+        mouse.locked = True
+        mouse.visible = False
 
 
 def show_buffalo_dialog(enabled: bool, text: str = None):

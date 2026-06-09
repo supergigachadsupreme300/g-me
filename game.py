@@ -18,6 +18,9 @@ import rendering
 
 import tasks
 import stats
+import cutscene_manager
+
+_sad_ending_fired = False
 
 
 MAX_PLACE_DISTANCE = 20
@@ -456,7 +459,19 @@ def snap_to_grid(position):
 
 def update():
 
-    global time_of_day, current_day, last_time_stage, next_enemy_spawn_absolute
+    global time_of_day, current_day, last_time_stage, next_enemy_spawn_absolute, _sad_ending_fired, game_paused
+
+    cutscene_manager.manager.update()
+
+    # Sad ending trigger: day 11+ and player never married the wife
+    if (not _sad_ending_fired
+            and current_day >= 11
+            and not world.wife_married
+            and not cutscene_manager.manager.is_active):
+        _sad_ending_fired = True
+        game_paused = True
+        cutscene_manager.play_sad_ending()
+        return
 
     if game_paused:
         return
@@ -838,12 +853,37 @@ def setup_game():
     update_quest_ui()
 
 
+def _marry_yes():
+    rendering.show_marriage_menu(False)
+    if world.player.money >= 10_000_000:
+        world.player.money -= 10_000_000
+        world.wife_married = True
+        inventory.show_message('You are now married! Congratulations!', 5)
+    else:
+        needed = 10_000_000 - int(world.player.money)
+        inventory.show_message(f'Not enough coins! You need {needed:,} more.', 3)
+
+
+def _marry_no():
+    rendering.show_marriage_menu(False)
+    inventory.show_message('Maybe another time...', 2)
+
 
 def handle_input(key):
     # (Summon keys removed: t,p,m,k,l,n)
     # Input for summoning debug monsters was intentionally removed.
-    
-    global gun_ammo, game_paused
+
+    global gun_ammo, game_paused, _sad_ending_fired
+
+    if key == 'f12':
+        if not cutscene_manager.manager.is_active:
+            _sad_ending_fired = True
+            game_paused = True
+            cutscene_manager.play_sad_ending()
+        return
+
+    if cutscene_manager.manager.is_active:
+        return
 
     if key in [str(i) for i in range(1, 10)] + ['0']:
 
@@ -854,6 +894,25 @@ def handle_input(key):
 
 
     if key == 'e':
+
+        # Wife marriage interaction (check before door so it takes priority when near)
+        if world.wife_entity is not None and not world.wife_married:
+            _wp = Vec3(world.wife_entity.x, 0, world.wife_entity.z)
+            _pp = Vec3(world.player.x,      0, world.player.z)
+            if (_pp - _wp).length() < 5:
+                rendering.show_marriage_menu(True)
+                rendering.set_marriage_callbacks(_marry_yes, _marry_no)
+                return
+
+        # Wife house door
+        if world.wife_door_pivot is not None:
+            _dp = Vec3(world.wife_door_pivot.x, 0, world.wife_door_pivot.z)
+            _pp = Vec3(world.player.x, 0, world.player.z)
+            if (_pp - _dp).length() < 5:
+                world.wife_door_open = not world.wife_door_open
+                world.wife_door_pivot.animate(
+                    'rotation_y', -90 if world.wife_door_open else 0, duration=0.35)
+                return
 
         if rendering.bed_confirm_menu is not None and rendering.bed_confirm_menu.enabled:
             return
