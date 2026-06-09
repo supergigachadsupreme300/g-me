@@ -11,6 +11,7 @@ from ursina import (
     camera, scene, mouse, time, invoke, destroy, curve, application,
     load_model, load_texture, window
 )
+import math
 import game
 import inventory
 import player as player_mod
