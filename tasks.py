@@ -215,6 +215,8 @@ def add_progress(amount: int = 1, target: str | None = None) -> bool:
             update_quest_text(active.name, active.progress, active.goal)
     except Exception:
         pass
+    if result:
+        try_trigger_happy_ending()
     return result
 
 
@@ -230,3 +232,18 @@ def claim_reward() -> dict | None:
     if quest is None or not quest.completed:
         return None
     return quest.claim_reward()
+
+
+def all_quests_completed() -> bool:
+    initialize_quests()
+    return len(quest_list) > 0 and all(quest.completed for quest in quest_list)
+
+
+def try_trigger_happy_ending() -> None:
+    if not all_quests_completed():
+        return
+    try:
+        import cutscene
+        cutscene.request_happy_ending()
+    except Exception as e:
+        print(f'Happy ending trigger failed: {e}')
