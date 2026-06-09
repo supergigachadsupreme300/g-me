@@ -894,19 +894,27 @@ def handle_input(key):
     # (Summon keys removed: t,p,m,k,l,n)
     # Input for summoning debug monsters was intentionally removed.
 
-    global gun_ammo, game_paused, _sad_ending_fired
+    global gun_ammo, game_paused, _sad_ending_fired, quest_menu_open
 
-    if key == 'f12':
-        if not cutscene_manager.manager.is_active:
-            _sad_ending_fired = True
-            game_paused = True
-            cutscene_manager.play_sad_ending()
+    if key == 'j':
+        import traceback
+        try:
+            # toggle state
+            if not quest_menu_open:
+                # opening: prepare panel, pause game, release mouse, then show panel
+                quest_menu_open = True
+                update_quest_panel()
+                toggle_pause(True)
+                rendering.show_quest_panel(True)
+            else:
+                # closing: hide panel first, then unpause game and re-lock mouse
+                quest_menu_open = False
+                rendering.show_quest_panel(False)
+                toggle_pause(False)
+        except Exception:
+            print('Error while toggling quest panel:')
+            traceback.print_exc()
         return
-
-    if cutscene_manager.manager.is_active:
-        return
-
-    # Happy ending input handling delegated to cutscene_manager
     if cutscene_manager.handle_input(key):
         return
 
@@ -1047,13 +1055,7 @@ def handle_input(key):
         return
 
 
-    if key == 'j':
-        global quest_menu_open
-        quest_menu_open = not quest_menu_open
-        if quest_menu_open:
-            update_quest_panel()
-        rendering.show_quest_panel(quest_menu_open)
-        return
+    
 
     if quest_menu_open and key in ('wheel down', 'scroll down', 'wheel_down'):
         scroll_quest_panel(1)

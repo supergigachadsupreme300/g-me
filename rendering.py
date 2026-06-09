@@ -30,6 +30,7 @@ def setup_ui():
     global marriage_menu, marriage_yes, marriage_no
     global buffalo_dialog, buffalo_dialog_text, buffalo_sell, buffalo_leave
     global stats_panel, stats_lines, stats_button, quest_text
+    global quest_panel, quest_lines, quest_button
     global instructions_panel, instructions_button
     global instructions_content, btn_prev_page, btn_next_page
 
@@ -55,10 +56,14 @@ def setup_ui():
     stats_button = Button(parent=pause_menu, text='Stats', scale=(0.4, 0.08), y=0.04, color=color.dark_gray, highlight_color=color.azure)
     stats_button.on_click = lambda: show_stats(True)
 
-    instructions_button = Button(parent=pause_menu, text='Instructions', scale=(0.4, 0.08), y=-0.09, color=color.dark_gray, highlight_color=color.azure)
+    # Quests button (re-added)
+    quest_button = Button(parent=pause_menu, text='Quests', scale=(0.4, 0.08), y=-0.09, color=color.dark_gray, highlight_color=color.azure)
+    quest_button.on_click = lambda: show_quests(True)
+
+    instructions_button = Button(parent=pause_menu, text='Instructions', scale=(0.4, 0.08), y=-0.22, color=color.dark_gray, highlight_color=color.azure)
     instructions_button.on_click = lambda: show_instructions(True)
-    
-    Button(parent=pause_menu, text='Exit', scale=(0.4, 0.08), y=-0.22, color=color.red, highlight_color=color.rgb(255, 100, 100))
+
+    Button(parent=pause_menu, text='Exit', scale=(0.4, 0.08), y=-0.35, color=color.red, highlight_color=color.rgb(255, 100, 100))
 
     # --- 3. GIAO DIỆN BẢNG GIƯỜNG NGỦ & HỘI THOẠI TRÂU ---
     bed_confirm_menu = Entity(parent=camera.ui, enabled=False)
@@ -102,6 +107,28 @@ def setup_ui():
     }
     
     Button(parent=stats_panel, text='Back', y=-0.35, scale=(0.3, 0.08), color=color.dark_gray, highlight_color=color.azure, on_click=lambda: show_stats(False))
+
+    # --- Quests panel (smaller, moved up to avoid overlapping inventory UI) ---
+    quest_panel = Entity(parent=camera.ui, enabled=False, position=(0, 0.18))
+    Entity(parent=quest_panel, model='quad', color=color.rgba(15/255, 15/255, 20/255, 0.95), scale=(0.6, 0.7), z=1)
+    Text(parent=quest_panel, text='QUESTS', y=0.26, origin=(0, 0), scale=1.8, color=color.azure)
+
+    quest_lines = []
+    quest_line_buttons = []
+    q_x = -0.28
+    # show fewer lines with tighter spacing to fit smaller panel
+    for i in range(5):
+        qy = 0.12 - i * 0.10
+        t = Text(parent=quest_panel, text='', x=q_x, y=qy, origin=(-0.5, 0), scale=1.0, color=color.white)
+        quest_lines.append(t)
+        # invisible button on top for click/focus handling
+        b = Button(parent=quest_panel, text='', x=0.0, y=qy, scale=(0.65, 0.10), color=color.clear, highlight_color=color.clear)
+        quest_line_buttons.append(b)
+
+    # Expose expected API names used by game.py
+    global quest_panel_lines, quest_panel_buttons
+    quest_panel_lines = quest_lines
+    quest_panel_buttons = quest_line_buttons
 
     # --- 5. GIAO DIỆN HƯỚNG DẪN (INSTRUCTIONS PANEL) LẬT TRANG ---
     instructions_panel = Entity(parent=camera.ui, enabled=False)
@@ -253,6 +280,88 @@ def update_stats_display():
         stats_lines['stolen'].text = f"Money stolen: {s.get('money_stolen', 0)}"
     except Exception:
         pass
+
+
+def update_quest_display():
+    try:
+        import tasks as tasks_mod
+        quests = tasks_mod.get_quests()
+    except Exception:
+        quests = []
+
+    if not globals().get('quest_lines'):
+        return
+
+    if not quests:
+        quest_lines[0].text = 'No quests available.'
+        for i in range(1, len(quest_lines)):
+            quest_lines[i].text = ''
+        return
+
+    for i, t in enumerate(quest_lines):
+        if i < len(quests):
+            q = quests[i]
+            status = 'Completed' if q.completed else f'{q.progress}/{q.goal}'
+            t.text = f"{q.name}: {status}"
+        else:
+            t.text = ''
+
+
+def show_quests(enabled: bool):
+    global quest_panel, pause_menu
+    if quest_panel is None:
+        return
+
+    quest_panel.enabled = enabled
+    if enabled:
+        update_quest_display()
+
+    if pause_menu is not None:
+        pause_menu.enabled = not enabled
+
+
+def show_quest_panel(enabled: bool):
+    # backward-compatible alias used by game.py
+    show_quests(enabled)
+
+
+def refresh_quest_panel(quests: list, focused_index: int, scroll: int = 0):
+    # populate visible quest lines and highlight focused
+    try:
+        lines = globals().get('quest_panel_lines', [])
+        buttons = globals().get('quest_panel_buttons', [])
+    except Exception:
+        return
+
+    for i, txt in enumerate(lines):
+        idx = scroll + i
+        if idx < len(quests):
+            q = quests[idx]
+            status = 'Completed' if q.completed else f"{q.progress}/{q.goal}"
+            txt.text = f"{q.name}: {status}"
+            if idx == focused_index:
+                txt.color = color.rgb(255, 230, 120)
+            else:
+                txt.color = color.white
+            if i < len(buttons):
+                # set a button tooltip or text for accessibility
+                buttons[i].text = ''
+        else:
+            txt.text = ''
+            if i < len(buttons):
+                buttons[i].text = ''
+
+
+def set_quest_focus_callbacks(callbacks: list):
+    btns = globals().get('quest_panel_buttons', [])
+    for i, b in enumerate(btns):
+        try:
+            if i < len(callbacks) and callbacks[i] is not None:
+                b.on_click = callbacks[i]
+            else:
+                b.on_click = None
+        except Exception:
+            pass
 
 
 def update_time_ui(current_day, time_of_day):

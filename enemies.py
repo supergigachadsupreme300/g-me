@@ -341,8 +341,8 @@ class Rat(Enemy):
 
         if rat_model not in (None, 'cube'):
             self.mesh.model = rat_model
-            self.mesh.scale = (0.1, 0.1, 0.1)
-            self.mesh.rotation_y = 180
+            self.mesh.scale = (1, 1, 1)
+            self.mesh.rotation_y = 0
         else:
             self.mesh.model = 'cube'
             self.mesh.scale = (0.8, 0.8, 0.8)
@@ -351,7 +351,7 @@ class Rat(Enemy):
 
         if rat_model not in (None, 'cube'):
             self.mesh.model = rat_model
-            self.mesh.scale = (0.1, 0.1, 0.1)
+            self.mesh.scale = (1, 1, 1)
             self.mesh.rotation_y = 180
         else:
             self.mesh.model = 'cube'
