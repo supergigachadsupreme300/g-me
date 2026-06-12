@@ -1226,25 +1226,27 @@ class Zombie(Enemy):
         if self.hp <= 0 or getattr(self, 'state', '') == 'DEAD':
             return
             
+        self.velocity_y -= 18.0 * time.dt 
+        self.entity.y += self.velocity_y * time.dt
+        if self.entity.y < self.entity.scale_y / 2:
+            self.entity.y = self.entity.scale_y / 2
+            self.velocity_y = 0
+            
         player_pos = world.player.position
         dist = (self.entity.position - player_pos).length()
         
-        if dist <= 3.0: 
-            self.velocity_y -= 18.0 * time.dt 
-            self.entity.y += self.velocity_y * time.dt
-            if self.entity.y < self.entity.scale_y / 2:
-                self.entity.y = self.entity.scale_y / 2
-                self.velocity_y = 0
-                
+        if dist > 2.0:
+            direction = (player_pos - self.entity.position).normalized()
+            self.entity.position += direction * self.speed * time.dt
+            self.face_direction(direction)
+        else:
             direction = (player_pos - self.entity.position).normalized()
             self.face_direction(direction)
-            
             if pytime_mod.time() - self.last_attack_time > self.attack_cooldown:
                 self.last_attack_time = pytime_mod.time()
+                
                 world.player.hp -= self.attack_damage
                 inventory.show_message(f"Bị ZOMBIE cắn! HP: {world.player.hp}/100", 2)
-        else:
-            super().update()
 
 def spawn_zombie(position):
     z = Zombie(position)
