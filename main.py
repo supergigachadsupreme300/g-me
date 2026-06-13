@@ -35,8 +35,10 @@ class MainMenu(Entity):
         self.all_tools = [
             tools.arm, tools.axe, tools.pickaxe, tools.hoe, 
             tools.hammer, tools.sword, tools.gun, tools.scythe, 
-            tools.fertilizer, tools.seed, tools.peashooter_seed, 
-            tools.wheat, tools.damaged_wheat
+            tools.fertilizer, tools.seed, tools.peashooter_seed,
+            tools.corn_seed,
+            tools.wheat, tools.damaged_wheat, tools.corn, tools.potato,
+            tools.damaged_corn, tools.damaged_potato,
         ]
         for t in self.all_tools:
             if t is not None:
@@ -131,6 +133,11 @@ def setup_tools_for_camera():
     tools.mi_hao_hao.parent = camera
     tools.wheat.parent = camera
     tools.damaged_wheat.parent = camera
+    tools.corn_seed.parent = camera
+    tools.corn.parent = camera
+    tools.potato.parent = camera
+    tools.damaged_corn.parent = camera
+    tools.damaged_potato.parent = camera
 
     positions = (0.7, -0.6, 1.5)
     tools.arm.position = positions
@@ -146,6 +153,11 @@ def setup_tools_for_camera():
     tools.mi_hao_hao.position = positions
     tools.wheat.position = positions
     tools.damaged_wheat.position = positions
+    tools.corn_seed.position = positions
+    tools.corn.position = positions
+    tools.potato.position = positions
+    tools.damaged_corn.position = positions
+    tools.damaged_potato.position = positions
 
 
 def run_game():

@@ -338,9 +338,12 @@ JUMP_HEIGHT = 0.55
 SWING_SPEED = 2.8
 JUMP_SPEED = 9.0
 
-_state = 'idle'  # idle | walking | ended
+_state = 'idle'  # idle | walking | facing | celebrating | ended
 _pending = False
 _elapsed = 0.0
+_phase_timer = 0.0
+_jump_count = 0
+_hearts = []
 _teto = None
 _teto_mesh = None
 _ending_ui = None
@@ -460,6 +463,8 @@ def _hide_tools():
         tools.hammer, tools.sword, tools.gun, tools.scythe,
         tools.fertilizer, tools.seed, tools.peashooter_seed,
         tools.mi_hao_hao, tools.wheat, tools.damaged_wheat,
+        tools.corn_seed, tools.corn, tools.potato,
+        tools.damaged_corn, tools.damaged_potato,
     ]
     for tool in tool_list:
         if tool is not None and tool.visible:
@@ -516,9 +521,51 @@ def _road_start_z():
 
 
 def _road_end_z():
-    if world.ROAD_Z_END is not None:
-        return world.ROAD_Z_END - 4
-    return 66
+    start = _road_start_z()
+    full_end = world.ROAD_Z_END - 4 if world.ROAD_Z_END is not None else 66
+    return start + (full_end - start) * 0.5
+
+
+def _face_each_other():
+    if world.player is None or _teto is None:
+        return
+    road_x = _road_x()
+    z = world.player.z
+    world.player.position = Vec3(road_x - 0.9, world.player.y, z)
+    world.player.rotation_y = 90
+    _teto.position = Vec3(road_x + 0.9, world.player.y, z)
+    _teto.rotation_y = -90
+    player_mod.reset_walk_animation(world.player_model)
+
+
+def _spawn_heart(position):
+    heart = Text(
+        text='♥',
+        parent=scene,
+        position=position + Vec3(0, 2.2, 0),
+        scale=3,
+        color=color.rgb(255 / 255, 80 / 255, 120 / 255),
+        billboard=True,
+        origin=(0, 0),
+    )
+    heart.animate_position(position + Vec3(0, 3.4, 0), duration=0.9, curve=curve.out_expo)
+    heart.animate_scale(4.5, duration=0.9, curve=curve.out_expo)
+    _hearts.append(heart)
+    invoke(lambda: _destroy_heart(heart), delay=1.0)
+
+
+def _destroy_heart(heart):
+    try:
+        destroy(heart)
+    except Exception:
+        pass
+    if heart in _hearts:
+        _hearts.remove(heart)
+
+
+def _clear_hearts():
+    for heart in list(_hearts):
+        _destroy_heart(heart)
 
 
 def _road_x():
@@ -535,6 +582,9 @@ def start_happy_ending():
 
     _state = 'walking'
     _elapsed = 0.0
+    _phase_timer = 0.0
+    _jump_count = 0
+    _clear_hearts()
     _saved_time_of_day = game.time_of_day
     window.render_mode = 'default'
     _apply_sunset()
@@ -606,6 +656,8 @@ def end_happy_ending(restore_control=True):
     global _state, _teto, _teto_mesh, _ending_ui, _pending
     global _saved_camera_parent, _saved_camera_position, _saved_camera_rotation
 
+    _clear_hearts()
+
     if _teto is not None:
         destroy(_teto)
         _teto = None
@@ -641,7 +693,7 @@ def end_happy_ending(restore_control=True):
 
 
 def happy_update():
-    global _state, _elapsed, _pending, _teto, _teto_mesh
+    global _state, _elapsed, _pending, _teto, _teto_mesh, _phase_timer, _jump_count
 
     if _pending and _state == 'idle':
         _pending = False
@@ -661,34 +713,61 @@ def happy_update():
 
     dt = time.dt
     _elapsed += dt
-
     end_z = _road_end_z()
     road_x = _road_x()
 
-    if world.player.z < end_z:
-        world.player.z += WALK_SPEED * dt
-        world.player.x = road_x - 0.8
-        world.player.rotation_y = 0
+    if _state == 'walking':
+        if world.player.z < end_z:
+            world.player.z += WALK_SPEED * dt
+            world.player.x = road_x - 0.8
+            world.player.rotation_y = 0
 
-        side = math.sin(_elapsed * SWING_SPEED)
-        teto_x = road_x + side * LATERAL_SWING
-        teto_z = world.player.z - 1.2 + math.cos(_elapsed * SWING_SPEED) * 0.3
-        _teto.position = Vec3(teto_x, world.player.y, teto_z)
-        # Keep Teto generally facing forward like the player; add a small sway.
-        _teto.rotation_y = 10 if side >= 0 else -10
+            side = math.sin(_elapsed * SWING_SPEED)
+            teto_x = road_x + side * LATERAL_SWING
+            teto_z = world.player.z - 1.2 + math.cos(_elapsed * SWING_SPEED) * 0.3
+            _teto.position = Vec3(teto_x, world.player.y, teto_z)
+            _teto.rotation_y = 10 if side >= 0 else -10
 
+            if _teto_mesh is not None:
+                jump = max(0.0, math.sin(_elapsed * JUMP_SPEED)) ** 2 * JUMP_HEIGHT
+                base_y = getattr(_teto_mesh, '_base_y', TETO_Y_OFFSET)
+                _teto_mesh.y = base_y + jump
+
+            player_mod.animate_walk(world.player_model, _elapsed)
+        else:
+            world.player.z = end_z
+            player_mod.reset_walk_animation(world.player_model)
+            _face_each_other()
+            _state = 'facing'
+            _phase_timer = 0.0
+
+    elif _state == 'facing':
+        _phase_timer += dt
+        if _phase_timer >= 0.8:
+            _state = 'celebrating'
+            _phase_timer = 0.0
+            _jump_count = 0
+
+    elif _state == 'celebrating':
+        _phase_timer += dt
+        jump_phase = _phase_timer * 8.0
+        jump_height = max(0.0, math.sin(jump_phase)) ** 2 * 0.7
         if _teto_mesh is not None:
-            jump = max(0.0, math.sin(_elapsed * JUMP_SPEED)) ** 2 * JUMP_HEIGHT
             base_y = getattr(_teto_mesh, '_base_y', TETO_Y_OFFSET)
-            _teto_mesh.y = base_y + jump
+            _teto_mesh.y = base_y + jump_height
 
-        player_mod.animate_walk(world.player_model, _elapsed)
-    else:
-        player_mod.reset_walk_animation(world.player_model)
-        world.player.z = end_z
-        _state = 'ended'
-        _show_ending_ui()
-        inventory.show_message('Chúc mừng! Hành trình đã hoàn thành.', 5)
+        jump_marks = (0.35, 1.15)
+        for mark in jump_marks:
+            if _jump_count < len(jump_marks) and _phase_timer >= mark and _phase_timer - dt < mark:
+                _jump_count += 1
+                _spawn_heart(_teto.position)
+
+        if _phase_timer >= 2.4:
+            if _teto_mesh is not None:
+                _teto_mesh.y = getattr(_teto_mesh, '_base_y', TETO_Y_OFFSET)
+            _state = 'ended'
+            _show_ending_ui()
+            inventory.show_message('Chúc mừng! Hành trình đã hoàn thành.', 5)
 
     mid = (world.player.position + _teto.position) * 0.5
     cam_offset = Vec3(-6, 4.5, -9)
@@ -703,7 +782,7 @@ def handle_input(key):
         end_happy_ending(restore_control=True)
         inventory.show_message('Tiếp tục cuộc phiêu lưu!', 2)
         return True
-    if _state == 'walking':
+    if _state in ('walking', 'facing', 'celebrating'):
         return True
     return False
 

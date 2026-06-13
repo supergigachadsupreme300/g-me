@@ -20,6 +20,7 @@ import tasks
 import stats
 
 import cutscene_manager
+import buffalo_shop
 
 _sad_ending_fired = False
 
@@ -773,7 +774,7 @@ def show_buffalo_dialog():
 
     game_paused = True
 
-    rendering.show_buffalo_dialog(True)
+    buffalo_shop.open_buffalo_shop()
 
 
 
@@ -783,7 +784,7 @@ def close_buffalo_dialog():
 
     game_paused = False
 
-    rendering.show_buffalo_dialog(False)
+    buffalo_shop.close_buffalo_shop()
 
 
 
@@ -1068,6 +1069,10 @@ def handle_input(key):
 
     if key == 'escape':
 
+        if buffalo_shop.SHOP_PANEL is not None and buffalo_shop.SHOP_PANEL.enabled:
+            close_buffalo_dialog()
+            return
+
         if rendering.bed_confirm_menu is not None and rendering.bed_confirm_menu.enabled:
             close_sleep_menu()
 
@@ -1078,7 +1083,7 @@ def handle_input(key):
 
     if key == 'left mouse down':
 
-        if rendering.buffalo_dialog is not None and rendering.buffalo_dialog.enabled:
+        if buffalo_shop.SHOP_PANEL is not None and buffalo_shop.SHOP_PANEL.enabled:
             return
 
         current_item = inventory.get_item(inventory.inventory[inventory.selected_slot])
@@ -1111,9 +1116,7 @@ def handle_input(key):
 
                 face_buffalo_towards_player(buffalo_entity)
 
-                rendering.show_buffalo_dialog(True)
-
-                game_paused = True
+                show_buffalo_dialog()
                 return
 
             # vendor interaction (mirror buffalo interaction)
@@ -1174,7 +1177,7 @@ def handle_input(key):
                     print('Failed to open shop from game input:', e)
                 return
 
-        if inventory.get_item(inventory.inventory[inventory.selected_slot]) == "seed":
+        if inventory.get_item(inventory.inventory[inventory.selected_slot]) in ("seed", "corn seed", "potato"):
 
             hit_info = raycast(camera.world_position, camera.forward, distance=MAX_PLACE_DISTANCE)
 
@@ -1183,8 +1186,14 @@ def handle_input(key):
                 field_data = fields.find_field_by_entity(hit_info.entity)
 
                 if field_data:
-
-                    success = fields.plant_wheat_on_field(field_data)
+                    seed_type = inventory.get_item(inventory.inventory[inventory.selected_slot])
+                    planters = {
+                        "seed": fields.plant_wheat_on_field,
+                        "corn seed": fields.plant_corn_on_field,
+                        "potato": fields.plant_potato_on_field,
+                    }
+                    plant_fn = planters.get(seed_type)
+                    success = plant_fn(field_data) if plant_fn else False
 
                     if success:
 
@@ -1196,11 +1205,12 @@ def handle_input(key):
 
                         inventory.update_inventory_ui()
 
-                        inventory.show_message("Wheat planted on field", 1.5)
+                        labels = {"seed": "lúa", "corn seed": "ngô", "potato": "khoai tây"}
+                        inventory.show_message(f"Đã trồng {labels.get(seed_type, 'cây')} trên ruộng", 1.5)
 
                     else:
 
-                        inventory.show_message("Wheat is already growing here", 1.5)
+                        inventory.show_message("Ruộng này đã có cây trồng", 1.5)
             return
 
 
@@ -1242,7 +1252,7 @@ def handle_input(key):
 
                 field_data = fields.find_field_by_entity(hit_info.entity)
 
-                if field_data and field_data["wheat_planted"] and field_data["wheat_hp"] > 0:
+                if field_data and fields.has_crop(field_data) and field_data["wheat_hp"] > 0:
 
                     field_data["wheat_hp"] = min(20, field_data["wheat_hp"] + 5)
 
@@ -1256,7 +1266,7 @@ def handle_input(key):
 
                     inventory.update_inventory_ui()
 
-                    inventory.show_message("Wheat healed with fertilizer", 1.5)
+                    inventory.show_message("Đã bón phân cho cây trồng", 1.5)
 
                 else:
 
@@ -1278,50 +1288,50 @@ def handle_input(key):
 
                 field_data = fields.find_field_by_entity(hit_info.entity)
 
-                if field_data and field_data["wheat_planted"] and field_data["wheat_stage"] >= 4 and field_data["wheat_hp"] > 0:
+                if field_data and fields.has_crop(field_data) and field_data["wheat_stage"] >= 4 and field_data["wheat_hp"] > 0:
 
-                    harvested = "wheat" if field_data["wheat_stage"] >= 4 else "damaged wheat"
+                    harvested = fields.get_harvest_item(field_data)
 
-                    inventory.show_message("Harvested ripe wheat", 1.5)
+                    # Determine quantity: potatoes yield multiple items
+                    if harvested == 'potato':
+                        qty = random.randint(3, 4)
+                    else:
+                        qty = 1
+
+                    inventory.show_message(f"Thu hoạch {qty} {harvested}", 1.5)
 
                     fields.destroy_wheat(field_data)
 
-                    # record stats before updating quest progress
-
+                    # record stats (count harvested)
                     try:
-
-                        stats.record_harvest(1)
-
+                        stats.record_harvest(qty)
                     except Exception:
                         pass
 
-                    completed = tasks.add_progress(1)
+                    completed = tasks.add_progress(qty)
 
                     if completed:
-
                         reward = tasks.claim_reward()
-
                         if reward is not None and reward.get('money') and world.player is not None:
-
                             world.player.money += reward['money']
-
                             inventory.show_message(f'Quest completed: {tasks.active_quest.name} (+{reward["money"]} coins)', 3.0)
 
                     update_quest_ui()
 
-                    if not inventory.add_item(harvested):
-
-                        items.spawn_ground_item(harvested, world.player.position + world.player.forward * 2)
-
-                        inventory.show_message("Inventory full, dropped harvested wheat", 2)
-
+                    # try to add harvested items to inventory; if fail, drop them on ground
+                    if not inventory.add_item(harvested, qty):
+                        # spawn individual items scattered a bit
+                        base_pos = world.player.position + world.player.forward * 2
+                        for i in range(qty):
+                            offset = Vec3((i - qty/2) * 0.3, 0, (i % 2) * 0.2)
+                            items.spawn_ground_item(harvested, base_pos + offset)
+                        inventory.show_message("Inventory full, dropped harvested items", 2)
                     else:
-
                         inventory.update_inventory_ui()
 
                 else:
 
-                    inventory.show_message("No ripe wheat to harvest here", 1.5)
+                    inventory.show_message("Không có cây trưởng thành để thu hoạch", 1.5)
             return
 
 
@@ -1646,6 +1656,8 @@ def setup_game():
     items.spawn_ground_item("hammer", Vec3(-3, 1, 0))
 
     items.spawn_ground_item("seed", Vec3(4, 1, 0))
+    items.spawn_ground_item("corn seed", Vec3(5, 1, 0))
+    items.spawn_ground_item("potato", Vec3(6, 1, 0))
 
     items.spawn_ground_item("sword", Vec3(8, 1, 0))
 
@@ -1665,7 +1677,9 @@ def setup_game():
 
     pet.spawn_toad(Vec3(-2, 1, 2))
 
-    items.spawn_ground_item("peashooter seed", Vec3(6, 1, 0))
+    items.spawn_ground_item("peashooter seed", Vec3(7, 1, 0))
+
+    buffalo_shop.setup_buffalo_shop_ui()
 
 
     set_mobspawner_index(0)
@@ -1693,7 +1707,7 @@ def setup_game():
 
     rendering.set_bed_confirm_callbacks(lambda: confirm_sleep(True), lambda: confirm_sleep(False))
 
-    rendering.set_buffalo_dialog_callbacks(lambda: sell_wheat_to_buffalo(), lambda: close_buffalo_dialog())
+    rendering.set_buffalo_dialog_callbacks(lambda: close_buffalo_dialog(), lambda: close_buffalo_dialog())
 
 
     select_slot(0)

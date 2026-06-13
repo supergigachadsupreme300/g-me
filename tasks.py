@@ -44,67 +44,11 @@ def create_kill_enemies_quest() -> Quest:
     )
 
 
-def create_sell_wheat_quest() -> Quest:
+def create_earn_money_quest() -> Quest:
     return Quest(
-        name='Sell wheat',
-        objective={'description': 'Earn 500 coins', 'target': 'money_earned', 'count': 500},
-        reward={'money': 150}
-    )
-
-
-def create_protect_farm_quest() -> Quest:
-    return Quest(
-        name='Protect farm',
-        objective={'description': 'Survive 10 attacks', 'target': 'farm_attacks', 'count': 10},
-        reward={'item': 'shield', 'count': 1}
-    )
-
-
-def create_build_hut_quest() -> Quest:
-    return Quest(
-        name='Build shelter',
-        objective={'description': 'Build 1 hut', 'target': 'build_hut', 'count': 1},
-        reward={'money': 200}
-    )
-
-
-def create_collect_seeds_quest() -> Quest:
-    return Quest(
-        name='Collect seeds',
-        objective={'description': 'Collect 20 seeds', 'target': 'seeds', 'count': 20},
-        reward={'money': 100}
-    )
-
-
-def create_plant_wheat_quest() -> Quest:
-    return Quest(
-        name='Plant wheat',
-        objective={'description': 'Plant 20 wheat', 'target': 'plant_wheat', 'count': 20},
-        reward={'money': 120}
-    )
-
-
-def create_gather_wood_quest() -> Quest:
-    return Quest(
-        name='Gather wood',
-        objective={'description': 'Collect 50 wood', 'target': 'wood', 'count': 50},
-        reward={'money': 120}
-    )
-
-
-def create_craft_scythe_quest() -> Quest:
-    return Quest(
-        name='Craft scythe',
-        objective={'description': 'Craft 1 scythe', 'target': 'craft_scythe', 'count': 1},
-        reward={'item': 'scythe', 'count': 1}
-    )
-
-
-def create_find_buffalo_quest() -> Quest:
-    return Quest(
-        name='Find buffalo',
-        objective={'description': 'Find and talk to buffalo', 'target': 'find_buffalo', 'count': 1},
-        reward={'money': 80}
+        name='Earn coins',
+        objective={'description': 'Earn 1000 coins', 'target': 'money_earned', 'count': 1000},
+        reward={'money': 1000}
     )
 
 
@@ -119,15 +63,8 @@ def initialize_quests() -> None:
         return
     quest_list = [
         create_harvest_wheat_quest(),
+        create_earn_money_quest(),
         create_kill_enemies_quest(),
-        create_sell_wheat_quest(),
-        create_protect_farm_quest(),
-        create_build_hut_quest(),
-        create_collect_seeds_quest(),
-        create_plant_wheat_quest(),
-        create_gather_wood_quest(),
-        create_craft_scythe_quest(),
-        create_find_buffalo_quest(),
     ]
     focused_quest_index = 0
     active_quest = quest_list[0] if quest_list else None

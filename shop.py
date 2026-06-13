@@ -15,8 +15,11 @@ ITEMS_PER_PAGE = 9
 
 ITEMS = [
     {'type': 'wheat', 'price': 5},
+    {'type': 'corn', 'price': 6},
+    {'type': 'potato', 'price': 6},
     {'type': 'damaged wheat', 'price': 2},
     {'type': 'seed', 'price': 3},
+    {'type': 'corn seed', 'price': 4},
     {'type': 'peashooter seed', 'price': 10},
     {'type': 'fertilizer', 'price': 8},
     {'type': 'axe', 'price': 25},
@@ -38,7 +41,7 @@ def setup_shop_ui():
 
     b_close = Button(
         parent=SHOP_PANEL,
-        text='X',
+        text='',
         position=(0.52, 0.39, -0.1),
         scale=(0.08, 0.08),
         color=color.hex('#BF616A'),
@@ -46,6 +49,7 @@ def setup_shop_ui():
         on_click=close_shop
     )
     b_close.highlight_color = color.hex('#D08770')
+    Text(parent=SHOP_PANEL, text='X', position=(0.52, 0.39, -0.09), origin=(0, 0), color=color.hex('#ECEFF4'), use_tags=False)
 
     cols = 3
     rows = 3
@@ -68,11 +72,12 @@ def setup_shop_ui():
             enabled=False
         )
         b.highlight_color = color.hex('#4C566A')
+        b._label = Text(parent=SHOP_PANEL, text='', position=(x, y, -0.09), origin=(0, 0), color=color.hex('#ECEFF4'), use_tags=False)
         SHOP_ITEM_BUTTONS.append(b)
 
     SHOP_PREV_BUTTON = Button(
         parent=SHOP_PANEL,
-        text='< Trang trước',
+        text='',
         position=(-0.35, -0.35, -0.1),
         scale=(0.28, 0.1),
         color=color.hex('#4C566A'),
@@ -80,10 +85,12 @@ def setup_shop_ui():
         on_click=lambda _=None: change_shop_page(SHOP_PAGE - 1)
     )
     SHOP_PREV_BUTTON.highlight_color = color.hex('#81A1C1')
+    Text(parent=SHOP_PANEL, text='< Trang trước', position=(-0.35, -0.35, -0.09), origin=(0, 0), color=color.hex('#ECEFF4'), use_tags=False)
+    Text(parent=SHOP_PREV_BUTTON, text='< Trang trước', position=(0, 0, -0.01), origin=(0, 0), color=color.hex('#ECEFF4'))
 
     SHOP_NEXT_BUTTON = Button(
         parent=SHOP_PANEL,
-        text='Trang sau >',
+        text='',
         position=(0.35, -0.35, -0.1),
         scale=(0.28, 0.1),
         color=color.hex('#4C566A'),
@@ -91,6 +98,7 @@ def setup_shop_ui():
         on_click=lambda _=None: change_shop_page(SHOP_PAGE + 1)
     )
     SHOP_NEXT_BUTTON.highlight_color = color.hex('#81A1C1')
+    Text(parent=SHOP_PANEL, text='Trang sau >', position=(0.35, -0.35, -0.09), origin=(0, 0), color=color.hex('#ECEFF4'), use_tags=False)
 
     SHOP_PAGE_LABEL = Text(
         parent=SHOP_PANEL,
@@ -119,11 +127,18 @@ def update_shop_page():
         item_index = start_index + slot
         if item_index < len(ITEMS):
             item = ITEMS[item_index]
-            button.text = f"{item['type']}\n{item['price']}g"
+            label_text = f"{item['type']}\n{item['price']}g"
+            if hasattr(button, '_label'):
+                button._label.text = label_text
+            else:
+                button.text = label_text
             button.enabled = True
             button.on_click = (lambda _=None, current=item: buy_item(current))
         else:
-            button.text = ''
+            if hasattr(button, '_label'):
+                button._label.text = ''
+            else:
+                button.text = ''
             button.enabled = False
             button.on_click = lambda _=None: None
 

@@ -14,10 +14,17 @@ peashooter_seed = None
 mi_hao_hao = None
 wheat = None
 damaged_wheat = None
+corn_seed = None
+potato_seed = None
+corn = None
+potato = None
+damaged_corn = None
+damaged_potato = None
 
 
 def setup_tools():
     global arm, axe, pickaxe, hoe, hammer, sword, gun, scythe, fertilizer, seed, peashooter_seed, mi_hao_hao, wheat, damaged_wheat
+    global corn_seed, potato_seed, corn, potato, damaged_corn, damaged_potato
     arm = Entity(model='cube', color=color.brown, scale=(0.3, 1, 0.3),
                  position=(0.7, -0.6, 1.5), rotation=(20, -30, 0), parent=None, enabled=True)
     axe = Entity(position=(0.7, -0.6, 1.5), rotation=(0, 0, 0), parent=None, enabled=False)
@@ -46,6 +53,16 @@ def setup_tools():
     _make_wheat_on_parent(wheat)
     damaged_wheat = Entity(position=(0.7, -0.6, 1.5), rotation=(0, 0, 0), parent=None, enabled=False)
     _make_damaged_wheat_on_parent(damaged_wheat)
+    corn_seed = Entity(position=(0.7, -0.6, 1.5), rotation=(0, 0, 0), parent=None, enabled=False)
+    _make_seed_with_texture_on_parent(corn_seed, color.rgb(255 / 255, 220 / 255, 60 / 255))
+    corn = Entity(position=(0.7, -0.6, 1.5), rotation=(0, 0, 0), parent=None, enabled=False)
+    _make_corn_on_parent(corn)
+    potato = Entity(position=(0.7, -0.6, 1.5), rotation=(0, 0, 0), parent=None, enabled=False)
+    _make_potato_on_parent(potato)
+    damaged_corn = Entity(position=(0.7, -0.6, 1.5), rotation=(0, 0, 0), parent=None, enabled=False)
+    _make_crop_on_parent(damaged_corn, color.brown)
+    damaged_potato = Entity(position=(0.7, -0.6, 1.5), rotation=(0, 0, 0), parent=None, enabled=False)
+    _make_crop_on_parent(damaged_potato, color.brown)
 
 
 def _make_axe_on_parent(parent_entity):
@@ -156,6 +173,56 @@ def _make_wheat_on_parent(parent_entity):
     Entity(model='cube', color=color.yellow, scale=(0.25, 0.25, 0.25), parent=parent_entity, position=(0, 0.15, 0))
 
 
+def _make_colored_seed_on_parent(parent_entity, seed_color):
+    Entity(model='cube', color=seed_color, scale=(0.25, 0.25, 0.1), parent=parent_entity, position=(0, 0.2, 0))
+
+
+def _make_seed_with_texture_on_parent(parent_entity, seed_color):
+    """Try to use the generic seed texture; fall back to colored cube."""
+    try:
+        from ursina import load_texture
+        tex = load_texture('texture/seed.png')
+        if hasattr(tex, 'width'):
+            Entity(model='cube', texture=tex, color=seed_color, scale=(0.25, 0.25, 0.1), parent=parent_entity, position=(0, 0.2, 0), texture_scale=(1, 1))
+            return
+    except Exception:
+        pass
+    Entity(model='cube', color=seed_color, scale=(0.25, 0.25, 0.1), parent=parent_entity, position=(0, 0.2, 0))
+
+
+def _make_corn_on_parent(parent_entity):
+    """Build a corn fruit made of 5 co-located rectangles with evenly spaced rotations.
+    No rotation animation; all rectangles share the same origin but have different Y rotations.
+    """
+    ear_color = color.rgb(255/255, 210/255, 60/255)
+    # rectangle dimensions (same for all 5 pieces) - scale up 1.5x per user request
+    rect_thickness = 0.05 * 1.5
+    rect_height = 0.18 * 1.5
+    rect_depth = 0.10 * 1.5
+    # place all rectangles at the same coordinate (slightly raised)
+    pos = (0, 0.08 * 1.5, 0)
+    count = 5
+    for i in range(count):
+        angle = i * (360.0 / float(count))
+        Entity(model='cube', color=ear_color, parent=parent_entity,
+               position=pos, scale=(rect_thickness, rect_height, rect_depth), rotation=(0, angle, 0))
+
+
+def _make_potato_on_parent(parent_entity):
+    """Build a simple potato model: a couple of rounded lumps (spheres)"""
+    try:
+        # prefer spheres for a rounder look
+        Entity(model='sphere', color=color.rgb(160/255, 110/255, 60/255), scale=(0.18, 0.12, 0.12), parent=parent_entity, position=(-0.04, 0.02, 0))
+        Entity(model='sphere', color=color.rgb(150/255, 100/255, 55/255), scale=(0.14, 0.1, 0.12), parent=parent_entity, position=(0.06, 0.0, 0))
+    except Exception:
+        # fallback to cubes if sphere model is not available
+        Entity(model='cube', color=color.rgb(160/255, 110/255, 60/255), scale=(0.25, 0.18, 0.18), parent=parent_entity, position=(0, 0.05, 0))
+
+
+def _make_crop_on_parent(parent_entity, crop_color):
+    Entity(model='cube', color=crop_color, scale=(0.25, 0.25, 0.25), parent=parent_entity, position=(0, 0.15, 0))
+
+
 def _make_damaged_wheat_on_parent(parent_entity):
     Entity(model='cube', color=color.brown, scale=(0.25, 0.25, 0.25), parent=parent_entity, position=(0, 0.15, 0))
 
@@ -182,6 +249,12 @@ def set_active_item(item_type):
     mi_hao_hao.enabled = (item_type == "mì hảo hảo")
     wheat.enabled = (item_type == "wheat")
     damaged_wheat.enabled = (item_type == "damaged wheat")
+    corn_seed.enabled = (item_type == "corn seed")
+    # no potato seed item anymore; potato item is used for planting
+    corn.enabled = (item_type == "corn")
+    potato.enabled = (item_type == "potato")
+    damaged_corn.enabled = (item_type == "damaged corn")
+    damaged_potato.enabled = (item_type == "damaged potato")
 
 
 def swing_item(item_entity):

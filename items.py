@@ -94,6 +94,17 @@ def spawn_ground_item(item_type, position):
             Entity(model='cube', color=color.yellow, scale=(0.3, 0.3, 0.3), parent=root, position=(0, 0.2, 0))
     elif item_type == "damaged wheat":
         Entity(model='cube', color=color.brown, scale=(0.3, 0.3, 0.3), parent=root, position=(0, 0.2, 0))
+    elif item_type == "corn seed":
+        Entity(model='cube', color=color.rgb(255/255, 220/255, 60/255), scale=(0.3, 0.3, 0.1), parent=root, position=(0, 0.2, 0))
+    # potato seed removed; potatoes are planted directly using the 'potato' item
+    elif item_type == "corn":
+        Entity(model='cube', color=color.rgb(255/255, 210/255, 60/255), scale=(0.3, 0.35, 0.3), parent=root, position=(0, 0.2, 0))
+    elif item_type == "damaged corn":
+        Entity(model='cube', color=color.brown, scale=(0.3, 0.3, 0.3), parent=root, position=(0, 0.2, 0))
+    elif item_type == "potato":
+        Entity(model='cube', color=color.rgb(160/255, 110/255, 60/255), scale=(0.35, 0.25, 0.35), parent=root, position=(0, 0.15, 0))
+    elif item_type == "damaged potato":
+        Entity(model='cube', color=color.brown, scale=(0.3, 0.25, 0.3), parent=root, position=(0, 0.15, 0))
     elif item_type == "mì hảo hảo":
         try:
             noodle_model = load_model('model/haohao/source/Mitomhaohao.glb')
