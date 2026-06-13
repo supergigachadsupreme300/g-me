@@ -1676,6 +1676,8 @@ def setup_game():
     pet.spawn_dog(Vec3(2, 1, 2))
 
     pet.spawn_toad(Vec3(-2, 1, 2))
+    
+    pet.spawn_daden(Vec3(0, 1, 3))
 
     items.spawn_ground_item("peashooter seed", Vec3(7, 1, 0))
 

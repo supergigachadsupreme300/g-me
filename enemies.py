@@ -166,6 +166,17 @@ class Enemy:
         self.flee_timer = 0
         self.sub_entities = [self.entity, self.mesh]
 
+        self.state = SEARCH_WHEAT
+        self.target_field = None
+        self.target_building = None
+        self.wander_target = None
+        self.wander_timer = pytime.time()
+        self.flee_target = None
+        self.flee_timer = 0
+        self.sub_entities = [self.entity, self.mesh]
+        
+        self.visited_areas = []
+
     def set_mesh_texture(self, texture_choice):
         if hasattr(texture_choice, 'width'):
             self.mesh.texture = texture_choice
@@ -174,14 +185,35 @@ class Enemy:
             self.mesh.texture = None
             self.mesh.color = texture_choice
     def pick_wander_target(self):
+        current_pos = Vec3(self.entity.position.x, self.entity.y, self.entity.position.z)
+        self.visited_areas.append(current_pos)
+        
+        if len(self.visited_areas) > 15:
+            self.visited_areas.pop(0)
+
+        import world
+        import random
+        
         edge = world.GROUND_HALF - 2
-        if random.random() < 0.5:
-            x = random.choice([-edge, edge])
-            z = random.uniform(-edge, edge)
-        else:
+        best_target = None
+        best_score = -1
+        
+        for _ in range(12):
             x = random.uniform(-edge, edge)
             z = random.uniform(-edge, edge)
-        self.wander_target = Vec3(x, self.entity.y, z)
+            candidate = Vec3(x, self.entity.y, z)
+            
+            if not self.visited_areas:
+                best_target = candidate
+                break
+            
+            min_dist_to_visited = min((candidate - v).length() for v in self.visited_areas)
+            
+            if min_dist_to_visited > best_score:
+                best_score = min_dist_to_visited
+                best_target = candidate
+
+        self.wander_target = best_target
         self.wander_timer = pytime.time()
 
     def face_direction(self, direction):
@@ -383,7 +415,7 @@ class Grasshopper(Enemy):
     def __init__(self, position):
         super().__init__(position, name="Châu Chấu", max_hp=8, ui_height=6.5, speed=4.0, attack_damage=2)
 
-        self.entity.scale = (0.4, 0.4, 0.4)
+        self.entity.scale = (0.15, 0.15, 0.15)
         self.hitbox = Entity(parent=self.entity, model='cube', color=color.clear, collider='box', y=3, scale=(4, 4, 4))
         
         try:
@@ -420,29 +452,28 @@ class Grasshopper(Enemy):
         import world
         import inventory
 
-        if self.hp <= 0 or self.state == 'DEAD': 
+        if self.hp <= 0 or getattr(self, 'state', '') == 'DEAD': 
             return
-
-        self.velocity_y -= 9.81 * time.dt
-        self.entity.y += self.velocity_y * time.dt
-        if self.entity.y < self.entity.scale_y / 2:
-            self.entity.y = self.entity.scale_y / 2
-            self.velocity_y = 0
 
         player_pos = world.player.position
         dist = (self.entity.position - player_pos).length()
-        direction = (player_pos - self.entity.position)
 
-        if direction.length() > 0:
+        if dist <= 2.5:
+            self.velocity_y -= 9.81 * time.dt
+            self.entity.y += self.velocity_y * time.dt
+            if self.entity.y < self.entity.scale_y / 2:
+                self.entity.y = self.entity.scale_y / 2
+                self.velocity_y = 0
+
+            direction = (player_pos - self.entity.position).normalized()
             self.face_direction(direction)
-
-        if dist > 1.5:
-            self.entity.position += direction.normalized() * self.speed * time.dt
-        else:
+            
             if pytime_mod.time() - self.last_attack_time > self.attack_cooldown:
                 self.last_attack_time = pytime_mod.time()
                 world.player.hp -= self.attack_damage
                 inventory.show_message(f"Bị Châu chấu cắn! HP: {world.player.hp}/100", 2)
+        else:
+            super().update()
 
 def spawn_grasshopper(position):
     g = Grasshopper(position)

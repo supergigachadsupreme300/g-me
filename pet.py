@@ -14,7 +14,7 @@ def update_pets():
             except Exception as e:
                 print(f"Lỗi khi cập nhật hành động Pet: {e}")
 
-#Chihai - Cóc cưng
+#coc
 try:
     toad_texture = load_texture('model/toad/MAT_Animal_Amphibian_Toad2_0_basecolor.jpg') 
     toad_texture = load_texture('model/toad/MAT_Animal_Amphibian_Toad2_0_basecolor.jpeg') 
@@ -88,7 +88,7 @@ def spawn_toad(position):
     return t
 
 
-#Chihai - Chó cưng
+#cho
 try:
     dog_texture = load_texture('model/dog/AM83_037_color_01.jpg') 
 except Exception as e:
@@ -170,3 +170,98 @@ def spawn_dog(position):
     d = Dog(position)
     pets.append(d)
     return d
+
+#daden
+try:
+    daden_texture = load_texture('model/daden/texdaden.png')
+except Exception as e:
+    daden_texture = color.rgb(30, 30, 30)
+
+class DaDen:
+    def __init__(self, position):
+        self.entity = Entity(model='cube', color=color.clear, scale=(0.8, 1.8, 0.8), position=position, collider='box')
+        
+        self.mesh = Entity(parent=self.entity)
+        
+        try:
+            self.mesh.model = load_model('model/daden/noledaden.glb')
+        except Exception as e:
+            self.mesh.model = 'cube'
+
+        if hasattr(daden_texture, 'width'):
+            self.mesh.texture = daden_texture
+            self.mesh.color = color.white
+        else:
+            self.mesh.texture = None
+            self.mesh.color = daden_texture
+        
+        self.mesh.y = -0.8
+        
+        self.speed = 3.5
+        self.action_range = 2.0
+        self.last_action_time = 0
+        self.action_cooldown = 1.5 
+        
+    def update(self):
+        import world
+        import fields
+        import items
+        import inventory
+        import time as pytime
+        from ursina import time as ursina_time, Vec3
+        
+        self.entity.y -= 9.81 * ursina_time.dt
+        if self.entity.y < self.entity.scale_y / 2:
+            self.entity.y = self.entity.scale_y / 2
+
+        target_field = None
+        action_type = None 
+        min_dist = float('inf')
+
+        for field_data in fields.fields:
+            dist = (self.entity.position - field_data["pos"]).length()
+            
+            if field_data["wheat_planted"] and field_data.get("wheat_stage", 0) >= 4 and field_data.get("wheat_hp", 0) > 0:
+                if action_type != 'harvest' or dist < min_dist:
+                    min_dist = dist
+                    target_field = field_data
+                    action_type = 'harvest'
+            
+            elif not field_data["wheat_planted"] and not field_data.get("peashooter_planted", False):
+                if action_type != 'harvest' and dist < min_dist:
+                    min_dist = dist
+                    target_field = field_data
+                    action_type = 'plant'
+
+        if target_field:
+            if min_dist > self.action_range:
+                direction = (target_field["pos"] - self.entity.position).normalized()
+                self.entity.position += direction * self.speed * ursina_time.dt
+                target_look = Vec3(target_field["pos"].x, self.entity.y, target_field["pos"].z)
+                self.entity.look_at(target_look)
+            else:
+                if pytime.time() - self.last_action_time > self.action_cooldown:
+                    self.last_action_time = pytime.time()
+                    
+                    if action_type == 'harvest':
+                        fields.destroy_wheat(target_field)
+                        items.spawn_ground_item("wheat", self.entity.position + Vec3(0, 0.5, 0.5))
+                        inventory.show_message("Đệ tử đã GẶT LÚA giúp bạn!", 1.5)
+                        
+                    elif action_type == 'plant':
+                        fields.plant_wheat_on_field(target_field)
+                        inventory.show_message("Đệ tử đã TRỒNG hạt giống!", 1.5)
+        else:
+            if world.player:
+                player_pos = world.player.position
+                dist_to_player = (self.entity.position - player_pos).length()
+                if dist_to_player > 5: 
+                    direction = (player_pos - self.entity.position).normalized()
+                    self.entity.position += direction * (self.speed * 0.8) * ursina_time.dt
+                    target_look = Vec3(player_pos.x, self.entity.y, player_pos.z)
+                    self.entity.look_at(target_look)
+
+def spawn_daden(position):
+    dd = DaDen(position)
+    pets.append(dd)
+    return dd
