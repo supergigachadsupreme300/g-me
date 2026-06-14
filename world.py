@@ -408,9 +408,8 @@ def build_wife_house():
     t_roof  = _tex('roof_tiles.png')
     t_stone = _tex('stone_wall.png')
     t_door  = _tex('door.png')
-    t_rocky = _tex('rocky_terrain.jpg')
     t_wood  = config.WOOD_TEXTURE  if config.is_texture(config.WOOD_TEXTURE)  else None
-    t_grass = config.GRASS_TEXTURE if config.is_texture(config.GRASS_TEXTURE) else None
+    t_grass = _tex('stone_wall.png')
 
     # color.rgb() in this Ursina version does NOT divide by 255.
     # All integer 0-255 values must be divided manually before passing.
@@ -420,7 +419,6 @@ def build_wife_house():
     floor_c = color.white if t_floor else _rgb(158, 118,  72)
     roof_c  = color.white if t_roof  else _rgb(112,  46,  26)
     stone_c = color.white if t_stone else _rgb(110, 102,  92)
-    rocky_c = color.white if t_rocky else _rgb(130, 118, 100)
     wood_c  = color.white if t_wood  else _rgb(110,  72,  30)
     grass_c = color.white if t_grass else _rgb( 75, 120,  50)
 
@@ -450,11 +448,8 @@ def build_wife_house():
     def stone(scale, pos, ts=(2, 2), coll=False):
         return blk(scale, pos, stone_c, coll=coll, tex=t_stone, ts=ts)
 
-    def rstone(scale, pos, ts=(2, 2), coll=False):
-        return blk(scale, pos, rocky_c, coll=coll, tex=t_rocky, ts=ts)
-
     # ── foundation ────────────────────────────────────────────────────
-    rstone((hw*2+2.2, 0.6, hd*2+2.2), (cx, -0.3, cz), ts=(5, 5), coll=True)
+    stone((hw*2+2.2, 0.6, hd*2+2.2), (cx, -0.3, cz), ts=(5, 5), coll=True)
 
     # ── ground-floor walls ────────────────────────────────────────────
     wall((0.5, h1, hd*2),   (cx+hw,  h1/2,  cz),                       ts=(4, 3))
@@ -465,14 +460,13 @@ def build_wife_house():
     wall((0.5, h1-door_h, door_w), (ent_x, door_h+(h1-door_h)/2, cz),  ts=(1, 1))
 
     # ── ground floor slab ─────────────────────────────────────────────
-    fl((hw*2-0.6, 0.25, hd*2-0.6), (cx, 0.12, cz), ts=(6, 6))
+    fl((hw*2.1-0.6, 0.25, hd*2-0.6), (cx, 0.25, cz), ts=(6, 6))
 
     # ── kitchen partition (partial wall, back half, ground floor) ─────
     wall((hw - 2.2, h1*0.75, 0.4), (cx+hw/2+1.1, h1*0.375, cz+2.5), ts=(2, 2))
 
     # ── inter-floor slab with stair opening on north side ─────────────
-    fl((hw*2-0.6, 0.3, hd*2-4.2), (cx, h1+0.15, cz-1.8), ts=(5, 4))
-    fl((hw*2-0.6, 0.3,      3.6), (cx, h1+0.15, cz+hd-2.0), ts=(5, 2))
+    fl((hw*2-0.4, 0.3, hd*2-2.9), (cx, h1+0.15, cz-1.5), ts=(5, 4))
 
     # ── staircase along north interior (+Z side) ──────────────────────
     n_steps   = 9
@@ -482,8 +476,6 @@ def build_wife_house():
         sx = (cx - hw + 1.2) + (i + 0.5) * stair_run
         sy = stair_rise * i + stair_rise / 2
         stone((stair_run+0.05, stair_rise, 2.6), (sx, sy, cz+hd-1.7), ts=(1, 1), coll=True)
-    # stair handrail
-    blk((hw*2-2.5, 0.12, 0.1), (cx, h1/2, cz+hd-3.0), rail_c)
 
     # ── 2F walls ──────────────────────────────────────────────────────
     wall((0.5, h2, hd*2),   (cx+hw, h1+h2/2, cz),    ts=(4, 3))
@@ -497,8 +489,8 @@ def build_wife_house():
     wall((0.5, h2-bal_door_h, bal_door_w), (ent_x, h1+bal_door_h+(h2-bal_door_h)/2, cz), ts=(1, 1))
 
     # ── balcony floor + railings ───────────────────────────────────────
-    bal_d = 2.2
-    stone((bal_door_w+1.4, 0.22, bal_d), (ent_x-bal_d/2, h1+0.11, cz), ts=(2, 1), coll=True)
+    bal_d = 4.0
+    stone((bal_door_w+2.2, 0.22, bal_d), (ent_x-bal_d/2, h1+0.11, cz), ts=(2, 1), coll=True)
     for bz in (-(bal_door_w/2+0.7), (bal_door_w/2+0.7)):
         blk((0.16, 1.0, 0.16), (ent_x-bal_d/2, h1+0.62, cz+bz), rail_c, coll=True)
         blk((0.16, 1.0, 0.16), (ent_x-bal_d+0.1, h1+0.62, cz+bz), rail_c, coll=True)
@@ -566,30 +558,30 @@ def build_wife_house():
         tex=t_wood, ts=(2, 1))
 
     # ── interactive door (cube + door.png texture) ────────────────────
-    hinge_z = cz - door_w/2 + 0.18
+    hinge_z = cz - door_w/2 + 0.19
     wife_door_pivot = Entity(position=(ent_x, 0, hinge_z))
     _dp = Entity(parent=wife_door_pivot, model='cube',
                  color=color.white if t_door else door_c,
-                 scale=(0.13, door_h-0.25, door_w-0.3),
-                 position=(0, (door_h-0.25)/2, (door_w-0.3)/2),
+                 scale=(0.13, door_h-0.01, door_w-0.4),
+                 position=(0, (door_h-0.01)/2, (door_w-0.4)/2),
                  collider='box', unlit=True)
     if t_door:
         _dp.texture       = t_door
         _dp.texture_scale = (1, 1)
     _dp.name = 'wife_house_door'
     # door knob
-    blk((0.18, 0.18, 0.18), (fx-0.08, door_h*0.46, hinge_z+(door_w-0.3)*0.82),
+    blk((0.18, 0.18, 0.18), (fx-0.08, door_h*0.46, hinge_z+(door_w-0.4)*0.82),
         _rgb(210, 172, 50))
     for dy in (door_h*0.26, door_h*0.65):
         blk((0.15, door_h*0.30, 0.08),
-            (fx-0.06, dy, hinge_z+(door_w-0.3)*0.5), _rgb(75, 42, 12))
+            (fx-0.06, dy, hinge_z+(door_w-0.4)*0.5), _rgb(75, 42, 12))
 
     # ── front yard ────────────────────────────────────────────────────
     blk((8.0, 0.06, hd*2+4.0), (ent_x-4.0, 0.03, cz), grass_c,
         tex=t_grass if t_grass else None, ts=(4, 6))
-    rstone((0.3, 0.22, hd*2+4.0), (ent_x-8.0, 0.11, cz), ts=(1, 4))
+    stone((0.3, 0.22, hd*2+4.0), (ent_x-8.0, 0.11, cz), ts=(1, 4))
     for dz in (-hd-2.0, hd+2.0):
-        rstone((8.0, 0.22, 0.3), (ent_x-4.0, 0.11, cz+dz), ts=(3, 1))
+        stone((8.0, 0.22, 0.3), (ent_x-4.0, 0.11, cz+dz), ts=(3, 1))
 
     # ── ground-floor furniture ────────────────────────────────────────
     # main sofa (centre of living room)

@@ -470,6 +470,8 @@ def update():
             and not cutscene_manager.manager.is_active):
         _sad_ending_fired = True
         game_paused = True
+        if crosshair:
+            crosshair.enabled = False
         cutscene_manager.play_sad_ending()
         return
 
@@ -879,6 +881,8 @@ def handle_input(key):
         if not cutscene_manager.manager.is_active:
             _sad_ending_fired = True
             game_paused = True
+            if crosshair:
+                crosshair.enabled = False
             cutscene_manager.play_sad_ending()
         return
 
