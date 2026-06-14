@@ -21,6 +21,7 @@ import stats
 import cutscene_manager
 
 _sad_ending_fired = False
+import cutscene
 
 
 MAX_PLACE_DISTANCE = 20
@@ -154,6 +155,17 @@ def set_day_night():
     rendering.set_day_night(time_of_day)
 
 
+def set_time_of_day(hour: float):
+    global time_of_day
+    time_of_day = float(hour) % 24
+    update_time_ui()
+    set_day_night()
+
+
+def get_time_stage():
+    return rendering.get_time_stage(time_of_day)
+
+
 
 def update_quest_ui():
 
@@ -196,11 +208,11 @@ def should_spawn_night_enemies():
 
     if next_enemy_spawn_absolute is None:
 
-        if 18.5 <= time_of_day < 24:
+        if rendering.NIGHT_START <= time_of_day < 24:
 
-            next_enemy_spawn_absolute = current_day * 24 + 18.5
+            next_enemy_spawn_absolute = current_day * 24 + rendering.NIGHT_START
 
-        elif 0 <= time_of_day < 6.5:
+        elif 0 <= time_of_day < rendering.DAY_START:
 
             next_enemy_spawn_absolute = current_day * 24 + 0.5
 
@@ -212,7 +224,7 @@ def should_spawn_night_enemies():
 
     if absolute_time >= next_enemy_spawn_absolute:
 
-        if next_enemy_spawn_absolute % 24 >= 6.5 and next_enemy_spawn_absolute % 24 < 18.5:
+        if rendering.DAY_START <= next_enemy_spawn_absolute % 24 < rendering.NIGHT_START:
 
             next_enemy_spawn_absolute = None
 
@@ -223,7 +235,7 @@ def should_spawn_night_enemies():
 
         next_enemy_spawn_absolute += 1.0
 
-        if next_enemy_spawn_absolute % 24 == 6.5:
+        if next_enemy_spawn_absolute % 24 == rendering.DAY_START:
 
             next_enemy_spawn_absolute = None
 
@@ -422,11 +434,11 @@ def confirm_sleep(should_sleep: bool):
 
     if should_sleep:
 
-        if 6 <= time_of_day < 18:
+        if get_time_stage() in ('day', 'dusk'):
 
-            advance_time_to(18)
+            advance_time_to(int(rendering.NIGHT_START))
 
-            inventory.show_message('Slept until 6:00 PM.', 2)
+            inventory.show_message('Slept until nightfall.', 2)
 
         else:
 
@@ -475,6 +487,9 @@ def update():
         cutscene_manager.play_sad_ending()
         return
 
+    if cutscene.update():
+        return
+
     if game_paused:
         return
 
@@ -491,7 +506,7 @@ def update():
 
         spawn_rats_for_night()
 
-    current_stage = 'day' if 6 <= time_of_day < 18 else 'night'
+    current_stage = get_time_stage()
 
     if current_stage != previous_stage:
         last_time_stage = current_stage
@@ -499,6 +514,10 @@ def update():
         if current_stage == 'day':
 
             inventory.show_message('It is now daytime.', 1.5)
+
+        elif current_stage == 'dusk':
+
+            inventory.show_message('Hoàng hôn đang buông xuống...', 2.0)
 
         else:
 
@@ -887,6 +906,37 @@ def handle_input(key):
         return
 
     if cutscene_manager.manager.is_active:
+        return
+
+    if cutscene.handle_input(key):
+        return
+
+    if key == 'f9':
+        cutscene.request_happy_ending()
+        return
+
+    if key == 'f10':
+        from ursina import window
+        window.render_mode = 'default'
+        inventory.show_message('Đã tắt chế độ wireframe', 1.5)
+        return
+
+    if key == 'f11':
+        from ursina import window
+        # Toggle between wireframe and default render modes
+        try:
+            if getattr(window, 'render_mode', 'default') == 'wireframe':
+                window.render_mode = 'default'
+                inventory.show_message('Đã tắt chế độ wireframe', 1.5)
+            else:
+                window.render_mode = 'wireframe'
+                inventory.show_message('Đã bật chế độ wireframe', 1.5)
+        except Exception:
+            # Fallback: set to default if anything goes wrong
+            try:
+                window.render_mode = 'default'
+            except Exception:
+                pass
         return
 
     if key in [str(i) for i in range(1, 10)] + ['0']:
