@@ -484,6 +484,8 @@ def update():
             and not cutscene_manager.manager.is_active):
         _sad_ending_fired = True
         game_paused = True
+        if crosshair:
+            crosshair.enabled = False
         cutscene_manager.play_sad_ending()
         return
 
@@ -897,26 +899,13 @@ def handle_input(key):
 
     global gun_ammo, game_paused, _sad_ending_fired, quest_menu_open
 
-    if key == 'j':
-        import traceback
-        try:
-            # toggle state
-            if not quest_menu_open:
-                # opening: prepare panel, pause game, release mouse, then show panel
-                quest_menu_open = True
-                update_quest_panel()
-                toggle_pause(True)
-                rendering.show_quest_panel(True)
-            else:
-                # closing: hide panel first, then unpause game and re-lock mouse
-                quest_menu_open = False
-                rendering.show_quest_panel(False)
-                toggle_pause(False)
-        except Exception:
-            print('Error while toggling quest panel:')
-            traceback.print_exc()
-        return
-    if cutscene_manager.handle_input(key):
+    if key == 'f12':
+        if not cutscene_manager.manager.is_active:
+            _sad_ending_fired = True
+            game_paused = True
+            if crosshair:
+                crosshair.enabled = False
+            cutscene_manager.play_sad_ending()
         return
 
     if key == 'f9':
