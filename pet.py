@@ -3,6 +3,7 @@ from ursina import Entity, color, destroy, load_model, load_texture, Vec3
 from ursina import time as ursina_time 
 import time as pytime
 import world
+from ursina import Text, mouse
 
 pets = []
 
@@ -181,6 +182,31 @@ class DaDen:
     def __init__(self, position):
         self.entity = Entity(model='cube', color=color.clear, scale=(0.8, 1.8, 0.8), position=position, collider='box')
         
+        self.seed_count = 0
+        self.seed_text = Text(parent=self.entity, text="Hạt giống: 0", y=1.2, scale=8, color=color.green, billboard=True, origin=(0, 0))
+        
+        def pet_input(key):
+            if key == 'left mouse down' or key == 'right mouse down':
+                if getattr(mouse, 'hovered_entity', None) == self.entity:
+                    import inventory, world, tools
+                    if world.player and (world.player.position - self.entity.position).length() < 4.0:
+                        current_slot = inventory.inventory[inventory.selected_slot]
+                        current_item = inventory.get_item(current_slot)
+                        
+                        if current_item == 'seed':
+                            amount = inventory.get_count(current_slot)
+                            inventory.remove_item(inventory.selected_slot, amount)
+                            inventory.update_inventory_ui()
+                            tools.set_active_item(inventory.get_item(inventory.inventory[inventory.selected_slot]))
+                            
+                            self.seed_count += amount
+                            self.seed_text.text = f"Hạt giống: {self.seed_count}"
+                            inventory.show_message(f"Đã đưa {amount} hạt giống cho đệ tử!", 1.5)
+                        else:
+                            inventory.show_message("Hãy cầm hạt giống trên tay và bấm vào tôi!", 2)
+        
+        self.entity.input = pet_input
+
         self.mesh = Entity(parent=self.entity)
         
         try:
@@ -228,7 +254,7 @@ class DaDen:
                     action_type = 'harvest'
             
             elif not field_data["wheat_planted"] and not field_data.get("peashooter_planted", False):
-                if action_type != 'harvest' and dist < min_dist:
+                if action_type != 'harvest' and dist < min_dist and self.seed_count > 0:
                     min_dist = dist
                     target_field = field_data
                     action_type = 'plant'
@@ -249,8 +275,11 @@ class DaDen:
                         inventory.show_message("Đệ tử đã GẶT LÚA giúp bạn!", 1.5)
                         
                     elif action_type == 'plant':
-                        fields.plant_wheat_on_field(target_field)
-                        inventory.show_message("Đệ tử đã TRỒNG hạt giống!", 1.5)
+                        if self.seed_count > 0:
+                            fields.plant_wheat_on_field(target_field)
+                            self.seed_count -= 1
+                            self.seed_text.text = f"Hạt giống: {self.seed_count}"
+                            inventory.show_message(f"Đệ tử đã TRỒNG lúa! (Còn {self.seed_count} hạt)", 1.5)
         else:
             if world.player:
                 player_pos = world.player.position
@@ -263,5 +292,6 @@ class DaDen:
 
 def spawn_daden(position):
     dd = DaDen(position)
-    pets.append(dd)
+    import pet
+    pet.pets.append(dd)
     return dd
