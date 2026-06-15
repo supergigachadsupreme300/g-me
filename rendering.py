@@ -21,6 +21,7 @@ buffalo_dialog = None
 buffalo_dialog_text = None
 buffalo_sell = None
 buffalo_leave = None
+quest_close_callback = None
 
 
 def setup_ui():
@@ -129,6 +130,18 @@ def setup_ui():
     global quest_panel_lines, quest_panel_buttons
     quest_panel_lines = quest_lines
     quest_panel_buttons = quest_line_buttons
+
+    # Close button for quest panel (top-right)
+    def _on_close_quests():
+        global quest_close_callback
+        try:
+            if quest_close_callback is not None:
+                quest_close_callback()
+        except Exception:
+            pass
+        show_quests(False)
+
+    Button(parent=quest_panel, text='X', x=0.26, y=0.28, scale=(0.06, 0.06), color=color.dark_gray, highlight_color=color.gray, on_click=_on_close_quests)
 
     # --- 5. GIAO DIỆN HƯỚNG DẪN (INSTRUCTIONS PANEL) LẬT TRANG ---
     instructions_panel = Entity(parent=camera.ui, enabled=False)
@@ -318,6 +331,11 @@ def show_quests(enabled: bool):
 
     if pause_menu is not None:
         pause_menu.enabled = not enabled
+
+
+def set_quest_close_callback(callback):
+    global quest_close_callback
+    quest_close_callback = callback
 
 
 def show_quest_panel(enabled: bool):
