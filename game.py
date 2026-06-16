@@ -899,6 +899,13 @@ def handle_input(key):
 
     global gun_ammo, game_paused, _sad_ending_fired, quest_menu_open
 
+    # If a cutscene is active, let it handle input first (e.g., Enter to finish)
+    try:
+        if cutscene_manager.handle_input(key):
+            return
+    except Exception:
+        pass
+
     if key == 'f12':
         if not cutscene_manager.manager.is_active:
             _sad_ending_fired = True
@@ -912,29 +919,7 @@ def handle_input(key):
         cutscene_manager.request_happy_ending()
         return
 
-    if key == 'f10':
-        from ursina import window
-        window.render_mode = 'default'
-        inventory.show_message('Đã tắt chế độ wireframe', 1.5)
-        return
-
-    if key == 'f11':
-        from ursina import window
-        # Toggle between wireframe and default render modes
-        try:
-            if getattr(window, 'render_mode', 'default') == 'wireframe':
-                window.render_mode = 'default'
-                inventory.show_message('Đã tắt chế độ wireframe', 1.5)
-            else:
-                window.render_mode = 'wireframe'
-                inventory.show_message('Đã bật chế độ wireframe', 1.5)
-        except Exception:
-            # Fallback: set to default if anything goes wrong
-            try:
-                window.render_mode = 'default'
-            except Exception:
-                pass
-        return
+    # NOTE: F10 and F11 render-mode debug keys removed per cleanup request.
 
     if key in [str(i) for i in range(1, 10)] + ['0']:
 

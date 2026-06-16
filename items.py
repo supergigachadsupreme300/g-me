@@ -95,14 +95,35 @@ def spawn_ground_item(item_type, position):
     elif item_type == "damaged wheat":
         Entity(model='cube', color=color.brown, scale=(0.3, 0.3, 0.3), parent=root, position=(0, 0.2, 0))
     elif item_type == "corn seed":
-        Entity(model='cube', color=color.rgb(255/255, 220/255, 60/255), scale=(0.3, 0.3, 0.1), parent=root, position=(0, 0.2, 0))
+        try:
+            seed_texture = load_texture('texture/seed.png')
+            if hasattr(seed_texture, 'width'):
+                Entity(model='cube', texture=seed_texture, scale=(0.35, 0.35, 0.1), parent=root, position=(0, 0.2, 0), texture_scale=(1, 1), color=color.rgb(255/255, 220/255, 60/255))
+            else:
+                Entity(model='cube', color=color.rgb(255/255, 220/255, 60/255), scale=(0.35, 0.35, 0.1), parent=root, position=(0, 0.2, 0))
+        except Exception:
+            Entity(model='cube', color=color.rgb(255/255, 220/255, 60/255), scale=(0.35, 0.35, 0.1), parent=root, position=(0, 0.2, 0))
     # potato seed removed; potatoes are planted directly using the 'potato' item
     elif item_type == "corn":
-        Entity(model='cube', color=color.rgb(255/255, 210/255, 60/255), scale=(0.3, 0.35, 0.3), parent=root, position=(0, 0.2, 0))
+        # create a ground corn visual composed of multiple thin rectangles like the held version
+        ear_color = color.rgb(255/255, 210/255, 60/255)
+        rect_thickness = 0.05
+        rect_height = 0.25
+        rect_depth = 0.12
+        pos = (0, 0.12, 0)
+        count = 5
+        for i in range(count):
+            angle = i * (360.0 / float(count))
+            Entity(model='cube', color=ear_color, parent=root,
+                   position=pos, scale=(rect_thickness, rect_height, rect_depth), rotation=(0, angle, 0))
     elif item_type == "damaged corn":
         Entity(model='cube', color=color.brown, scale=(0.3, 0.3, 0.3), parent=root, position=(0, 0.2, 0))
     elif item_type == "potato":
-        Entity(model='cube', color=color.rgb(160/255, 110/255, 60/255), scale=(0.35, 0.25, 0.35), parent=root, position=(0, 0.15, 0))
+        try:
+            Entity(model='sphere', color=color.rgb(160/255, 110/255, 60/255), scale=(0.28, 0.22, 0.22), parent=root, position=(-0.04, 0.06, 0))
+            Entity(model='sphere', color=color.rgb(150/255, 100/255, 55/255), scale=(0.22, 0.18, 0.22), parent=root, position=(0.06, 0.03, 0))
+        except Exception:
+            Entity(model='cube', color=color.rgb(160/255, 110/255, 60/255), scale=(0.35, 0.25, 0.35), parent=root, position=(0, 0.15, 0))
     elif item_type == "damaged potato":
         Entity(model='cube', color=color.brown, scale=(0.3, 0.25, 0.3), parent=root, position=(0, 0.15, 0))
     elif item_type == "mì hảo hảo":

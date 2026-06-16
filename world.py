@@ -7,7 +7,7 @@ import cutscene_manager as cutscene
 import random
 import sound_manager
 
-GROUND_SIZE = 300
+GROUND_SIZE = 150
 GROUND_HALF = GROUND_SIZE / 2
 
 # Road bounds (set by build_road)
@@ -67,17 +67,18 @@ def create_world():
     sun = DirectionalLight()
     sun.color = color.rgb(255/255, 250/255, 235/255)
     sun.look_at(Vec3(1, -1, -1))
+    # build road first so spawn logic can avoid road area
+    build_road()
     spawn_trees()
     spawn_rocks()
     build_house()
     create_vendor_spawn_button()
     build_shop()
-    build_road()
     build_wife_house()
     spawn_buffalo()
 
 
-def spawn_trees(num_trees=60):
+def spawn_trees(num_trees=200):
     TREE_PATH = 'model/tree/source/minecraft_tree.glb'
     SCALE     = 5
     Y_OFFSET  = -0.429 * SCALE  # GLB model bottom offset to ground the tree
@@ -129,14 +130,19 @@ def remove_rock(rock):
         rocks.remove(rock)
 
 
-def spawn_rocks(num_rocks=8):
+def spawn_rocks(num_rocks=100):
     for _ in range(num_rocks):
         while True:
             x = random.randint(-int(GROUND_HALF) + 5, int(GROUND_HALF) - 5)
             z = random.randint(-int(GROUND_HALF) + 5, int(GROUND_HALF) - 5)
-            if abs(x) > 8 or abs(z) > 8:
+            # avoid player house area and road
+            if not is_on_road(Vec3(x, 0, z)) and (abs(x) > 8 or abs(z) > 8):
                 break
         rock = Entity(model='cube', color=color.gray, scale=(2, 2, 2), position=(x, 1, z), collider='box')
+        try:
+            rock.is_rock = True
+        except Exception:
+            pass
         bar = Entity(model='cube', color=color.red, scale=(2, 0.2, 0.1), position=(x, 2.5, z))
         rocks.append({"rock": rock, "hp": 15, "bar": bar})
 
@@ -693,7 +699,7 @@ def build_road():
     # Road runs north-south (along Z) at x=14, covering z=-50 to z=70
     road_cx  = 14.0
     road_hw  = 3.8
-    road_len = 300.0
+    road_len = 150.0
     road_zc  = 17.0
 
     curb_c   = color.rgb(118, 115, 108)

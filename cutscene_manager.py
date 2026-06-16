@@ -463,9 +463,11 @@ _saved_time_of_day = None
 _saved_player_collider = None
 _saved_player_gravity = None
 _saved_player_jump = None
+_sun_entity = None
+_saved_fog_density = None
 
 TETO_SCALE = 10.0
-TETO_Y_OFFSET = 0
+TETO_Y_OFFSET = -1
 SUNSET_HOUR = DUSK_START + (NIGHT_START - DUSK_START) * 0.45
 
 
@@ -612,6 +614,29 @@ def _create_teto(position):
 
 def _apply_sunset():
     game.set_time_of_day(SUNSET_HOUR)
+    # spawn a distant, large yellow 'sun' cube at the end of the road so it's visible
+    global _sun_entity, _saved_fog_density
+    # If we've already created the sun, do nothing (prevents re-creating/blinking)
+    try:
+        if _sun_entity is not None:
+            return
+    except Exception:
+        pass
+    try:
+        # reduce fog so the sun is more visible (save previous value if not saved)
+        if _saved_fog_density is None:
+            _saved_fog_density = getattr(scene, 'fog_density', None)
+        try:
+            scene.fog_density = 0.002
+        except Exception:
+            pass
+        road_x = _road_x()
+        sun_z = _road_end_z() + 60
+        # place high above ground and large enough to be seen
+        _sun_entity = Entity(parent=scene, model='cube', color=color.rgb(255/255, 220/255, 60/255),
+                             scale=(80, 80, 80), position=Vec3(road_x + 0.0, 0, sun_z + 200.0), unlit=True)
+    except Exception:
+        pass
 
 
 def _restore_time():
@@ -623,13 +648,15 @@ def _restore_time():
 
 def _road_start_z():
     if world.ROAD_Z_START is not None:
-        return world.ROAD_Z_START + 8
+        return world.ROAD_Z_START + 40
     return -42
 
 
 def _road_end_z():
     start = _road_start_z()
     full_end = world.ROAD_Z_END - 4 if world.ROAD_Z_END is not None else 66
+    # shorten the walking distance: use half of the previous half-distance
+    # (previously 0.5 → now 0.25 of the full span) to reduce walk time
     return start + (full_end - start) * 0.5
 
 
@@ -759,7 +786,7 @@ def _show_ending_ui():
     )
 
 
-def end_happy_ending(restore_control=True):
+def end_happy_ending(restore_control=False):
     global _state, _teto, _teto_mesh, _ending_ui, _pending
     global _saved_camera_parent, _saved_camera_position, _saved_camera_rotation
 
@@ -773,6 +800,22 @@ def end_happy_ending(restore_control=True):
     if _ending_ui is not None:
         destroy(_ending_ui)
         _ending_ui = None
+
+    # remove the distant sun and restore fog density only when restoring control
+    global _sun_entity, _saved_fog_density
+    if restore_control:
+        try:
+            if _sun_entity is not None:
+                destroy(_sun_entity)
+                _sun_entity = None
+        except Exception:
+            pass
+        try:
+            if _saved_fog_density is not None:
+                scene.fog_density = _saved_fog_density
+                _saved_fog_density = None
+        except Exception:
+            pass
 
     _restore_tools()
     _pending = False
@@ -811,7 +854,12 @@ def happy_update():
         return False
 
     if _state == 'ended':
-        _apply_sunset()
+        # ensure sunset/sun is applied once when entering the ended state
+        try:
+            if _sun_entity is None:
+                _apply_sunset()
+        except Exception:
+            _apply_sunset()
         return True
 
     if world.player is None or _teto is None:
@@ -826,7 +874,7 @@ def happy_update():
     if _state == 'walking':
         if world.player.z < end_z:
             world.player.z += WALK_SPEED * dt
-            world.player.x = road_x - 0.8
+            world.player.x = road_x - 1.0
             world.player.rotation_y = 0
 
             side = math.sin(_elapsed * SWING_SPEED)
@@ -877,9 +925,24 @@ def happy_update():
             inventory.show_message('Chúc mừng! Hành trình đã hoàn thành.', 5)
 
     mid = (world.player.position + _teto.position) * 0.5
-    cam_offset = Vec3(-6, 4.5, -9)
-    camera.position = mid + cam_offset
-    camera.look_at(mid + Vec3(0, 1.8, 0))
+    # Camera behavior: while walking, use trailing elevated view; after walking
+    # completes (facing/celebrating/ended), switch to a horizontal side view
+    if _state == 'walking':
+        cam_offset = Vec3(-6, 4.5, -9)
+        camera.position = mid + cam_offset
+        camera.look_at(mid + Vec3(0, 1.8, 0))
+    else:
+        # side-on horizontal view: place camera to the east of the road, level height
+        road_x = _road_x()
+        # keep camera at similar vertical eye height and align Z with midpoint
+        camera.position = Vec3(road_x + 0.0, mid.y + 1.6, mid.z - 4.0)
+        # rotate camera 90 degrees around Y so view is horizontal and aligns players vertically
+        try:
+            camera.rotation = Vec3(0, 0, 0)
+        except Exception:
+            # fallback to look_at if direct rotation fails
+            camera.look_at(mid + Vec3(0, 1.4, 0))
+            camera.rotation_z = 0
 
     return True
 
