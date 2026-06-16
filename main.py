@@ -15,7 +15,7 @@ import tools
 import building_system
 import rendering
 import game
-
+import cutscene_manager
 in_game = False
 
 class MainMenu(Entity):
@@ -47,8 +47,13 @@ class MainMenu(Entity):
         # 3. Tạo Giao diện Menu (Nút bấm, Chữ)
         self.ui_group = Entity(parent=camera.ui)
         Text(text="NÔNG TRẠI SINH TỒN", parent=self.ui_group, scale=3, origin=(0, 0), y=0.25, color=color.orange)
-        Button(text="Bắt đầu", parent=self.ui_group, scale=(0.25, 0.08), y=0.05, color=color.azure, on_click=self.start_game)
-        Button(text="Thoát", parent=self.ui_group, scale=(0.25, 0.08), y=-0.05, color=color.red, on_click=application.quit)
+        
+        Button(text="Game Mới", parent=self.ui_group, scale=(0.25, 0.08), y=0.05, color=color.azure, on_click=self.start_game)
+        
+        # NÚT LOAD GAME (Nền Xanh lá)
+        Button(text="Tiếp tục (Load)", parent=self.ui_group, scale=(0.25, 0.08), y=-0.05, color=color.green, on_click=self.load_game)
+        
+        Button(text="Thoát", parent=self.ui_group, scale=(0.25, 0.08), y=-0.15, color=color.red, on_click=application.quit)
 
         # 4. THỦ THUẬT AUTO GIẤU HUD (Máu, Tiền, Quest...):
         self.hidden_ui = []
@@ -70,14 +75,17 @@ class MainMenu(Entity):
         camera.look_at((0, 3, 0))
         camera.rotation_z = 0
 
-    def start_game(self):
+    def load_game(self):
+        """Hàm dùng để load game trực tiếp bỏ qua cutscene"""
+        import save_manager
         global in_game
         in_game = True
         
         # Xóa giao diện Menu
         destroy(self.ui_group)
+        mouse.locked = True
+        mouse.visible = False
         
-        # Bật lại người chơi và gắn camera
         if hasattr(world, 'player') and world.player:
             world.player.enabled = True
             if hasattr(world.player, 'camera_pivot'):
@@ -89,22 +97,74 @@ class MainMenu(Entity):
             camera.rotation = (0, 0, 0)
             
         camera.rotation_z = 0
-        mouse.locked = True
-        mouse.visible = False
         
-        # 5. Bật lại Tay / Công cụ
         for t in self.all_tools:
             if t is not None:
                 t.visible = True
                 
-        # 6. Bật lại toàn bộ HUD (Máu, Tiền, Quest...)
         for child in self.hidden_ui:
-            if child: # Check an toàn xem UI còn tồn tại không
+            if child:
                 child.visible = True
+                
+        # Gọi hàm Load từ save_manager
+        invoke(save_manager.load_game, delay=0.1)
+        destroy(self)
+
+    def start_game(self):
+        """Hàm bắt đầu game mới sẽ có Cutscene và Hướng dẫn"""
+        global in_game
+        in_game = True
+        
+        # Xóa giao diện Menu
+        destroy(self.ui_group)
+        mouse.locked = True
+        mouse.visible = False
+        
+        def on_cutscene_finish():
+            # Bật lại người chơi và gắn camera
+            if hasattr(world, 'player') and world.player:
+                world.player.enabled = True
+                if hasattr(world.player, 'camera_pivot'):
+                    camera.parent = world.player.camera_pivot
+                    camera.position = (0, 0, 0)
+                else:
+                    camera.parent = world.player
+                    camera.position = (0, 2, 0) 
+                camera.rotation = (0, 0, 0)
+                
+            camera.rotation_z = 0
+            
+            # Bật lại Tay / Công cụ
+            for t in self.all_tools:
+                if t is not None:
+                    t.visible = True
+                    
+            # Bật lại toàn bộ HUD (Máu, Tiền, Quest...)
+            for child in self.hidden_ui:
+                if child:
+                    child.visible = True
+            
+            # Sửa lỗi màn hình đen
+            if cutscene_manager.manager._overlay:
+                cutscene_manager.manager._overlay.color = color.black
+                cutscene_manager.manager._overlay.animate_color(color.rgba(0,0,0,0), duration=1.0)
+                invoke(lambda: setattr(cutscene_manager.manager._overlay, 'enabled', False), delay=1.05)
+                
+            # -------------------------------------------------------------
+            # HIỂN THỊ HƯỚNG DẪN SAU KHI VÀO GAME
+            # -------------------------------------------------------------
+            import rendering
+            rendering.show_instructions(True)
+            
+            # Khóa input để người chơi không chạy đi khi đang đọc hướng dẫn
+            if hasattr(world, 'player') and world.player:
+                world.player.ignore_input = True
+                    
+        # Chạy cutscene lái xe ô tô, xong thì gọi hàm on_cutscene_finish
+        cutscene_manager.play_intro_cutscene(on_complete=on_cutscene_finish)
                 
         # Tiêu hủy class menu
         destroy(self)
-
 def input(key):
     if not in_game:
         return

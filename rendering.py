@@ -50,42 +50,36 @@ def setup_ui():
     pause_menu = Entity(parent=camera.ui, enabled=False)
     Entity(parent=pause_menu, model='quad', color=color.rgba(15, 15, 20, 230/255), scale=(0.6, 0.9), z=1)
     
-    Text(text='SETTINGS', parent=pause_menu, y=0.35, origin=(0, 0), scale=2.5, color=color.orange)
+    Text(text='SETTINGS', parent=pause_menu, y=0.38, origin=(0, 0), scale=2.5, color=color.orange)
     
-    Button(parent=pause_menu, text='Continue', scale=(0.4, 0.08), y=0.17, color=color.dark_gray, highlight_color=color.azure)
+    Button(parent=pause_menu, text='Continue', scale=(0.4, 0.08), y=0.22, color=color.dark_gray, highlight_color=color.azure)
     
-    stats_button = Button(parent=pause_menu, text='Stats', scale=(0.4, 0.08), y=0.04, color=color.dark_gray, highlight_color=color.azure)
+    import save_manager
+    Button(parent=pause_menu, text='Save Game', scale=(0.4, 0.08), y=0.10, color=color.dark_gray, highlight_color=color.rgb(100, 255, 100), on_click=save_manager.save_game)
+    
+    stats_button = Button(parent=pause_menu, text='Stats', scale=(0.4, 0.08), y=-0.02, color=color.dark_gray, highlight_color=color.azure)
     stats_button.on_click = lambda: show_stats(True)
 
-    # Quests button (re-added)
-    quest_button = Button(parent=pause_menu, text='Quests', scale=(0.4, 0.08), y=-0.09, color=color.dark_gray, highlight_color=color.azure)
+    quest_button = Button(parent=pause_menu, text='Quests', scale=(0.4, 0.08), y=-0.14, color=color.dark_gray, highlight_color=color.azure)
     quest_button.on_click = lambda: show_quests(True)
 
-    instructions_button = Button(parent=pause_menu, text='Instructions', scale=(0.4, 0.08), y=-0.22, color=color.dark_gray, highlight_color=color.azure)
+    instructions_button = Button(parent=pause_menu, text='Instructions', scale=(0.4, 0.08), y=-0.26, color=color.dark_gray, highlight_color=color.azure)
     instructions_button.on_click = lambda: show_instructions(True)
 
-    Button(parent=pause_menu, text='Exit', scale=(0.4, 0.08), y=-0.35, color=color.red, highlight_color=color.rgb(255, 100, 100))
+    Button(parent=pause_menu, text='Exit', scale=(0.4, 0.08), y=-0.38, color=color.red, highlight_color=color.rgb(255, 100, 100))
 
     # --- 3. GIAO DIỆN BẢNG GIƯỜNG NGỦ & HỘI THOẠI TRÂU ---
     bed_confirm_menu = Entity(parent=camera.ui, enabled=False)
     Entity(parent=bed_confirm_menu, model='quad', color=color.rgba(0, 0, 0, 180/255), scale=(1.4, 0.6), position=(0, 0, 0))
-    Text(parent=bed_confirm_menu, text='Use the bed?\nSkip to next day/night cycle.', y=0.12, scale=1.2, color=color.white)
+    Text(parent=bed_confirm_menu, text='Use the bed?\\nSkip to next day/night cycle.', y=0.12, scale=1.2, color=color.white)
     bed_confirm_yes = Button(parent=bed_confirm_menu, text='Yes', scale=(0.3, 0.13), x=-0.18, y=-0.12)
     bed_confirm_no = Button(parent=bed_confirm_menu, text='No', scale=(0.3, 0.13), x=0.18, y=-0.12)
 
     marriage_menu = Entity(parent=camera.ui, enabled=False)
-    Entity(parent=marriage_menu, model='quad',
-           color=color.rgba(30/255, 0, 10/255, 210/255), scale=(1.7, 0.58))
-    Text(parent=marriage_menu,
-         text='Will you marry me?\nPrice: 10,000,000 coins',
-         y=0.1, scale=1.4, color=color.rgb(255/255, 220/255, 120/255))
-    marriage_yes = Button(parent=marriage_menu, text='Yes!',
-                          scale=(0.35, 0.12), x=-0.2, y=-0.13,
-                          color=color.rgb(180/255, 40/255, 60/255),
-                          highlight_color=color.rgb(220/255, 80/255, 100/255))
-    marriage_no  = Button(parent=marriage_menu, text='Not now',
-                          scale=(0.35, 0.12), x=0.2, y=-0.13,
-                          color=color.dark_gray, highlight_color=color.gray)
+    Entity(parent=marriage_menu, model='quad', color=color.rgba(30/255, 0, 10/255, 210/255), scale=(1.7, 0.58))
+    Text(parent=marriage_menu, text='Will you marry me?\\nPrice: 10,000,000 coins', y=0.1, scale=1.4, color=color.rgb(255/255, 220/255, 120/255))
+    marriage_yes = Button(parent=marriage_menu, text='Yes!', scale=(0.35, 0.12), x=-0.2, y=-0.13, color=color.rgb(180/255, 40/255, 60/255), highlight_color=color.rgb(220/255, 80/255, 100/255))
+    marriage_no  = Button(parent=marriage_menu, text='Not now', scale=(0.35, 0.12), x=0.2, y=-0.13, color=color.dark_gray, highlight_color=color.gray)
 
     buffalo_dialog = Entity(parent=camera.ui, enabled=False)
     Entity(parent=buffalo_dialog, model='quad', color=color.rgba(0, 0, 0, 180/255), scale=(1.4, 0.7), position=(0, 0, 0))
@@ -109,7 +103,7 @@ def setup_ui():
     
     Button(parent=stats_panel, text='Back', y=-0.35, scale=(0.3, 0.08), color=color.dark_gray, highlight_color=color.azure, on_click=lambda: show_stats(False))
 
-    # --- Quests panel (smaller, moved up to avoid overlapping inventory UI) ---
+    # --- Quests panel ---
     quest_panel = Entity(parent=camera.ui, enabled=False, position=(0, 0.18))
     Entity(parent=quest_panel, model='quad', color=color.rgba(15/255, 15/255, 20/255, 0.95), scale=(0.6, 0.7), z=1)
     Text(parent=quest_panel, text='QUESTS', y=0.26, origin=(0, 0), scale=1.8, color=color.azure)
@@ -117,21 +111,17 @@ def setup_ui():
     quest_lines = []
     quest_line_buttons = []
     q_x = -0.28
-    # show fewer lines with tighter spacing to fit smaller panel
     for i in range(5):
         qy = 0.12 - i * 0.10
         t = Text(parent=quest_panel, text='', x=q_x, y=qy, origin=(-0.5, 0), scale=1.0, color=color.white)
         quest_lines.append(t)
-        # invisible button on top for click/focus handling
         b = Button(parent=quest_panel, text='', x=0.0, y=qy, scale=(0.65, 0.10), color=color.clear, highlight_color=color.clear)
         quest_line_buttons.append(b)
 
-    # Expose expected API names used by game.py
     global quest_panel_lines, quest_panel_buttons
     quest_panel_lines = quest_lines
     quest_panel_buttons = quest_line_buttons
 
-    # Close button for quest panel (top-right)
     def _on_close_quests():
         global quest_close_callback
         try:
@@ -143,7 +133,7 @@ def setup_ui():
 
     Button(parent=quest_panel, text='X', x=0.26, y=0.28, scale=(0.06, 0.06), color=color.dark_gray, highlight_color=color.gray, on_click=_on_close_quests)
 
-    # --- 5. GIAO DIỆN HƯỚNG DẪN (INSTRUCTIONS PANEL) LẬT TRANG ---
+    # --- 5. GIAO DIỆN HƯỚNG DẪN (INSTRUCTIONS PANEL) ---
     instructions_panel = Entity(parent=camera.ui, enabled=False)
     Entity(parent=instructions_panel, model='quad', color=color.rgba(15/255, 15/255, 20/255, 0.95), scale=(0.9, 0.9), z=1)
     
@@ -211,18 +201,52 @@ def change_inst_page(page_num):
         if btn_next_page: btn_next_page.enabled = False
 
 
+# Thêm biến này để lưu tốc độ chuột cũ
+_inst_original_sensitivity = None
+
+_inst_original_sensitivity = None
+
+_inst_original_sensitivity = None
+
 def show_instructions(enabled: bool):
-    global instructions_panel, pause_menu
+    global instructions_panel, pause_menu, _inst_original_sensitivity
     if instructions_panel is None:
         return
     
     instructions_panel.enabled = enabled
+    import world
+    import game
     
     if enabled:
         change_inst_page(1)
+        mouse.locked = False
+        mouse.visible = True
         
-    if pause_menu is not None:
-        pause_menu.enabled = not enabled
+        # SỬA LỖI HIỆN SONG SONG: Ẩn bảng Setting đi
+        if pause_menu is not None:
+            pause_menu.enabled = False
+            
+        # KHÓA DI CHUYỂN VÀ CAMERA
+        if hasattr(world, 'player') and world.player is not None:
+            world.player.ignore_input = True 
+            if hasattr(world.player, 'mouse_sensitivity'):
+                if _inst_original_sensitivity is None:
+                    _inst_original_sensitivity = world.player.mouse_sensitivity
+                world.player.mouse_sensitivity = (0, 0)
+    else:
+        # MỞ KHÓA DI CHUYỂN VÀ CAMERA
+        if hasattr(world, 'player') and world.player is not None:
+            world.player.ignore_input = False
+            if hasattr(world.player, 'mouse_sensitivity') and _inst_original_sensitivity is not None:
+                world.player.mouse_sensitivity = _inst_original_sensitivity
+                
+        # Xử lý đóng bảng
+        if game.game_paused:
+            if pause_menu is not None:
+                pause_menu.enabled = True # Bật lại bảng setting khi ấn Back
+        else:
+            mouse.locked = True
+            mouse.visible = False
 
 
 def update_ammo_text(gun_ammo, gun_max_ammo):
