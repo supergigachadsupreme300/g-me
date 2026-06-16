@@ -960,3 +960,45 @@ def handle_input(key):
 def update():
     return happy_update()
 
+# ── intro cutscene (xe hơi đi vào map) ───────────────────────────────────────
+
+def play_intro_cutscene(on_complete=None):
+    print('[IntroCutscene] Bắt đầu lái xe vào bản đồ')
+    road_x   = 14.0
+    start_z  = -55.0
+    end_z    = -5.0
+    ride_dur = 4.5
+    total    = ride_dur + 1.5
+
+    # Khởi tạo camera và hiệu ứng mờ dần
+    manager.play(duration=total, fade_in=1.5, fade_out=1.5, on_complete=on_complete)
+
+    # Góc CAMERA CINEMATIC
+    try:
+        camera.position = Vec3(road_x - 12, 2.2, end_z)
+        camera.rotation = Vec3(0, 0, 0)
+        invoke(lambda: camera.look_at(Vec3(road_x, 1.0, start_z + 15)), delay=0.05)
+        camera.animate_position(
+            Vec3(road_x - 9, 2.5, end_z - 3),
+            duration=ride_dur,
+            curve=curve.linear
+        )
+    except Exception:
+        traceback.print_exc()
+
+    wx, wy, wz = road_x, 0.0, start_z
+    delta_z = end_z - start_z
+
+    car = manager.spawn(
+        model='model/car/sedan.obj',
+        texture='model/car/colormap.png',
+        scale=2.0,
+        position=(wx, wy, wz),
+        rotation=(0, 0, 0),
+        unlit=True
+    )
+
+    car.animate_position(
+        Vec3(car.x, car.y, car.z + delta_z),
+        duration=ride_dur, curve=curve.linear
+    )
