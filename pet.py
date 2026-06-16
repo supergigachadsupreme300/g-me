@@ -1,8 +1,12 @@
-#Chihai
-from ursina import Entity, color, destroy, load_model, load_texture, Vec3
+from ursina import Entity, color, destroy, load_model, load_texture, Vec3, Text, mouse
 from ursina import time as ursina_time 
 import time as pytime
 import world
+import inventory
+import items
+import fields
+import tools
+import enemies
 
 pets = []
 
@@ -14,21 +18,65 @@ def update_pets():
             except Exception as e:
                 print(f"Lỗi khi cập nhật hành động Pet: {e}")
 
+#pet
+class BasePet:
+    def __init__(self, position, name="Pet", hp=0, speed=3.0, scale=(0.8, 0.8, 0.8)):
+        self.entity = Entity(model='cube', color=color.clear, scale=scale, position=position, collider='box')
+        self.mesh = Entity(parent=self.entity)
+        
+        self.name = name
+        self.hp = hp
+        self.max_hp = hp
+        self.speed = speed
+        
+        if self.hp > 0:
+            self.health_bar = Entity(parent=self.entity, y=1.2, model='cube', color=color.green, scale=(1, 0.1, 0.1))
+        else:
+            self.health_bar = None
+
+    def take_damage(self, amount):
+        if self.hp <= 0: return
+        self.hp -= amount
+        if self.health_bar:
+            self.health_bar.scale_x = max(0, self.hp / self.max_hp)
+        if self.hp <= 0:
+            self.die()
+
+    def die(self):
+        inventory.show_message(f"{self.name} đã bị hạ gục / bắt trộm!", 3)
+        if self in pets:
+            pets.remove(self)
+        destroy(self.entity)
+
+    def apply_gravity(self):
+        self.entity.y -= 9.81 * ursina_time.dt
+        if self.entity.y < self.entity.scale_y / 2:
+            self.entity.y = self.entity.scale_y / 2
+
+    def follow_player(self, follow_distance=5):
+        if world.player:
+            player_pos = world.player.position
+            dist = (self.entity.position - player_pos).length()
+            if dist > follow_distance:
+                direction = (player_pos - self.entity.position).normalized()
+                self.entity.position += direction * (self.speed * 0.8) * ursina_time.dt
+                target_look = Vec3(player_pos.x, self.entity.y, player_pos.z)
+                self.entity.look_at(target_look)
+
 #coc
 try:
     toad_texture = load_texture('model/toad/MAT_Animal_Amphibian_Toad2_0_basecolor.jpg') 
-    toad_texture = load_texture('model/toad/MAT_Animal_Amphibian_Toad2_0_basecolor.jpeg') 
-except Exception as e:
+    if not toad_texture: toad_texture = load_texture('model/toad/MAT_Animal_Amphibian_Toad2_0_basecolor.jpeg') 
+except Exception:
     toad_texture = color.rgb(34/255, 139/255, 34/255)
 
-class Toad:
+class Toad(BasePet):
     def __init__(self, position):
-        self.entity = Entity(model='cube', color=color.clear, scale=(0.3, 0.2, 0.3), position=position, collider='box')
+        super().__init__(position, name="Cóc", hp=0, speed=2.0, scale=(0.3, 0.2, 0.3))
         
-        self.mesh = Entity(parent=self.entity)
         try:
             self.mesh.model = load_model('model/toad/mesh.fbx')
-        except Exception as e:
+        except Exception:
             self.mesh.model = 'cube'
             
         if hasattr(toad_texture, 'width'):
@@ -41,16 +89,15 @@ class Toad:
         self.mesh.setTransparency(0)   
         self.mesh.alpha = 1           
         self.mesh.double_sided = True
-
         self.mesh.scale = (30, 30, 30) 
         self.mesh.y = -0.1
         
-        self.speed = 2.0
         self.attack_range = 2.0
         self.last_attack_time = 0
         
     def update(self):
-        import enemies 
+        self.apply_gravity()
+        
         target = None
         min_dist = float('inf')
         
@@ -71,37 +118,28 @@ class Toad:
                 if pytime.time() - self.last_attack_time > 1.0:
                     target.take_damage(999) 
                     self.last_attack_time = pytime.time()
-                    import inventory
                     inventory.show_message("Cóc đã xơi tái một con Châu Chấu!", 2)
         else:
-            if world.player:
-                player_pos = world.player.position
-                dist_to_player = (self.entity.position - player_pos).length()
-                if dist_to_player > 5:
-                    direction = (player_pos - self.entity.position).normalized()
-                    self.entity.position += direction * (self.speed * 0.8) * ursina_time.dt
-                    self.entity.look_at(player_pos)
+            self.follow_player(follow_distance=5)
 
 def spawn_toad(position):
     t = Toad(position)
     pets.append(t)
     return t
 
-
 #cho
 try:
     dog_texture = load_texture('model/dog/AM83_037_color_01.jpg') 
-except Exception as e:
+except Exception:
     dog_texture = color.orange
 
-class Dog:
+class Dog(BasePet):
     def __init__(self, position):
-        self.entity = Entity(model='cube', color=color.clear, scale=(0.8, 0.8, 0.8), position=position, collider='box')
+        super().__init__(position, name="Chó cưng", hp=100, speed=5.0, scale=(0.8, 0.8, 0.8))
         
-        self.mesh = Entity(parent=self.entity)
         try:
             self.mesh.model = load_model('model/dog/пес.fbx') 
-        except Exception as e:
+        except Exception:
             self.mesh.model = 'cube'
             
         if hasattr(dog_texture, 'width'):
@@ -114,35 +152,20 @@ class Dog:
         self.mesh.scale = (0.05, 0.05, 0.05)
         self.mesh.y = -0.4 
         
-        self.speed = 5.0
         self.attack_range = 2.5
         self.attack_damage = 3
         self.last_attack_time = 0
-        self.hp = 100
-        self.max_hp = 100
-        self.health_bar = Entity(parent=self.entity, y=1.2, model='cube', color=color.green, scale=(1, 0.1, 0.1))
-
-    def take_damage(self, amount):
-        self.hp -= amount
-        self.health_bar.scale_x = max(0, self.hp / self.max_hp)
-        if self.hp <= 0:
-            self.die()
-
-    def die(self):
-        import inventory
-        inventory.show_message("Chó cưng đã bị hạ gục / bắt trộm!", 3)
-        if self in pets:
-            pets.remove(self)
-        destroy(self.entity)
 
     def update(self):
-        import enemies 
+        if self.hp <= 0: return
+        self.apply_gravity()
+        
         target = None
         min_dist = float('inf')
 
         if hasattr(enemies, 'enemies') and enemies.enemies:
             for e in enemies.enemies:
-                if e and hasattr(e, 'entity') and e.entity:
+                if e and hasattr(e, 'entity') and getattr(e, 'hp', 0) > 0:
                     dist = (self.entity.position - e.entity.position).length()
                     if dist < min_dist:
                         min_dist = dist
@@ -158,13 +181,7 @@ class Dog:
                     target.take_damage(self.attack_damage)
                     self.last_attack_time = pytime.time()
         else:
-            if world.player:
-                player_pos = world.player.position
-                dist_to_player = (self.entity.position - player_pos).length()
-                if dist_to_player > 4:
-                    direction = (player_pos - self.entity.position).normalized()
-                    self.entity.position += direction * self.speed * ursina_time.dt
-                    self.entity.look_at(player_pos)
+            self.follow_player(follow_distance=4)
 
 def spawn_dog(position):
     d = Dog(position)
@@ -174,18 +191,40 @@ def spawn_dog(position):
 #daden
 try:
     daden_texture = load_texture('model/daden/texdaden.png')
-except Exception as e:
+except Exception:
     daden_texture = color.rgb(30, 30, 30)
 
-class DaDen:
+class DaDen(BasePet):
     def __init__(self, position):
-        self.entity = Entity(model='cube', color=color.clear, scale=(0.8, 1.8, 0.8), position=position, collider='box')
+        super().__init__(position, name="Đệ tử", hp=0, speed=3.5, scale=(0.8, 1.8, 0.8))
         
-        self.mesh = Entity(parent=self.entity)
+        self.seed_count = 0
+        self.seed_text = Text(parent=self.entity, text="Hạt giống: 0", y=1.2, scale=8, color=color.green, billboard=True, origin=(0, 0))
         
+        def pet_input(key):
+            if key == 'left mouse down' or key == 'right mouse down':
+                if getattr(mouse, 'hovered_entity', None) == self.entity:
+                    if world.player and (world.player.position - self.entity.position).length() < 4.0:
+                        current_slot = inventory.inventory[inventory.selected_slot]
+                        current_item = inventory.get_item(current_slot)
+                        
+                        if current_item == 'seed':
+                            amount = inventory.get_count(current_slot)
+                            inventory.remove_item(inventory.selected_slot, amount)
+                            inventory.update_inventory_ui()
+                            tools.set_active_item(inventory.get_item(inventory.inventory[inventory.selected_slot]))
+                            
+                            self.seed_count += amount
+                            self.seed_text.text = f"Hạt giống: {self.seed_count}"
+                            inventory.show_message(f"Đã đưa {amount} hạt giống cho đệ tử!", 1.5)
+                        else:
+                            inventory.show_message("Hãy cầm hạt giống trên tay và bấm vào tôi!", 2)
+        
+        self.entity.input = pet_input
+
         try:
             self.mesh.model = load_model('model/daden/noledaden.glb')
-        except Exception as e:
+        except Exception:
             self.mesh.model = 'cube'
 
         if hasattr(daden_texture, 'width'):
@@ -197,22 +236,12 @@ class DaDen:
         
         self.mesh.y = -0.8
         
-        self.speed = 3.5
         self.action_range = 2.0
         self.last_action_time = 0
         self.action_cooldown = 1.5 
         
     def update(self):
-        import world
-        import fields
-        import items
-        import inventory
-        import time as pytime
-        from ursina import time as ursina_time, Vec3
-        
-        self.entity.y -= 9.81 * ursina_time.dt
-        if self.entity.y < self.entity.scale_y / 2:
-            self.entity.y = self.entity.scale_y / 2
+        self.apply_gravity()
 
         target_field = None
         action_type = None 
@@ -228,7 +257,7 @@ class DaDen:
                     action_type = 'harvest'
             
             elif not field_data["wheat_planted"] and not field_data.get("peashooter_planted", False):
-                if action_type != 'harvest' and dist < min_dist:
+                if action_type != 'harvest' and dist < min_dist and self.seed_count > 0:
                     min_dist = dist
                     target_field = field_data
                     action_type = 'plant'
@@ -249,17 +278,13 @@ class DaDen:
                         inventory.show_message("Đệ tử đã GẶT LÚA giúp bạn!", 1.5)
                         
                     elif action_type == 'plant':
-                        fields.plant_wheat_on_field(target_field)
-                        inventory.show_message("Đệ tử đã TRỒNG hạt giống!", 1.5)
+                        if self.seed_count > 0:
+                            fields.plant_wheat_on_field(target_field)
+                            self.seed_count -= 1
+                            self.seed_text.text = f"Hạt giống: {self.seed_count}"
+                            inventory.show_message(f"Đệ tử đã TRỒNG lúa! (Còn {self.seed_count} hạt)", 1.5)
         else:
-            if world.player:
-                player_pos = world.player.position
-                dist_to_player = (self.entity.position - player_pos).length()
-                if dist_to_player > 5: 
-                    direction = (player_pos - self.entity.position).normalized()
-                    self.entity.position += direction * (self.speed * 0.8) * ursina_time.dt
-                    target_look = Vec3(player_pos.x, self.entity.y, player_pos.z)
-                    self.entity.look_at(target_look)
+            self.follow_player(follow_distance=5)
 
 def spawn_daden(position):
     dd = DaDen(position)
