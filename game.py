@@ -1643,7 +1643,6 @@ def setup_game():
     update_time_ui()
 
     set_day_night()
-    spawn_enemy_on_edge(8)
 
 
     crosshair = Entity(parent=camera, model='quad', color=color.white, scale=0.01, position=(0, 0, 1.2))

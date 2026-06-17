@@ -499,7 +499,7 @@ def _sahur_apply_tex(actor):
 
 class Sahur(Enemy):
     def __init__(self, position):
-        super().__init__(position, name="Tung Tung Sahur", max_hp=35, ui_height=3.2, speed=1.5, attack_damage=8)
+        super().__init__(position, name="Tung Tung Sahur", max_hp=35, ui_height=3.2, speed= 1, attack_damage=8)
         
         destroy(self.mesh)
         

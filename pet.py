@@ -66,12 +66,12 @@ class BasePet:
 #coc
 try:
     toad_texture = load_texture('model/toad/MAT_Animal_Amphibian_Toad2_0_basecolor.jpg') 
-    if not toad_texture: toad_texture = load_texture('model/toad/MAT_Animal_Amphibian_Toad2_0_basecolor.jpeg') 
+    toad_texture = load_texture('model/toad/MAT_Animal_Amphibian_Toad2_0_basecolor.jpeg') 
 except Exception:
-    toad_texture = color.rgb(34/255, 139/255, 34/255)
+    toad_texture = color.green
 
 class Toad(BasePet):
-    def __init__(self, position):
+    def __init__(self, position):   
         super().__init__(position, name="Cóc", hp=0, speed=2.0, scale=(0.3, 0.2, 0.3))
         
         try:
@@ -109,7 +109,7 @@ class Toad(BasePet):
                         min_dist = dist
                         target = e
         
-        if target:
+        if target and min_dist < 15:
             if min_dist > self.attack_range:
                 direction = (target.entity.position - self.entity.position).normalized()
                 self.entity.position += direction * self.speed * ursina_time.dt
@@ -216,9 +216,12 @@ class DaDen(BasePet):
                             
                             self.seed_count += amount
                             self.seed_text.text = f"Hạt giống: {self.seed_count}"
-                            inventory.show_message(f"Đã đưa {amount} hạt giống cho đệ tử!", 1.5)
+                            inventory.show_message(f"Đã đưa {amount} hạt giống LÚA cho đệ tử!", 1.5)
+                            
+                        elif current_item in ['corn seed', 'potato']:
+                            inventory.show_message("Đệ tử: Trồng cái này mệt lắm, tôi chỉ trồng Lúa thôi!", 2)
                         else:
-                            inventory.show_message("Hãy cầm hạt giống trên tay và bấm vào tôi!", 2)
+                            inventory.show_message("Hãy cầm hạt giống LÚA trên tay và bấm vào tôi!", 2)
         
         self.entity.input = pet_input
 
@@ -250,13 +253,13 @@ class DaDen(BasePet):
         for field_data in fields.fields:
             dist = (self.entity.position - field_data["pos"]).length()
             
-            if field_data["wheat_planted"] and field_data.get("wheat_stage", 0) >= 4 and field_data.get("wheat_hp", 0) > 0:
+            if field_data.get("crop_type") == 'wheat' and field_data.get("wheat_stage", 0) >= 4 and field_data.get("wheat_hp", 0) > 0:
                 if action_type != 'harvest' or dist < min_dist:
                     min_dist = dist
                     target_field = field_data
                     action_type = 'harvest'
             
-            elif not field_data["wheat_planted"] and not field_data.get("peashooter_planted", False):
+            elif not field_data.get("wheat_planted", False) and not field_data.get("peashooter_planted", False):
                 if action_type != 'harvest' and dist < min_dist and self.seed_count > 0:
                     min_dist = dist
                     target_field = field_data
