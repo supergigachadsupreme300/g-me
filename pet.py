@@ -66,9 +66,9 @@ class BasePet:
 #coc
 try:
     toad_texture = load_texture('model/toad/MAT_Animal_Amphibian_Toad2_0_basecolor.jpg') 
-    if not toad_texture: toad_texture = load_texture('model/toad/MAT_Animal_Amphibian_Toad2_0_basecolor.jpeg') 
+    toad_texture = load_texture('model/toad/MAT_Animal_Amphibian_Toad2_0_basecolor.jpeg') 
 except Exception:
-    toad_texture = color.rgb(34/255, 139/255, 34/255)
+    toad_texture = color.green
 
 class Toad(BasePet):
     def __init__(self, position):
