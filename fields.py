@@ -35,19 +35,30 @@ CROP_VISUALS = {
 
 
 def create_field(pos):
+    # Tạo một mảnh ruộng mới và đăng ký vào danh sách `fields`.
+    # GFI (hiển thị thông tin mảnh ruộng) sử dụng các thuộc tính sau:
+    # - entity: Entity của mảnh ruộng (vị trí / parent cho các node)
+    # - pos: vị trí hiển thị / tham chiếu
+    # - crop_type: loại cây đang trồng (ví dụ 'wheat', 'corn', 'potato')
+    # - wheat_planted / peashooter_planted: flag cho biết có cây/peashooter
+    # - wheat_stage: giai đoạn sinh trưởng (dùng để render kích thước)
+    # - wheat_hp / peashooter_hp: máu của cây / peashooter (dùng cho health bar)
+    # - wheat_nodes: các Entity con biểu diễn từng cụm cây (dùng để render)
+    # - peashooter_entity: Entity peashooter (nếu được trồng)
+    # - health_bar: Entity thanh máu (nếu có)
     root = spawn_ground_item("field", Vec3(pos.x, 0, pos.z))
     fields.append({
-        "entity": root,
-        "pos": Vec3(pos.x, 0.1, pos.z),
-        "crop_type": None,
-        "wheat_planted": False,
-        "wheat_stage": 0,
-        "wheat_nodes": [],
-        "wheat_hp": 0,
-        "peashooter_planted": False,
-        "peashooter_entity": None,
-        "peashooter_hp": 0,
-        "health_bar": None,
+        "entity": root,                       # Entity gốc của mảnh ruộng (GFI)
+        "pos": Vec3(pos.x, 0.1, pos.z),      # Vị trí hiển thị / tham chiếu (GFI)
+        "crop_type": None,                    # Loại cây đang trồng (GFI)
+        "wheat_planted": False,               # Có cây hay không (GFI)
+        "wheat_stage": 0,                     # Giai đoạn sinh trưởng (GFI)
+        "wheat_nodes": [],                    # Danh sách Entity các cụm cây (render)
+        "wheat_hp": 0,                        # Máu cây (GFI)
+        "peashooter_planted": False,          # Có peashooter hay không (GFI)
+        "peashooter_entity": None,            # Entity peashooter (render / GFI)
+        "peashooter_hp": 0,                   # Máu peashooter (GFI)
+        "health_bar": None,                   # Entity thanh máu (hiển thị GFI)
     })
     return root
 

@@ -790,36 +790,6 @@ def close_buffalo_dialog():
 
 
 
-def sell_wheat_to_buffalo():
-
-    wheat_amount = inventory.count_item('wheat')
-
-    damaged_amount = inventory.count_item('damaged wheat')
-
-    if wheat_amount == 0 and damaged_amount == 0:
-
-        inventory.show_message('No wheat to sell', 2)
-
-        close_buffalo_dialog()
-        return
-
-    inventory.remove_all('wheat')
-
-    inventory.remove_all('damaged wheat')
-
-    total_money = wheat_amount * WHEAT_PRICE + damaged_amount * DAMAGED_WHEAT_PRICE
-
-    if world.player is not None:
-
-        world.player.money += total_money
-
-    inventory.show_message(f'Sold {wheat_amount} wheat + {damaged_amount} damaged wheat for {total_money} coins', 3)
-
-    inventory.update_inventory_ui()
-
-    close_buffalo_dialog()
-
-
 
 def input(key):
 
@@ -1358,8 +1328,8 @@ def handle_input(key):
 
                         if tree["hp"] <= 0:
 
-                            items.spawn_ground_item("wood", tree["trunk"].position + Vec3(0, 0, 2))
-
+                            # Do not spawn block items when chopping trees — remove drop
+                            # (previous behavior spawned a 'wood' ground item here)
                             world.remove_tree(tree)
 
                         break
@@ -1387,8 +1357,8 @@ def handle_input(key):
 
                         if rock["hp"] <= 0:
 
-                            items.spawn_ground_item("stone", rock["rock"].position + Vec3(0, 0, 2))
-
+                            # Do not spawn block items when mining rocks — remove drop
+                            # (previous behavior spawned a 'stone' ground item here)
                             world.remove_rock(rock)
 
                         break

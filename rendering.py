@@ -163,7 +163,8 @@ def change_inst_page(page_num):
         "Nhặt đồ: E\n\n"
         "Quăng đồ: Q\n\n"
         "Thay đạn: R\n\n"
-        "Setting: Esc"
+        "Setting: Esc\n\n"
+        "chuột trái:sử dụng item "
     )
     
     page_2_text = (
