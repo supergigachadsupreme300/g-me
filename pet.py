@@ -66,12 +66,12 @@ class BasePet:
 #coc
 try:
     toad_texture = load_texture('model/toad/MAT_Animal_Amphibian_Toad2_0_basecolor.jpg') 
-    if not toad_texture: toad_texture = load_texture('model/toad/MAT_Animal_Amphibian_Toad2_0_basecolor.jpeg') 
+    toad_texture = load_texture('model/toad/MAT_Animal_Amphibian_Toad2_0_basecolor.jpeg') 
 except Exception:
-    toad_texture = color.rgb(34/255, 139/255, 34/255)
+    toad_texture = color.green
 
 class Toad(BasePet):
-    def __init__(self, position):
+    def __init__(self, position):   
         super().__init__(position, name="Cóc", hp=0, speed=2.0, scale=(0.3, 0.2, 0.3))
         
         try:
@@ -109,7 +109,7 @@ class Toad(BasePet):
                         min_dist = dist
                         target = e
         
-        if target:
+        if target and min_dist < 15:
             if min_dist > self.attack_range:
                 direction = (target.entity.position - self.entity.position).normalized()
                 self.entity.position += direction * self.speed * ursina_time.dt
