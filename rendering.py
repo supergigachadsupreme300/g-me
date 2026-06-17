@@ -71,7 +71,7 @@ def setup_ui():
     # --- 3. GIAO DIỆN BẢNG GIƯỜNG NGỦ & HỘI THOẠI TRÂU ---
     bed_confirm_menu = Entity(parent=camera.ui, enabled=False)
     Entity(parent=bed_confirm_menu, model='quad', color=color.rgba(0, 0, 0, 180/255), scale=(1.4, 0.6), position=(0, 0, 0))
-    Text(parent=bed_confirm_menu, text='Use the bed?\\nSkip to next day/night cycle.', y=0.12, scale=1.2, color=color.white)
+    Text(parent=bed_confirm_menu, text='Use the bed?\nSkip to next day/night cycle.',x=-1, y=0.12, scale=1.2, color=color.white)
     bed_confirm_yes = Button(parent=bed_confirm_menu, text='Yes', scale=(0.3, 0.13), x=-0.18, y=-0.12)
     bed_confirm_no = Button(parent=bed_confirm_menu, text='No', scale=(0.3, 0.13), x=0.18, y=-0.12)
 

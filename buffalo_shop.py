@@ -58,12 +58,12 @@ def setup_buffalo_shop_ui():
         parent=SHOP_PANEL, text='', position=(-0.18, 0.28, -0.1), scale=(0.24, 0.08),
         color=color.hex('#5E81AC'), text_color=color.hex('#ECEFF4'), on_click=lambda: switch_tab('buy'),
     )
-    Text(parent=SHOP_PANEL, text='Mua hàng', position=(-0.18, 0.28, -0.09), origin=(0, 0), color=color.hex('#ECEFF4'), use_tags=False)
+    Text(parent=SHOP_PANEL, text='Mua hàng', position=(-0.18, 0.28, -0.15), origin=(0, 0), color=color.hex('#ECEFF4'), use_tags=False)
     TAB_SELL = Button(
         parent=SHOP_PANEL, text='', position=(0.18, 0.28, -0.1), scale=(0.24, 0.08),
         color=color.hex('#4C566A'), text_color=color.hex('#ECEFF4'), on_click=lambda: switch_tab('sell'),
     )
-    Text(parent=SHOP_PANEL, text='Bán hàng', position=(0.18, 0.28, -0.09), origin=(0, 0), color=color.hex('#ECEFF4'), use_tags=False)
+    Text(parent=SHOP_PANEL, text='Bán hàng', position=(0.18, 0.28, -0.15), origin=(0, 0), color=color.hex('#ECEFF4'), use_tags=False)
 
     cols = 2
     start_x = -0.22
@@ -80,7 +80,7 @@ def setup_buffalo_shop_ui():
         )
         btn.highlight_color = color.hex('#4C566A')
         # create a dedicated Text child to avoid Ursina Text.align indexing issues
-        btn._label = Text(parent=SHOP_PANEL, text='', position=(x, y, -0.09), origin=(0, 0), color=color.hex('#ECEFF4'), use_tags=False)
+        btn._label = Text(parent=SHOP_PANEL, text='', position=(x, y, -0.15), origin=(0, 0), color=color.hex('#ECEFF4'), use_tags=False)
         ITEM_BUTTONS.append(btn)
 
     prev_btn = Button(
@@ -89,7 +89,7 @@ def setup_buffalo_shop_ui():
         on_click=lambda: change_page(PAGE - 1),
     )
     prev_btn.highlight_color = color.hex('#81A1C1')
-    Text(parent=SHOP_PANEL, text='<', position=(-0.28, -0.34, -0.09), origin=(0, 0), color=color.hex('#ECEFF4'), use_tags=False)
+    Text(parent=SHOP_PANEL, text='<', position=(-0.28, -0.34, -0.15), origin=(0, 0), color=color.hex('#ECEFF4'), use_tags=False)
 
     next_btn = Button(
         parent=SHOP_PANEL, text='', position=(0.28, -0.34, -0.1), scale=(0.1, 0.08),
@@ -97,7 +97,7 @@ def setup_buffalo_shop_ui():
         on_click=lambda: change_page(PAGE + 1),
     )
     next_btn.highlight_color = color.hex('#81A1C1')
-    Text(parent=SHOP_PANEL, text='>', position=(0.28, -0.34, -0.09), origin=(0, 0), color=color.hex('#ECEFF4'), use_tags=False)
+    Text(parent=SHOP_PANEL, text='>', position=(0.28, -0.34, -0.15), origin=(0, 0), color=color.hex('#ECEFF4'), use_tags=False)
 
     PAGE_LABEL = Text(parent=SHOP_PANEL, text='', y=-0.34, z=-0.1, scale=1.1, color=color.hex('#ECEFF4'), origin=(0, 0))
     # Sell All button (sells all items from SELL_ITEMS)
