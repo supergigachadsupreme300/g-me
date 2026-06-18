@@ -189,9 +189,23 @@ def close_buffalo_shop():
     mouse.visible = False
 
     if world.player is not None:
-        world.player.ignore_input = False
+        # Restore player input and movement state
+        try:
+            world.player.ignore_input = False
+        except Exception:
+            pass
+        try:
+            # ensure sprinting is disabled and speed reset
+            if hasattr(world.player, 'is_sprinting'):
+                world.player.is_sprinting = False
+            if hasattr(world.player, 'base_speed'):
+                world.player.speed = getattr(world.player, 'base_speed', world.player.speed)
+        except Exception:
+            pass
         if hasattr(world.player, 'mouse_sensitivity') and ORIGINAL_SENSITIVITY is not None:
             world.player.mouse_sensitivity = ORIGINAL_SENSITIVITY
+            # clear stored original so subsequent opens re-capture current
+            ORIGINAL_SENSITIVITY = None
 
 
 def buy_item(item):

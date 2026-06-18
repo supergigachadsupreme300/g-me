@@ -40,14 +40,14 @@ def create_kill_enemies_quest() -> Quest:
     return Quest(
         name='Slay monsters',
         objective={'description': 'Kill 30 enemies', 'target': 'enemies', 'count': 30},
-        reward={'item': 'gun', 'count': 1}
+        reward={'money': 500}
     )
 
 
 def create_earn_money_quest() -> Quest:
     return Quest(
         name='Earn coins',
-        objective={'description': 'Earn 1000 coins', 'target': 'money_earned', 'count': 1000},
+        objective={'description': 'Earn 100000 coins', 'target': 'money_earned', 'count': 100000},
         reward={'money': 1000}
     )
 

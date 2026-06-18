@@ -360,6 +360,31 @@ class Enemy:
             stats.record_enemy_kill(self.__class__.__name__)
         except Exception:
             pass
+        try:
+            try:
+                import tasks
+            except Exception:
+                tasks = None
+            if tasks is not None:
+                completed = False
+                try:
+                    completed = tasks.add_progress(1, target='enemies')
+                except Exception:
+                    completed = False
+                if completed:
+                    try:
+                        reward = tasks.claim_reward()
+                        if reward is not None and reward.get('money') and world.player is not None:
+                            world.player.money += reward['money']
+                            try:
+                                import inventory
+                                inventory.show_message(f'Quest completed: {tasks.active_quest.name} (+{reward["money"]} coins)', 3.0)
+                            except Exception:
+                                pass
+                    except Exception:
+                        pass
+        except Exception:
+            pass
             
         destroy(self.entity)
         if self in enemies:

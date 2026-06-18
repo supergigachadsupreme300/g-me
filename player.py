@@ -163,6 +163,6 @@ def create_player():
     player.stamina_regen_rate = 25.0
     player.stamina_sprint_cost = 35.0
     player.is_sprinting = False
-    player.money = 1000
+    player.money = 10000000000
     player_model = create_block_player_model(player)
     return player, player_model

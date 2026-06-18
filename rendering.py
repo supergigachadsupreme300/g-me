@@ -17,10 +17,8 @@ bed_confirm_no = None
 marriage_menu = None
 marriage_yes  = None
 marriage_no   = None
-buffalo_dialog = None
-buffalo_dialog_text = None
-buffalo_sell = None
-buffalo_leave = None
+quest_close_callback = None
+
 quest_close_callback = None
 
 
@@ -29,7 +27,6 @@ def setup_ui():
     global mobspawner_text
     global pause_menu, bed_confirm_menu, bed_confirm_yes, bed_confirm_no
     global marriage_menu, marriage_yes, marriage_no
-    global buffalo_dialog, buffalo_dialog_text, buffalo_sell, buffalo_leave
     global stats_panel, stats_lines, stats_button, quest_text
     global quest_panel, quest_lines, quest_button
     global instructions_panel, instructions_button
@@ -81,11 +78,7 @@ def setup_ui():
     marriage_yes = Button(parent=marriage_menu, text='Yes!', scale=(0.35, 0.12), x=-0.2, y=-0.13, color=color.rgb(180/255, 40/255, 60/255), highlight_color=color.rgb(220/255, 80/255, 100/255))
     marriage_no  = Button(parent=marriage_menu, text='Not now', scale=(0.35, 0.12), x=0.2, y=-0.13, color=color.dark_gray, highlight_color=color.gray)
 
-    buffalo_dialog = Entity(parent=camera.ui, enabled=False)
-    Entity(parent=buffalo_dialog, model='quad', color=color.rgba(0, 0, 0, 180/255), scale=(1.4, 0.7), position=(0, 0, 0))
-    buffalo_dialog_text = Text(parent=buffalo_dialog, text='Tôi thích ăn lúa', y=0.15, scale=1.2, color=color.white)
-    buffalo_sell = Button(parent=buffalo_dialog, text='Sell wheat', scale=(0.4, 0.13), x=-0.2, y=-0.15)
-    buffalo_leave = Button(parent=buffalo_dialog, text='Leave', scale=(0.4, 0.13), x=0.2, y=-0.15)
+    # buffalo dialog removed; buffalo shop uses dedicated UI in `buffalo_shop.py`
 
     # --- 4. GIAO DIỆN BẢNG THỐNG KÊ (STATS PANEL) ---
     stats_panel = Entity(parent=camera.ui, enabled=False)
@@ -111,12 +104,14 @@ def setup_ui():
     quest_lines = []
     quest_line_buttons = []
     q_x = -0.28
+    # Create 5 visible quest lines and a small 'Focus' button to the right
     for i in range(5):
         qy = 0.12 - i * 0.10
         t = Text(parent=quest_panel, text='', x=q_x, y=qy, origin=(-0.5, 0), scale=1.0, color=color.white)
         quest_lines.append(t)
-        b = Button(parent=quest_panel, text='', x=0.0, y=qy, scale=(0.65, 0.10), color=color.clear, highlight_color=color.clear)
-        quest_line_buttons.append(b)
+        # small focus button on the right of each line
+        fb = Button(parent=quest_panel, text='Focus', x=0.28, y=qy, scale=(0.18, 0.08), color=color.dark_gray, highlight_color=color.azure)
+        quest_line_buttons.append(fb)
 
     global quest_panel_lines, quest_panel_buttons
     quest_panel_lines = quest_lines
@@ -387,11 +382,12 @@ def refresh_quest_panel(quests: list, focused_index: int, scroll: int = 0):
             else:
                 txt.color = color.white
             if i < len(buttons):
-                # set a button tooltip or text for accessibility
-                buttons[i].text = ''
+                buttons[i].enabled = True
+                buttons[i].text = 'Focus'
         else:
             txt.text = ''
             if i < len(buttons):
+                buttons[i].enabled = False
                 buttons[i].text = ''
 
 
@@ -519,12 +515,8 @@ def set_bed_confirm_callbacks(yes_callback, no_callback):
     if bed_confirm_no is not None:
         bed_confirm_no.on_click = no_callback
 
+# buffalo dialog callbacks removed (buffalo shop uses `buffalo_shop.py` UI)
 
-def set_buffalo_dialog_callbacks(sell_callback, leave_callback):
-    if buffalo_sell is not None:
-        buffalo_sell.on_click = sell_callback
-    if buffalo_leave is not None:
-        buffalo_leave.on_click = leave_callback
 
 
 def set_marriage_callbacks(yes_cb, no_cb):
@@ -545,20 +537,7 @@ def show_marriage_menu(enabled: bool):
         mouse.locked = True
         mouse.visible = False
 
-
-def show_buffalo_dialog(enabled: bool, text: str = None):
-    global buffalo_dialog, buffalo_dialog_text
-    if buffalo_dialog is None:
-        return
-    buffalo_dialog.enabled = enabled
-    if text is not None and buffalo_dialog_text is not None:
-        buffalo_dialog_text.text = text
-    if enabled:
-        mouse.locked = False
-        mouse.visible = True
-    else:
-        mouse.locked = True
-        mouse.visible = False
+# show_buffalo_dialog removed; use `buffalo_shop.open_buffalo_shop()` instead
 
 
 def toggle_pause(paused: bool):

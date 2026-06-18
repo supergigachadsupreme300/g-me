@@ -1652,7 +1652,7 @@ def setup_game():
 
     rendering.set_bed_confirm_callbacks(lambda: confirm_sleep(True), lambda: confirm_sleep(False))
 
-    rendering.set_buffalo_dialog_callbacks(lambda: close_buffalo_dialog(), lambda: close_buffalo_dialog())
+    # buffalo dialog callbacks removed; buffalo shop manages its own UI
 
 
     select_slot(0)
