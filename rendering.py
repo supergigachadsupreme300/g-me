@@ -68,7 +68,8 @@ def setup_ui():
     # --- 3. GIAO DIỆN BẢNG GIƯỜNG NGỦ & HỘI THOẠI TRÂU ---
     bed_confirm_menu = Entity(parent=camera.ui, enabled=False)
     Entity(parent=bed_confirm_menu, model='quad', color=color.rgba(0, 0, 0, 180/255), scale=(1.4, 0.6), position=(0, 0, 0))
-    Text(parent=bed_confirm_menu, text='Use the bed?\nSkip to next day/night cycle.',x=-1, y=0.12, scale=1.2, color=color.white)
+    # Center the bed prompt text inside the dialog so it is visible on all resolutions
+    Text(parent=bed_confirm_menu, text='Use the bed?\nSkip to next day/night cycle.', x=0, y=0.12, origin=(0, 0.5), scale=1.2, color=color.white)
     bed_confirm_yes = Button(parent=bed_confirm_menu, text='Yes', scale=(0.3, 0.13), x=-0.18, y=-0.12)
     bed_confirm_no = Button(parent=bed_confirm_menu, text='No', scale=(0.3, 0.13), x=0.18, y=-0.12)
 
@@ -364,11 +365,9 @@ def refresh_quest_panel(quests: list, focused_index: int, scroll: int = 0):
         if idx < len(quests):
             q = quests[idx]
             status = 'Completed' if q.completed else f"{q.progress}/{q.goal}"
-            txt.text = f"{q.name}: {status}"
-            if idx == focused_index:
-                txt.color = color.rgb(255, 230, 120)
-            else:
-                txt.color = color.white
+            # make focused quest visually obvious (color + chevron)
+            prefix = '> ' if idx == focused_index else '   '
+            txt.text = f"{prefix}{q.name}: {status}"
             if i < len(buttons):
                 buttons[i].enabled = True
                 buttons[i].text = 'Focus'

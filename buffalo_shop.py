@@ -208,6 +208,12 @@ def close_buffalo_shop():
             world.player.mouse_sensitivity = ORIGINAL_SENSITIVITY
             # clear stored original so subsequent opens re-capture current
             ORIGINAL_SENSITIVITY = None
+    # Ensure the global game paused flag is cleared when the shop is closed
+    try:
+        import game
+        game.game_paused = False
+    except Exception:
+        pass
 
 
 def buy_item(item):

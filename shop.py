@@ -74,7 +74,7 @@ def setup_shop_ui():
         b.highlight_color = color.hex('#4C566A')
         # parent label to the button so it always renders above the button quad
         # increase label scale for readability
-        b._label = Text(parent=b, text='', position=(0, 0, -0.15), origin=(0, 0), scale=(6,8), color=color.hex('#ECEFF4'), use_tags=False)
+        b._label = Text(parent=b, text='', position=(0, 0, -0.15), origin=(0, 0), scale=(4,8), color=color.hex('#ECEFF4'), use_tags=False)
         SHOP_ITEM_BUTTONS.append(b)
 
     SHOP_PREV_BUTTON = Button(
@@ -88,7 +88,7 @@ def setup_shop_ui():
     )
     SHOP_PREV_BUTTON.highlight_color = color.hex('#81A1C1')
     # label as a child of the button to avoid duplicate texts and layering issues
-    Text(parent=SHOP_PREV_BUTTON, text='< Trang trước', position=(0, 0, -0.15), origin=(0, 0), scale=(6,8), color=color.hex('#ECEFF4'))
+    Text(parent=SHOP_PREV_BUTTON, text='< Trang trước', position=(0, 0, -0.15), origin=(0, 0), scale=(4,8), color=color.hex('#ECEFF4'))
 
     SHOP_NEXT_BUTTON = Button(
         parent=SHOP_PANEL,
@@ -101,7 +101,7 @@ def setup_shop_ui():
     )
     SHOP_NEXT_BUTTON.highlight_color = color.hex('#81A1C1')
     # next label as a child of the button for consistent layering
-    Text(parent=SHOP_NEXT_BUTTON, text='Trang sau >', position=(0, 0, -0.15), origin=(0, 0), scale=(6,8), color=color.hex('#ECEFF4'), use_tags=False)
+    Text(parent=SHOP_NEXT_BUTTON, text='Trang sau >', position=(0, 0, -0.15), origin=(0, 0), scale=(4,8), color=color.hex('#ECEFF4'), use_tags=False)
 
     SHOP_PAGE_LABEL = Text(
         parent=SHOP_PANEL,

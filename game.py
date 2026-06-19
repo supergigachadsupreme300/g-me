@@ -144,16 +144,17 @@ def update_time_ui():
 
 
 
-def set_day_night():
-
-    rendering.set_day_night(time_of_day)
+# set_day_night removed; call rendering.set_day_night(time_of_day) directly where needed
 
 
 def set_time_of_day(hour: float):
     global time_of_day
     time_of_day = float(hour) % 24
     update_time_ui()
-    set_day_night()
+    try:
+        rendering.set_day_night(time_of_day)
+    except Exception:
+        pass
 
 
 def get_time_stage():
@@ -378,12 +379,7 @@ def consume_ammo_item():
 
 
 
-def spawn_rats_for_night():
-
-    count = max(3, 2 + current_day)
-    spawn_enemy_on_edge(count)
-
-    inventory.show_message(f"Midnight: {count} rats have appeared!", 2.5)
+# `spawn_rats_for_night` removed; use `spawn_enemy_on_edge(count)` directly when needed.
 
 
 
@@ -394,33 +390,21 @@ def advance_time_to(target_hour):
     if target_hour <= time_of_day:
 
         current_day += 1
-
-        spawn_rats_for_night()
+        # spawn enemies when advancing past midnight
+        count = max(3, 2 + current_day)
+        spawn_enemy_on_edge(count)
+        inventory.show_message(f"Midnight: {count} enemies have appeared!", 2.5)
 
     time_of_day = float(target_hour)
     update_time_ui()
-
-    set_day_night()
-
-
-
-def prompt_sleep():
-
-    global game_paused
-
-    game_paused = True
-
-    rendering.toggle_bed_menu(True)
+    try:
+        rendering.set_day_night(time_of_day)
+    except Exception:
+        pass
 
 
 
-def close_sleep_menu():
-
-    global game_paused
-
-    rendering.toggle_bed_menu(False)
-
-    game_paused = False
+# prompt_sleep and close_sleep_menu inlined at call sites; helpers removed
 
 
 
@@ -439,7 +423,13 @@ def confirm_sleep(should_sleep: bool):
             advance_time_to(6)
 
             inventory.show_message('Slept until 6:00 AM.', 2)
-    close_sleep_menu()
+    # inline close_sleep_menu(): hide bed menu and resume game
+    global game_paused
+    try:
+        rendering.toggle_bed_menu(False)
+    except Exception:
+        pass
+    game_paused = False
 
 
 
@@ -457,9 +447,7 @@ def select_slot(index):
 
 
 
-def snap_to_grid(position):
-
-    return Vec3(round(position.x), position.y, round(position.z))
+# snap_to_grid removed; call Vec3(round(pos.x), pos.y, round(pos.z)) inline where needed
 
 
 
@@ -493,13 +481,7 @@ def update():
 
     time_of_day += time.dt * TIME_SPEED / 60.0
 
-    if time_of_day >= 24:
 
-        time_of_day -= 24
-
-        current_day += 1
-
-        spawn_rats_for_night()
 
     current_stage = get_time_stage()
 
@@ -518,8 +500,10 @@ def update():
 
             inventory.show_message('The night has arrived.', 1.5)
     update_time_ui()
-
-    set_day_night()
+    try:
+        rendering.set_day_night(time_of_day)
+    except Exception:
+        pass
 
 
     if should_spawn_night_enemies():
@@ -701,7 +685,7 @@ def update():
             building_system.hide_building_preview()
             return
 
-        snapped = snap_to_grid(point)
+        snapped = Vec3(round(point.x), point.y, round(point.z))
 
         rotated_size = building_system.get_rotated_size(building_system.get_current_building())
 
@@ -719,46 +703,15 @@ def update():
 
 
 
-def is_bed_entity(entity):
-    current = entity
-
-    while current is not None:
-
-        if getattr(current, 'is_bed', False):
-
-            return True
-
-        current = getattr(current, 'parent', None)
-
-    return False
+# is_bed_entity inlined at call sites (simple getattr chain)
 
 
 
-def is_buffalo_entity(entity):
-    current = entity
-
-    while current is not None:
-
-        if getattr(current, 'is_buffalo', False):
-            return current
-
-        current = getattr(current, 'parent', None)
-
-    return None
+# is_buffalo_entity inlined at call sites (simple getattr chain)
 
 
 
-def is_vendor_entity(entity):
-    current = entity
-
-    while current is not None:
-
-        if getattr(current, 'is_vendor', False):
-            return current
-
-        current = getattr(current, 'parent', None)
-
-    return None
+# is_vendor_entity inlined at call sites (simple getattr chain)
 
 
 
@@ -813,30 +766,79 @@ def face_buffalo_towards_player(buffalo_entity):
 
 
 def setup_game():
+    global crosshair
 
     if world.player is not None:
-
         try:
-
             world.player.speed = world.player.base_speed
-
         except Exception:
             pass
 
+    # initialize quests and active quest
     tasks.initialize_quests()
     if tasks.get_active_quest() is None:
-
         tasks.set_active_quest(tasks.create_harvest_wheat_quest())
 
+    # update HUD for player if present
     if world.player is not None:
-
         rendering.update_player_hud(world.player.hp, world.player.max_hp, world.player.stamina, world.player.max_stamina, world.player.money)
-
         current_item = inventory.get_item(inventory.inventory[inventory.selected_slot])
-
         rendering.show_ammo(current_item == "gun")
 
     update_quest_ui()
+
+    # spawn starter items and pets
+    try:
+        items.spawn_ground_item("axe", Vec3(0, 1, 0))
+        items.spawn_ground_item("pickaxe", Vec3(2, 1, 0))
+        items.spawn_ground_item("hoe", Vec3(-2, 1, 0))
+        items.spawn_ground_item("hammer", Vec3(-3, 1, 0))
+        items.spawn_ground_item("seed", Vec3(4, 1, 0))
+        items.spawn_ground_item("corn seed", Vec3(5, 1, 0))
+        items.spawn_ground_item("potato", Vec3(6, 1, 0))
+        items.spawn_ground_item("sword", Vec3(8, 1, 0))
+        items.spawn_ground_item("gun", Vec3(10, 1, 0))
+        items.spawn_ground_item("ammo", Vec3(12, 1, 0))
+        items.spawn_ground_item("scythe", Vec3(14, 1, 0))
+        items.spawn_ground_item("mobspawner", Vec3(16, 1, 0))
+        items.spawn_ground_item("mì hảo hảo", Vec3(18, 1, 0))
+        items.spawn_ground_item("wheat", Vec3(20, 1, 0))
+        items.spawn_ground_item("peashooter seed", Vec3(7, 1, 0))
+        pet.spawn_dog(Vec3(2, 1, 2))
+        pet.spawn_toad(Vec3(-2, 1, 2))
+        pet.spawn_daden(Vec3(0, 1, 3))
+    except Exception:
+        pass
+
+    try:
+        buffalo_shop.setup_buffalo_shop_ui()
+    except Exception:
+        pass
+
+    set_mobspawner_index(0)
+    inventory.update_inventory_ui()
+
+    # ensure active quest and HUD updated
+    if tasks.get_active_quest() is None:
+        tasks.set_active_quest(tasks.create_harvest_wheat_quest())
+
+    try:
+        rendering.update_player_hud(world.player.hp, world.player.max_hp, world.player.stamina, world.player.max_stamina, world.player.money)
+    except Exception:
+        pass
+
+    update_quest_ui()
+    update_time_ui()
+    try:
+        rendering.set_day_night(time_of_day)
+    except Exception:
+        pass
+
+    crosshair = Entity(parent=camera, model='quad', color=color.white, scale=0.01, position=(0, 0, 1.2))
+
+    rendering.set_pause_button_callbacks(lambda: toggle_pause(False), application.quit)
+
+    rendering.set_bed_confirm_callbacks(lambda: confirm_sleep(True), lambda: confirm_sleep(False))
 
 
 def _marry_yes():
@@ -1010,7 +1012,12 @@ def handle_input(key):
             return
 
         if rendering.bed_confirm_menu is not None and rendering.bed_confirm_menu.enabled:
-            close_sleep_menu()
+            # inline close_sleep_menu(): hide bed menu and resume game
+            try:
+                rendering.toggle_bed_menu(False)
+            except Exception:
+                pass
+            game_paused = False
 
         else:
             toggle_pause(not game_paused)
@@ -1040,18 +1047,35 @@ def handle_input(key):
 
         hit_info = raycast(camera.world_position, camera.forward, distance=MAX_PLACE_DISTANCE)
 
-        if hit_info.hit and is_bed_entity(hit_info.entity):
-            prompt_sleep()
-            return
-
         if hit_info.hit:
+            # inline is_bed_entity check
+            current = hit_info.entity
+            found_bed = False
+            while current is not None:
+                if getattr(current, 'is_bed', False):
+                    found_bed = True
+                    break
+                current = getattr(current, 'parent', None)
+            if found_bed:
+                # inline prompt_sleep(): pause game and show bed confirm menu
+                game_paused = True
+                try:
+                    rendering.toggle_bed_menu(True)
+                except Exception:
+                    pass
+                return
 
-            buffalo_entity = is_buffalo_entity(hit_info.entity)
+            # inline is_buffalo_entity: walk up parents and return the matching entity
+            current = hit_info.entity
+            buffalo_entity = None
+            while current is not None:
+                if getattr(current, 'is_buffalo', False):
+                    buffalo_entity = current
+                    break
+                current = getattr(current, 'parent', None)
 
             if buffalo_entity is not None:
-
                 face_buffalo_towards_player(buffalo_entity)
-
                 show_buffalo_dialog()
                 return
 
@@ -1062,54 +1086,39 @@ def handle_input(key):
             spawn_btn = None
 
             try:
-
-                if hit_info.hit:
-
-                    spawn_btn = world.is_vendor_spawn_entity(hit_info.entity)
-
+                spawn_btn = world.is_vendor_spawn_entity(hit_info.entity)
             except Exception:
-
                 spawn_btn = None
 
             # second raycast that ignores current vendor to catch the button behind it
-
             if spawn_btn is None:
-
                 ignore_tuple = (world.vendor_root,) if getattr(world, 'vendor_root', None) is not None else ()
-
                 try:
-
                     hit2 = raycast(camera.world_position, camera.forward, distance=MAX_PLACE_DISTANCE, ignore=ignore_tuple)
-
                     if hit2.hit:
-
                         spawn_btn = world.is_vendor_spawn_entity(hit2.entity)
-
                 except Exception:
-
                     spawn_btn = None
 
             if spawn_btn is not None:
-
                 # spawn_vendor_cart destroys any existing vendor already; always call it
-
                 world.spawn_vendor_cart()
                 return
 
-            # vendor interaction (mirror buffalo interaction)
-
-            vendor_entity = is_vendor_entity(hit_info.entity)
+            # inline is_vendor_entity: walk up parents and return the matching entity
+            current = hit_info.entity
+            vendor_entity = None
+            while current is not None:
+                if getattr(current, 'is_vendor', False):
+                    vendor_entity = current
+                    break
+                current = getattr(current, 'parent', None)
 
             if vendor_entity is not None:
-
                 try:
-
                     import shop
-
                     shop.open_shop()
-
                 except Exception as e:
-
                     print('Failed to open shop from game input:', e)
                 return
 
@@ -1579,70 +1588,7 @@ def handle_input(key):
 
 
 
-def setup_game():
 
-    global crosshair
-
-    items.spawn_ground_item("axe", Vec3(0, 1, 0))
-
-    items.spawn_ground_item("pickaxe", Vec3(2, 1, 0))
-
-    items.spawn_ground_item("hoe", Vec3(-2, 1, 0))
-
-    items.spawn_ground_item("hammer", Vec3(-3, 1, 0))
-
-    items.spawn_ground_item("seed", Vec3(4, 1, 0))
-    items.spawn_ground_item("corn seed", Vec3(5, 1, 0))
-    items.spawn_ground_item("potato", Vec3(6, 1, 0))
-
-    items.spawn_ground_item("sword", Vec3(8, 1, 0))
-
-    items.spawn_ground_item("gun", Vec3(10, 1, 0))
-
-    items.spawn_ground_item("ammo", Vec3(12, 1, 0))
-
-    items.spawn_ground_item("scythe", Vec3(14, 1, 0))
-
-    items.spawn_ground_item("mobspawner", Vec3(16, 1, 0))
-
-    items.spawn_ground_item("mì hảo hảo", Vec3(18, 1, 0))
-
-    items.spawn_ground_item("wheat", Vec3(20,1,0))
-
-    pet.spawn_dog(Vec3(2, 1, 2))
-
-    pet.spawn_toad(Vec3(-2, 1, 2))
-    
-    pet.spawn_daden(Vec3(0, 1, 3))
-
-    items.spawn_ground_item("peashooter seed", Vec3(7, 1, 0))
-
-    buffalo_shop.setup_buffalo_shop_ui()
-
-
-    set_mobspawner_index(0)
-    inventory.update_inventory_ui()
-
-    if tasks.get_active_quest() is None:
-
-        tasks.set_active_quest(tasks.create_harvest_wheat_quest())
-
-
-    rendering.update_player_hud(world.player.hp, world.player.max_hp, world.player.stamina, world.player.max_stamina, world.player.money)
-
-    update_quest_ui()
-
-    update_time_ui()
-
-    set_day_night()
-
-
-    crosshair = Entity(parent=camera, model='quad', color=color.white, scale=0.01, position=(0, 0, 1.2))
-
-
-    rendering.set_pause_button_callbacks(lambda: toggle_pause(False), application.quit)
-
-    rendering.set_bed_confirm_callbacks(lambda: confirm_sleep(True), lambda: confirm_sleep(False))
 
     # buffalo dialog callbacks removed; buffalo shop manages its own UI
 
