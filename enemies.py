@@ -110,7 +110,7 @@ def find_nearest_wheat_field(position, max_dist=None):
     for field_data in fields.fields:
         if field_data["wheat_planted"] and field_data["wheat_hp"] > 0:
             dist = abs(field_data["pos"].x - position.x) + abs(field_data["pos"].z - position.z)
-            if max_dist is not None and dist > max_dist:
+            if max_dist is not None and dist > max_dist:    
                 continue
             if best_dist is None or dist < best_dist:
                 best_dist = dist
@@ -166,15 +166,6 @@ class Enemy:
         self.flee_timer = 0
         self.sub_entities = [self.entity, self.mesh]
 
-        self.state = SEARCH_WHEAT
-        self.target_field = None
-        self.target_building = None
-        self.wander_target = None
-        self.wander_timer = pytime.time()
-        self.flee_target = None
-        self.flee_timer = 0
-        self.sub_entities = [self.entity, self.mesh]
-        
         self.visited_areas = []
 
     def set_mesh_texture(self, texture_choice):
