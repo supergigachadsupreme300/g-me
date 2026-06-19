@@ -30,6 +30,8 @@ SELL_ITEMS = [
     {'type': 'damaged potato', 'price': 3, 'label': 'Khoai hỏng'},
 ]
 
+# Prices are stored in SELL_ITEMS; import values directly from that list when needed
+
 
 def _current_items():
     return BUY_ITEMS if ACTIVE_TAB == 'buy' else SELL_ITEMS

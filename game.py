@@ -66,9 +66,7 @@ sprint_speed_multiplier = 2.0
 next_enemy_spawn_absolute = None
 
 
-WHEAT_PRICE = 10
-
-DAMAGED_WHEAT_PRICE = 3
+# wheat prices are defined in buffalo_shop.SELL_ITEMS; use buffalo_shop.WHEAT_PRICE when needed
 
 TIME_SPEED = 1.0  # in-game minutes per real second
 
@@ -136,13 +134,7 @@ def toggle_pause(paused: bool):
 
 
 
-def format_time():
 
-    hours = int(time_of_day)
-
-    minutes = int((time_of_day - hours) * 60)
-
-    return f"Day {current_day} - {hours:02d}:{minutes:02d}"
 
 
 

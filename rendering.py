@@ -111,6 +111,11 @@ def setup_ui():
         quest_lines.append(t)
         # small focus button on the right of each line
         fb = Button(parent=quest_panel, text='Focus', x=0.28, y=qy, scale=(0.18, 0.08), color=color.dark_gray, highlight_color=color.azure)
+        # attach focus handler to update tasks and HUD
+        try:
+            fb.on_click = (lambda i=i: set_quest_focus(i))
+        except Exception:
+            pass
         quest_line_buttons.append(fb)
 
     global quest_panel_lines, quest_panel_buttons
@@ -315,29 +320,7 @@ def update_stats_display():
         pass
 
 
-def update_quest_display():
-    try:
-        import tasks as tasks_mod
-        quests = tasks_mod.get_quests()
-    except Exception:
-        quests = []
-
-    if not globals().get('quest_lines'):
-        return
-
-    if not quests:
-        quest_lines[0].text = 'No quests available.'
-        for i in range(1, len(quest_lines)):
-            quest_lines[i].text = ''
-        return
-
-    for i, t in enumerate(quest_lines):
-        if i < len(quests):
-            q = quests[i]
-            status = 'Completed' if q.completed else f'{q.progress}/{q.goal}'
-            t.text = f"{q.name}: {status}"
-        else:
-            t.text = ''
+# NOTE: `update_quest_display` removed — use `refresh_quest_panel(quests, focused_index)` instead
 
 
 def show_quests(enabled: bool):
@@ -347,7 +330,12 @@ def show_quests(enabled: bool):
 
     quest_panel.enabled = enabled
     if enabled:
-        update_quest_display()
+        try:
+            import tasks as tasks_mod
+            refresh_quest_panel(tasks_mod.get_quests(), tasks_mod.get_focused_index())
+        except Exception:
+            # fallback: nothing to do if refresh fails
+            pass
 
     if pause_menu is not None:
         pause_menu.enabled = not enabled
@@ -401,6 +389,25 @@ def set_quest_focus_callbacks(callbacks: list):
                 b.on_click = None
         except Exception:
             pass
+
+
+def set_quest_focus(index: int):
+    # Called when a quest 'Focus' button is pressed — update tasks and UI
+    try:
+        import tasks as tasks_mod
+        quests = tasks_mod.get_quests()
+        if not quests:
+            return
+        if index < 0 or index >= len(quests):
+            return
+        tasks_mod.set_focused_quest(index)
+        active = tasks_mod.get_active_quest()
+        if active is not None:
+            update_quest_text(active.name, active.progress, active.goal)
+        # refresh the panel to highlight the focused quest
+        refresh_quest_panel(quests, tasks_mod.get_focused_index())
+    except Exception:
+        pass
 
 
 def update_time_ui(current_day, time_of_day):
