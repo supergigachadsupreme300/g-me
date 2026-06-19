@@ -143,11 +143,15 @@ def spawn_rocks(num_rocks=8):
 def build_house():
     is_tex = config.is_texture(config.WOOD_TEXTURE)
 
-    def wood(scale, pos, tex_s=(1, 1)):
+    def wood(scale, pos, tex_s=(1, 1), coll=False):
         if is_tex:
-            return Entity(model='cube', texture=config.WOOD_TEXTURE,
-                          scale=scale, position=pos, texture_scale=tex_s)
-        return Entity(model='cube', color=config.WOOD_TEXTURE, scale=scale, position=pos)
+            e = Entity(model='cube', texture=config.WOOD_TEXTURE,
+                       scale=scale, position=pos, texture_scale=tex_s)
+        else:
+            e = Entity(model='cube', color=config.WOOD_TEXTURE, scale=scale, position=pos)
+        if coll:
+            e.collider = 'box'
+        return e
 
     def detail(scale, pos, col):
         return Entity(model='cube', color=col, scale=scale, position=pos)
@@ -164,14 +168,14 @@ def build_house():
     porch_c   = color.rgb(148/255, 92/255, 42/255)
 
     # ── Walls + floor ───────────────────────────────────────────────────
-    wood((10, 5, 0.5), (0, 2.5, -5), (5, 2.5))   # front (z=-5)
-    wood((10, 5, 0.5), (0, 2.5,  5), (5, 2.5))   # back  (z=+5)
-    wood((0.5, 5, 10), (-5, 2.5, 0), (5, 2.5))   # left  (x=-5)
-    wood((10, 0.5, 10), (0, 0, 0),   (5, 5))     # floor
+    wood((10, 5, 0.5), (0, 2.5, -5), (5, 2.5), coll=True)   # front (z=-5)
+    wood((10, 5, 0.5), (0, 2.5,  5), (5, 2.5), coll=True)   # back  (z=+5)
+    wood((0.5, 5, 10), (-5, 2.5, 0), (5, 2.5), coll=True)   # left  (x=-5)
+    wood((10, 0.5, 10), (0, 0, 0),   (5, 5),   coll=True)   # floor
     # Right wall with doorway opening (3-unit wide gap centered at z=0)
-    wood((0.5, 5, 3.5), (5, 2.5, -3.25), (2, 2.5))   # right-wall left wing
-    wood((0.5, 5, 3.5), (5, 2.5,  3.25), (2, 2.5))   # right-wall right wing
-    wood((0.5, 1.0, 3.0), (5, 4.5, 0),   (1.5, 0.5)) # transom above doorway
+    wood((0.5, 5, 3.5), (5, 2.5, -3.25), (2, 2.5), coll=True)   # right-wall left wing
+    wood((0.5, 5, 3.5), (5, 2.5,  3.25), (2, 2.5), coll=True)   # right-wall right wing
+    wood((0.5, 1.0, 3.0), (5, 4.5, 0),   (1.5, 0.5), coll=True) # transom above doorway
 
     # ── Gabled roof ─────────────────────────────────────────────────────
     rise      = 3.0
@@ -266,8 +270,11 @@ def build_shop():
     hw, hd = sw / 2, sd / 2
     cy = sh / 2
 
-    def detail(scale, pos, col):
-        return Entity(model='cube', color=col, scale=scale, position=pos)
+    def detail(scale, pos, col, coll=False):
+        e = Entity(model='cube', color=col, scale=scale, position=pos)
+        if coll:
+            e.collider = 'box'
+        return e
 
     plaster_c    = color.rgb(242/255, 228/255, 198/255)
     roof_c       = color.rgb(55/255, 108/255, 50/255)
@@ -284,10 +291,10 @@ def build_shop():
     awning_c     = color.rgb(188/255, 68/255, 40/255)
 
     # ── Walls + floor ───────────────────────────────────────────────────
-    detail((0.5, sh, sd),     (sx-hw, cy, sz), plaster_c)        # back  (x=-5)
-    detail((sw+0.5, sh, 0.5), (sx, cy, sz-hd), plaster_c)        # left  (z=23)
-    detail((sw+0.5, sh, 0.5), (sx, cy, sz+hd), plaster_c)        # right (z=33)
-    detail((sw, 0.5, sd),     (sx, 0, sz), floor_c)               # floor
+    detail((0.5, sh, sd),     (sx-hw, cy, sz), plaster_c, coll=True)   # back  (x=-5)
+    detail((sw+0.5, sh, 0.5), (sx, cy, sz-hd), plaster_c, coll=True)   # left  (z=55)
+    detail((sw+0.5, sh, 0.5), (sx, cy, sz+hd), plaster_c, coll=True)   # right (z=65)
+    detail((sw, 0.5, sd),     (sx, 0, sz), floor_c, coll=True)          # floor
 
     # ── Gabled roof ─────────────────────────────────────────────────────
     rise      = 2.2
@@ -355,8 +362,8 @@ def build_shop():
 
     # ── Counter (buffalo stands behind this, near back wall) ──────────────
     counter_x = sx - hw/2   # = -2.5, near back (-X) wall
-    detail((0.9, 1.2, sd-1.0), (counter_x, 0.6, sz), counter_c)
-    detail((1.15, 0.15, sd-0.8), (counter_x, 1.27, sz), countertop_c)
+    detail((0.9, 1.2, sd-1.0), (counter_x, 0.6, sz), counter_c, coll=True)
+    detail((1.15, 0.15, sd-0.8), (counter_x, 1.27, sz), countertop_c, coll=True)
 
     # ── Shelves on back wall (-X face) ────────────────────────────────────
     item_colors = [
@@ -465,18 +472,16 @@ def build_wife_house():
     # ── ground floor slab ─────────────────────────────────────────────
     fl((hw*2.1-0.6, 0.25, hd*2-0.6), (cx, 0.25, cz), ts=(6, 6))
 
-    # ── kitchen partition (partial wall, back half, ground floor) ─────
-    wall((hw - 2.2, h1*0.75, 0.4), (cx+hw/2+1.1, h1*0.375, cz+2.5), ts=(2, 2))
 
     # ── inter-floor slab with stair opening on north side ─────────────
     fl((hw*2-0.4, 0.3, hd*2-2.9), (cx, h1+0.15, cz-1.5), ts=(5, 4))
 
     # ── staircase along north interior (+Z side) ──────────────────────
-    n_steps   = 9
+    n_steps   = 18
     stair_run = (hw*2 - 2.5) / n_steps
     stair_rise = h1 / n_steps
     for i in range(n_steps):
-        sx = (cx - hw + 1.2) + (i + 0.5) * stair_run
+        sx = (cx - hw + 2.3) + (i + 0.5) * stair_run
         sy = stair_rise * i + stair_rise / 2
         stone((stair_run+0.05, stair_rise, 2.6), (sx, sy, cz+hd-1.7), ts=(1, 1), coll=True)
 
@@ -572,12 +577,6 @@ def build_wife_house():
         _dp.texture       = t_door
         _dp.texture_scale = (1, 1)
     _dp.name = 'wife_house_door'
-    # door knob
-    blk((0.18, 0.18, 0.18), (fx-0.08, door_h*0.46, hinge_z+(door_w-0.4)*0.82),
-        _rgb(210, 172, 50))
-    for dy in (door_h*0.26, door_h*0.65):
-        blk((0.15, door_h*0.30, 0.08),
-            (fx-0.06, dy, hinge_z+(door_w-0.4)*0.5), _rgb(75, 42, 12))
 
     # ── front yard ────────────────────────────────────────────────────
     blk((8.0, 0.06, hd*2+4.0), (ent_x-4.0, 0.03, cz), grass_c,
@@ -597,10 +596,6 @@ def build_wife_house():
     blk((1.5, 0.08, 0.85), (cx-1.5, 0.68, cz-0.65), _rgb(120, 80, 40))
     for tx, tz in ((-2.2,-0.95),(-0.8,-0.95),(-2.2,-0.35),(-0.8,-0.35)):
         blk((0.10, 0.62, 0.10), (cx+tx, 0.31, cz+tz), _rgb(100, 65, 30))
-    # kitchen counter along +X wall
-    blk((0.7, 1.0, hd-1.8), (cx+hw-0.4, 0.5, cz+hd/2+0.9),  _rgb( 95,  72,  50), coll=True)
-    blk((0.9, 0.08, hd-1.6),(cx+hw-0.4, 1.05, cz+hd/2+0.9), _rgb(220, 210, 195), coll=True)
-    blk((0.65, 0.12, 0.65), (cx+hw-0.42, 1.07, cz+hd-1.8),   _rgb(190, 200, 210))
     # dining table
     blk((1.8, 0.08, 1.0), (cx+1.5, 0.78, cz+2.8), _rgb(130, 90, 45))
     for tx, tz in ((-0.7,-0.4),(0.7,-0.4),(-0.7,0.4),(0.7,0.4)):
