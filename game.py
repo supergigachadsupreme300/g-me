@@ -300,25 +300,23 @@ def spawn_enemy_on_edge(count=4):
 
         rand = random.random()
 
-        if rand < 0.7:
-
+        if rand < 0.4:
             enemies.spawn_rat(Vec3(x, 1, z))
-
-        elif rand < 0.82:
-
+        elif rand < 0.6:
             enemies.spawn_grasshopper(Vec3(x, 1, z))
-
-        elif rand < 0.90:
-
+        elif rand < 0.7:
             enemies.spawn_wolf(Vec3(x, 1, z))
-
-        elif rand < 0.96:
-
+        elif rand < 0.8:
             enemies.spawn_thief(Vec3(x, 1, z))
-
-        else:
-
+            
+        elif rand < 0.88:
             enemies.spawn_sahur(Vec3(x, 1, z))
+        elif rand < 0.94:
+            enemies.spawn_zombie(Vec3(x, 1, z))
+        elif rand < 0.98:
+            enemies.spawn_dinosaur(Vec3(x, 1, z))
+        else:
+            enemies.spawn_mushroom(Vec3(x, 1, z))
 
 
 def spawn_projectile(position, direction):
