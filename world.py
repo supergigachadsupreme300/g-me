@@ -136,7 +136,11 @@ def spawn_rocks(num_rocks=100):
             x = random.randint(-int(GROUND_HALF) + 5, int(GROUND_HALF) - 5)
             z = random.randint(-int(GROUND_HALF) + 5, int(GROUND_HALF) - 5)
             # avoid player house area and road
-            if not is_on_road(Vec3(x, 0, z)) and (abs(x) > 8 or abs(z) > 8):
+            near_house      = abs(x) <= 9 and abs(z) <= 9
+            near_shop       = abs(x) <= 9 and 51 <= z <= 69
+            near_road       = 10 <= x <= 18
+            near_wife_house = 20 <= x <= 42 and abs(z) <= 10
+            if not near_house and not near_shop and not near_road and not near_wife_house:
                 break
         rock = Entity(model='cube', color=color.gray, scale=(2, 2, 2), position=(x, 1, z), collider='box')
         try:
