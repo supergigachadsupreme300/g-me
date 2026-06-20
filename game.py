@@ -875,15 +875,11 @@ def setup_game():
 
 
 def _marry_yes():
-    global game_paused
     rendering.show_marriage_menu(False)
     if world.player.money >= 10_000_000:
         world.player.money -= 10_000_000
         world.wife_married = True
-        game_paused = True
-        if crosshair:
-            crosshair.enabled = False
-        cutscene_manager.play_good_ending()
+        cutscene.request_happy_ending()
     else:
         needed = 10_000_000 - int(world.player.money)
         inventory.show_message(f'Not enough coins! You need {needed:,} more.', 3)

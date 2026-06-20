@@ -64,10 +64,9 @@ def update_building_preview(position, valid=True):
     if building_preview is None:
         return
     building = get_current_building()
-    rotated_size = get_rotated_size(building)
     building_preview.parent = None
     building_preview.world_position = position
-    building_preview.scale = rotated_size
+    building_preview.scale = building["size"]
     building_preview.rotation_y = current_rotation
     building_preview.color = color.rgba(0, 1, 0, 0.5) if valid else color.rgba(1, 0, 0, 0.5)
     building_preview.enabled = True
@@ -163,12 +162,12 @@ def _create_details(name, pos, size, rot):
         details.append(Entity(model='cube', color=roof_c,
                               scale=(panel_len, 0.55, d + overhang),
                               position=(x + ox, y + h/2 + rise/2, z + oz),
-                              rotation=(0, rot, -tilt)))
+                              rotation=(0, rot, tilt)))
         ox, oz = _lx(-half_w / 2, rot)
         details.append(Entity(model='cube', color=roof_c,
                               scale=(panel_len, 0.55, d + overhang),
                               position=(x + ox, y + h/2 + rise/2, z + oz),
-                              rotation=(0, rot, tilt)))
+                              rotation=(0, rot, -tilt)))
         # Ridge beam
         details.append(_detail((x, y+h/2+rise+0.08, z),
                                (0.65, 0.35, d+overhang+0.15), ridge_c, rot))
