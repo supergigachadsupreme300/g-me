@@ -1592,6 +1592,7 @@ def handle_input(key):
 
     # buffalo dialog callbacks removed; buffalo shop manages its own UI
 
-
-    select_slot(0)
+    # NOTE: do not force-select slot 0 on every input event — that caused
+    # numeric key selection to be overwritten. Selection is handled by
+    # explicit key branches above (number keys) and by item pickup logic.
 
