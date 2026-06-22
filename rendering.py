@@ -111,7 +111,7 @@ def setup_ui():
         t = Text(parent=quest_panel, text='', x=q_x, y=qy, origin=(-0.5, 0), scale=1.0, color=color.white)
         quest_lines.append(t)
         # small focus button on the right of each line
-        fb = Button(parent=quest_panel, text='Focus', x=0.28, y=qy, scale=(0.18, 0.08), color=color.dark_gray, highlight_color=color.azure)
+        fb = Button(parent=quest_panel, text='Focus', x=0.18, y=qy, scale=(0.18, 0.08), color=color.dark_gray, highlight_color=color.azure)
         # attach focus handler to update tasks and HUD
         try:
             fb.on_click = (lambda i=i: set_quest_focus(i))
