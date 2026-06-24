@@ -37,10 +37,14 @@ vendor_entity = None
 vendor_spawn_button = None
 vendors = []
 
+shop_root = None
+
 wife_door_pivot = None
 wife_door_open  = False
 wife_entity     = None
 wife_married    = False
+
+wife_root = None
 
 trees = []
 rocks = []
@@ -271,6 +275,9 @@ def build_house():
 
 
 def build_shop():
+    global shop_root
+    # create a root entity for the whole shop so all parts can be parented
+    shop_root = Entity(name='shop_root')
     # Shop center at (0, 0, 28) — north of house, entrance faces +X (toward road)
     sx, sz = 0, 60
     sw, sh, sd = 10, 4, 10
@@ -278,7 +285,7 @@ def build_shop():
     cy = sh / 2
 
     def detail(scale, pos, col):
-        return Entity(model='cube', color=col, scale=scale, position=pos)
+        return Entity(parent=shop_root, model='cube', color=col, scale=scale, position=pos)
 
     plaster_c    = color.rgb(242/255, 228/255, 198/255)
     roof_c       = color.rgb(55/255, 108/255, 50/255)
@@ -306,14 +313,14 @@ def build_shop():
     tilt      = math.degrees(math.atan2(rise, hw))
     overhang  = 1.3
 
-    Entity(model='cube', color=roof_c,
-           scale=(panel_len, 0.55, sd + overhang * 2),
-           position=(sx+hw/2, sh+rise/2, sz),
-           rotation=(0, 0, tilt))
-    Entity(model='cube', color=roof_c,
-           scale=(panel_len, 0.55, sd + overhang * 2),
-           position=(sx-hw/2, sh+rise/2, sz),
-           rotation=(0, 0, -tilt))
+    Entity(parent=shop_root, model='cube', color=roof_c,
+            scale=(panel_len, 0.55, sd + overhang * 2),
+            position=(sx+hw/2, sh+rise/2, sz),
+            rotation=(0, 0, tilt))
+    Entity(parent=shop_root, model='cube', color=roof_c,
+            scale=(panel_len, 0.55, sd + overhang * 2),
+            position=(sx-hw/2, sh+rise/2, sz),
+            rotation=(0, 0, -tilt))
     detail((0.62, 0.32, sd+overhang*2+0.2), (sx, sh+rise+0.08, sz), ridge_c)
     detail((0.5, 0.28, sd+overhang*2+0.2), (sx+hw, sh+0.05, sz), eave_c)
     detail((0.5, 0.28, sd+overhang*2+0.2), (sx-hw, sh+0.05, sz), eave_c)
@@ -385,6 +392,12 @@ def build_shop():
                 detail((0.3, 0.38, 0.3), (sx-hw+0.25, shelf_y, sz+dz),
                        item_colors[(si + j) % len(item_colors)])
 
+    # mark shop_root for easy lookup
+    try:
+        shop_root.is_shop = True
+    except Exception:
+        pass
+
 
 def create_vendor_spawn_button():
     global vendor_spawn_button
@@ -400,7 +413,10 @@ def create_vendor_spawn_button():
 
 
 def build_wife_house():
-    global wife_door_pivot, wife_door_open
+    global wife_door_pivot, wife_door_open, wife_root
+
+    # root entity for the wife house so all parts are grouped
+    wife_root = Entity(name='wife_house_root')
 
     cx, cz   = 33, 0
     hw, hd   = 7, 7
@@ -446,7 +462,7 @@ def build_wife_house():
     rail_c   = _rgb(220, 200, 170)
 
     def blk(scale, pos, col, coll=False, tex=None, ts=None):
-        e = Entity(model='cube', color=col, scale=scale, position=pos, unlit=True)
+        e = Entity(parent=wife_root, model='cube', color=col, scale=scale, position=pos, unlit=True)
         if tex:
             e.texture = tex
             if ts: e.texture_scale = ts
@@ -520,7 +536,7 @@ def build_wife_house():
     pan_z   = hd*2 + overhang*2
 
     for side, ang in ((+1, tilt), (-1, -tilt)):
-        rp = Entity(model='cube', color=roof_c,
+        rp = Entity(parent=wife_root, model='cube', color=roof_c,
                     scale=(pan_len, 0.68, pan_z),
                     position=(cx+side*hw/2, total_h+r_rise/2, cz),
                     rotation=(0, 0, ang), unlit=True)
@@ -573,7 +589,7 @@ def build_wife_house():
 
     # ── interactive door (cube + door.png texture) ────────────────────
     hinge_z = cz - door_w/2 + 0.19
-    wife_door_pivot = Entity(position=(ent_x, 0, hinge_z))
+    wife_door_pivot = Entity(parent=wife_root, position=(ent_x, 0, hinge_z))
     _dp = Entity(parent=wife_door_pivot, model='cube',
                  color=color.white if t_door else door_c,
                  scale=(0.13, door_h-0.01, door_w-0.4),
@@ -646,6 +662,7 @@ def build_wife_house():
         _wife_model_obj = load_model(cutscene.TETO_MODEL_PATH)
 
         wife = Entity(
+            parent=wife_root,
             model=_wife_model_obj,
             position=(_wx, _wy, _wz),
             rotation_y=0,
@@ -697,6 +714,13 @@ def spawn_buffalo():
     if texture is not None:
         buffalo.texture = texture
     buffalo.is_buffalo = True
+    # parent buffalo to shop_root if it exists so shop+buffalo form a single group
+    try:
+        global shop_root
+        if shop_root is not None:
+            buffalo.parent = shop_root
+    except Exception:
+        pass
 
 
 def build_road():
